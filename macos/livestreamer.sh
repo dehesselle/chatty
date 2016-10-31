@@ -7,7 +7,7 @@
 
 #--- setup environment
 ARGS="$*"
-STREAMLINK_DIR=$(dirname $0)/../Resources/streamlink
+STREAMLINK_DIR=$(dirname $0)/..
 STREAM=${ARGS#twitch.tv/}
 STREAM=${STREAM% *}
 export PYTHONPATH=$STREAMLINK_DIR/lib/python2.7/site-packages

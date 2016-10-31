@@ -19,7 +19,7 @@ You don't need to install Java and you can even watch streams without having to 
 ![alt-text](/macos/app_screenshot.png)
 
 ## Download
-Check the [releases](https://github.com/dehesselle/chattyosx/releases) page. I provide ready-to-use builds if you don't fancy doing it yourself.
+Check the [releases](https://github.com/dehesselle/chatty/releases) page. I provide ready-to-use builds if you don't fancy doing it yourself.
 
 ## Build
 You can build the standalone app yourself using `macos/build.sh`.

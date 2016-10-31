@@ -98,6 +98,8 @@ public class Chatty {
      * @param args The commandline arguments.
      */
     public static void main(String[] args) {
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
+
         Map<String, String> parsedArgs = MiscUtil.parseArgs(args);
         
         /**
@@ -216,11 +218,11 @@ public class Chatty {
     }
     
     public static String getSoundDirectory() {
-        return getWorkingDirectory()+"sounds"+File.separator;
+        return getWorkingDirectory().replace("Java/", "")+"Resources/sounds"+File.separator;
     }
     
     public static String getImageDirectory() {
-        return getWorkingDirectory()+"img"+File.separator;
+        return getWorkingDirectory().replace("Java/", "")+"Resources/img"+File.separator;
     }
     
     public static String getBackupDirectory() {

@@ -29,7 +29,6 @@ cd $WORK_DIR
 cp -r $REPO_DIR $WORK_DIR/chatty   # use local repository
 #git clone https://github.com/dehesselle/chatty.git   # use remote repository
 cd chatty
-git checkout v$CHATTY_VERSION
 ./gradlew release
 
 #--- download Streamlink

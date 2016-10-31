@@ -167,7 +167,7 @@ public class SettingsManager {
         //=================
         
         settings.addBoolean("ontop", false);
-        settings.addString("laf","default");
+        settings.addString("laf","system");
         
         settings.addLong("dialogFontSize", -1);
         
@@ -511,11 +511,11 @@ public class SettingsManager {
         //===============
         
         // Livestreamer
-        settings.addBoolean("livestreamer", false);
+        settings.addBoolean("livestreamer", true);
         settings.addString("livestreamerQualities", "Best, Worst, Select");
-        settings.addString("livestreamerCommand", "livestreamer");
+        settings.addString("livestreamerCommand", "../Resources/streamlink/bin/livestreamer");
         settings.addBoolean("livestreamerUseAuth", false);
-        settings.addBoolean("livestreamerShowDialog", true);
+        settings.addBoolean("livestreamerShowDialog", false);
         
         // Stream Highlights
         settings.addString("streamHighlightCommand", "!highlight");

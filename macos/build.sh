@@ -2,17 +2,22 @@
 #
 # https://github.com/dehesselle/chatty
 #
-# This script builds Chatty.app for macOS. It creates a temporary workspace
-# (as ramdisk) and does not touch anything outside it.
+# This script builds Chatty.app for macOS.
 #
-# Inside that workspace, here's whats going to happen:
-# - download and build Chatty from github sources
-# - install 'pip' and 'streamlink'
+#  - create a 512 MiB ramdisk as build directory
+#  - copy repository to build directory
+#  - build release using 'gradlew'
+#  - download Streamlink, copy launch script 'livestreamer'
+#  - create native application bundle using 'javapackager'
+#  - copy all resources to app's 'Resources' folder
+#  - modify version numbers in 'Info.plist'
 #
-# Attention: in its current state of development, this script won't run
-# out-of-the-box on your Mac. It uses 'wget', the gnu-version of 'readlink'
-# and also 'gradle' - those tools are not present on a vanilla OSX/macOS
-# installation (unless you've installed them by yourself).
+# Remarks (read: room for future improvements ;) )
+#  - In its current state of development, this script won't run
+#    out-of-the-box on your/any Mac. It depends on the the gnu-version of
+#    'readlink' and 'gradle' needs a working Java installation.
+#  - There's not really any kind of error-checking; this script will
+#    not gracefully abort if something isn't right, it'll just break.
 #
 
 #--- general settings

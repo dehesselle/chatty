@@ -3,13 +3,13 @@
 ## About
 Being a fan of Chatty myself, I wanted it to be a bit more Mac-like on macOS. The main goal was to create a self-contained app that doesn't require you to install any 3rd party software/runtimes.
 
-This fork will diverge from the original Chatty only in macOS specific regards.
+This fork tries to diverge from the original Chatty as little as possible, taking only macOS specific changes into account that are necessary.
 
-You can find the original readme [here](README-ORIGINAL.md).
+If you're completely new to Chatty, take a look at the [original readme](README-ORIGINAL.md).
 
 ## Features
 This is Chatty as you know and like it, just with a few additions:
-- macOS-specific changes (e.g. paths)
+- macOS specific changes (e.g. paths, menubar)
 - packaged as native macOS application bundle
 - includes JRE
 - includes Streamlink (successor to Livestreamer)

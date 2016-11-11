@@ -52,27 +52,16 @@ mkdir -p package/macosx
 cp $REPO_DIR/macos/Chatty.icns package/macosx
 javapackager -deploy -native image -srcfiles $WORK_DIR/chatty/build/libs/Chatty.jar -appclass chatty.Chatty -name Chatty -outdir $WORK_DIR/deploy -outfile Chatty -v
 
-cp -r $STREAMLINK_DIR $WORK_DIR/deploy/bundles/Chatty.app/Contents/Resources
-cp -r $WORK_DIR/chatty/assets/img $WORK_DIR/deploy/bundles/Chatty.app/Contents/Resources
-cp -r $WORK_DIR/chatty/assets/sounds $WORK_DIR/deploy/bundles/Chatty.app/Contents/Resources
+RESOURCE_DIR=$WORK_DIR/deploy/bundles/Chatty.app/Contents/Resources
+cp -r $STREAMLINK_DIR $RESOURCE_DIR
+cp -r $WORK_DIR/chatty/assets/img $RESOURCE_DIR
+cp -r $WORK_DIR/chatty/assets/sounds $RESOURCE_DIR
 
-function replace_after
-{
-   local file=$1
-   local key=$2
-   local value_old=$3
-   local value_new=$4
-
-   local line_no=$(grep -n $key $file | awk '{print $1}')
-   line_no=${line_no%?}   # remove last character (here: colon)
-   line_no=$((line_no+1))
-
-   sed -i "" "${line_no}s/${value_old}/${value_new}/" $file
-}
-
-replace_after $WORK_DIR/deploy/bundles/Chatty.app/Contents/Info.plist CFBundleShortVersionString 1.0 $CHATTY_VERSION
-replace_after $WORK_DIR/deploy/bundles/Chatty.app/Contents/Info.plist CFBundleVersion 1.0 $CHATTY_MACOS_BUILD
-replace_after $WORK_DIR/deploy/bundles/Chatty.app/Contents/Info.plist NSHumanReadableCopyright "Copyright (C) 2016" "Copyright (c) 2016 by tduva"
+INFO_PLIST=$WORK_DIR/deploy/bundles/Chatty.app/Contents/Info.plist
+/usr/libexec/PlistBuddy -c "Set CFBundleShortVersionString $CHATTY_VERSION" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Set CFBundleVersion $CHATTY_MACOS_BUILD" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright (c) 2016 by tduva'" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
 
 echo "Build complete."
 echo "$WORK_DIR/deploy/bundles/Chatty.app"

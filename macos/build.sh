@@ -21,7 +21,7 @@
 #
 
 #--- general settings
-REPO_DIR=$(dirname $(readlink -f $0))/..
+REPO_DIR=$(dirname $(greadlink -f $0))/..
 . $REPO_DIR/macos/version.sh   # include version information
 
 #--- create temporary workspace
@@ -60,7 +60,7 @@ cp -r $WORK_DIR/chatty/assets/sounds $RESOURCE_DIR
 INFO_PLIST=$WORK_DIR/deploy/bundles/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set CFBundleShortVersionString $CHATTY_VERSION" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set CFBundleVersion $CHATTY_MACOS_BUILD" $INFO_PLIST
-/usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright (c) 2016 by tduva'" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright (c) 2017 by tduva'" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
 
 echo "Build complete."

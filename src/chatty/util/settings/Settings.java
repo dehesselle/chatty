@@ -324,11 +324,13 @@ public class Settings {
      * @throws SettingNotFoundException if a setting with this name doesn't
      * exist or isn't a Map setting
      */
-    public void putMap(String settingName, Map map) {
+    public boolean putMap(String settingName, Map map) {
         synchronized (LOCK) {
             Map settingMap = getMapInternal(settingName);
+            boolean changed = !settingMap.equals(map);
             settingMap.clear();
             settingMap.putAll(map);
+            return changed;
         }
     }
     
@@ -633,6 +635,9 @@ public class Settings {
                     parameter.equals("on")) {
                 value = true;
             }
+            if (parameter.equals("!")) {
+                value = !getBoolean(setting);
+            }
             setBoolean(setting,value);
             return "Setting '"+setting+"' set to "+value+".";
         }
@@ -857,11 +862,11 @@ public class Settings {
         Path tempFile = Paths.get(fileName+"-temp");
         try (BufferedWriter writer = Files.newBufferedWriter(tempFile, CHARSET)) {
             writer.write(json);
+            MiscUtil.moveFile(tempFile, file);
         } catch (IOException ex) {
             LOGGER.warning("Error saving settings to file: "+ex);
             System.out.println("Error saving settings to file: "+ex);
         }
-        MiscUtil.moveFile(tempFile, file);
     }
 
     /**

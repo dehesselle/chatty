@@ -106,6 +106,8 @@ public class MainMenu extends JMenuBar {
         addCheckboxItem(titleOptions, "titleLongerUptime", "More Detailed Uptime");
         addCheckboxItem(titleOptions, "titleShowChannelState", "Channel State");
         addCheckboxItem(titleOptions, "titleShowViewerCount", "Viewer/Chatter Count");
+        titleOptions.addSeparator();
+        addCheckboxItem(titleOptions, "simpleTitle", "Simple Title");
         
         viewOptions.add(titleOptions);
         
@@ -145,6 +147,7 @@ public class MainMenu extends JMenuBar {
         addItem(extra,"dialog.subscribers","Subscribers");
         extra.addSeparator();
         addItem(extra,"dialog.moderationLog", "Moderation Log");
+        addItem(extra,"dialog.autoModDialog", "AutoMod");
         addItem(extra,"dialog.chatRules", "Chat Rules");
         extra.addSeparator();
         JMenu streamChat = new JMenu("Stream Chat");
@@ -159,7 +162,6 @@ public class MainMenu extends JMenuBar {
         
         extra.addSeparator();
         JMenu debugOptions = new JMenu("Options");
-        addCheckboxItem(debugOptions,"simpleTitle","Simple Title");
         addCheckboxItem(debugOptions,"globalHotkeysEnabled","Global Hotkeys");
         extra.add(debugOptions);
         if (Chatty.DEBUG) {

@@ -16,6 +16,7 @@ import chatty.util.api.usericons.Usericon;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.util.DateTime;
 import chatty.util.StringUtil;
+import chatty.util.api.CheerEmoticon;
 import chatty.util.api.CheersUtil;
 import chatty.util.api.Emoticon;
 import chatty.util.api.Emoticon.EmoticonImage;
@@ -243,7 +244,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
         print(getTimePrefix(), styles.info());
         
         MutableAttributeSet style;
-        if (message.user.nick.isEmpty()) {
+        if (message.user.getName().isEmpty()) {
             // Only dummy User attached (so no custom message attached as well)
             style = styles.info();
         } else {
@@ -610,12 +611,19 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
     }
     
     private User getUserFromLine(Element line) {
-        for (int j = 0; j < 10; j++) {
-            Element element = line.getElement(j);
+        return getUserFromElement(getUserElementFromLine(line));
+    }
+    
+    private Element getUserElementFromLine(Element line) {
+        for (int i = 0; i < 20; i++) {
+            if (i > line.getElementCount()) {
+                break;
+            }
+            Element element = line.getElement(i);
             User elementUser = getUserFromElement(element);
-            // If the User object matches, we're done
+            // If there is a User object, we're done
             if (elementUser != null) {
-                return elementUser;
+                return element;
             }
         }
         // No User object was found, so it's probably not a chat message
@@ -632,21 +640,13 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
      * @return 
      */
     private boolean isLineFromUserAndId(Element line, User user, String id) {
-        for (int j = 0; j < 20; j++) {
-            Element element = line.getElement(j);
-            User elementUser = getUserFromElement(element);
-            // If the User object matches, we're done
-            if (elementUser == user) {
-                if (id == null || id.equals(getIdFromElement(element))) {
-                    return true;
-                }
-            }
-            // Stop if any User object was found
-            if (elementUser != null) {
-                return false;
+        Element element = getUserElementFromLine(line);
+        User elementUser = getUserFromElement(element);
+        if (elementUser == user) {
+            if (id == null || id.equals(getIdFromElement(element))) {
+                return true;
             }
         }
-        // No User object was found, so it's probably not a chat message
         return false;
     }
     
@@ -673,7 +673,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
      * @param element
      * @return The ID element, or null if none was found
      */
-    private String getIdFromElement(Element element) {
+    public static String getIdFromElement(Element element) {
         if (element != null) {
             return (String)element.getAttributes().getAttribute(Attribute.ID);
         }
@@ -928,7 +928,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     if (currentSelection != null && doesLineExist(currentSelection)) {
-                        userListener.userClicked(currentUser, null);
+                        userListener.userClicked(currentUser, getCurrentId(), null);
                     }
                 }
             });
@@ -1106,6 +1106,13 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
                 highlightLine(element, false);
             }
         }
+        
+        private String getCurrentId() {
+            if (currentSelection != null) {
+                return getIdFromElement(getUserElementFromLine(currentSelection));
+            }
+            return null;
+        }
 
         /**
          * When a user is clicked while holding Ctrl down, then select that user
@@ -1115,7 +1122,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
          * @param e The MouseEvent of the click
          */
         @Override
-        public void userClicked(User user, MouseEvent e) {
+        public void userClicked(User user, String messageId, MouseEvent e) {
             if (e != null && ((e.isAltDown() && e.isControlDown()) || e.isAltGraphDown())) {
                 Element element = LinkController.getElement(e);
                 Element line = null;
@@ -1283,14 +1290,14 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
             userName = user.getCustomNick();
         }
         else if (styles.namesMode() == SettingsManager.DISPLAY_NAMES_MODE_USERNAME) {
-            userName = user.getNick();
+            userName = user.getName();
         }
         else if (styles.namesMode() != SettingsManager.DISPLAY_NAMES_MODE_CAPITALIZED
                 || user.hasRegularDisplayNick()) {
             userName = user.getDisplayNick();
         }
         else {
-            userName = user.getNick();
+            userName = user.getName();
         }
         
 //        if (user.hasCustomNickSet()
@@ -1343,7 +1350,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
                 fontSize = StyleConstants.getFontSize(style);
             }
             StyleConstants.setFontSize(style, fontSize);
-            print(" ("+user.getNick()+")", style);
+            print(" ("+user.getName()+")", style);
         }
         
         // Finish up
@@ -1671,7 +1678,7 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
         if (styles.showEmoticons()) {
             findEmoticons(text, user, ranges, rangesStyle, emotes);
             if (containsBits) {
-                findBits(text, ranges, rangesStyle);
+                findBits(main.emoticons.getCheerEmotes(), text, ranges, rangesStyle, user);
             }
         }
         
@@ -1865,7 +1872,6 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
     private void findEmoticons(User user, Set<Emoticon> emoticons, String text,
             Map<Integer, Integer> ranges, Map<Integer, MutableAttributeSet> rangesStyle) {
         // Find emoticons
-        Iterator<Emoticon> it = emoticons.iterator();
         for (Emoticon emoticon : emoticons) {
             // Check the text for every single emoticon
             if (!emoticon.matchesUser(user)) {
@@ -1890,34 +1896,42 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
         }
     }
     
-    private void findBits(String text,
+    private void findBits(Set<CheerEmoticon> emotes, String text,
             Map<Integer, Integer> ranges,
-            Map<Integer, MutableAttributeSet> rangesStyle) {
-        Matcher m = CheersUtil.PATTERN.matcher(text);
-        while (m.find()) {
-            int start = m.start();
-            int end = m.end() - 1;
-            try {
-                int bits = Integer.parseInt(m.group(1));
-                int bitsLength = m.group(1).length();
-                CheersUtil.CHEER cheer = CheersUtil.getCheerFromBits(bits);
-                if (cheer == null) {
-                    continue;
+            Map<Integer, MutableAttributeSet> rangesStyle,
+            User user) {
+        for (CheerEmoticon emote : emotes) {
+            if (!emote.matchesUser(user)) {
+                // CONTINUE
+                continue;
+            }
+            Matcher m = emote.getMatcher(text);
+            while (m.find()) {
+                int start = m.start();
+                int end = m.end() - 1;
+                try {
+                    int bits = Integer.parseInt(m.group(1));
+                    int bitsLength = m.group(1).length();
+                    if (bits < emote.min_bits) {
+                        // CONTINUE
+                        continue;
+                    }
+                    boolean ignored = main.emoticons.isEmoteIgnored(emote);
+                    if (!ignored && addEmoticon(emote, start, end - bitsLength, ranges, rangesStyle)) {
+                        // Add emote
+                        addFormattedText(emote.color, end - bitsLength + 1, end, ranges, rangesStyle);
+                    } else {
+                        // Add just text
+                        addFormattedText(emote.color, start, end, ranges, rangesStyle);
+                    }
+                } catch (NumberFormatException ex) {
+                    System.out.println("Error parsing cheer: " + ex);
                 }
-                Emoticon emote = main.emoticons.getCheerEmotes().get(cheer.image);
-                if (emote != null) {
-                    addEmoticon(emote, start, end-bitsLength, ranges, rangesStyle);
-                    addFormattedText(cheer.color, end-bitsLength+1, end, ranges, rangesStyle);
-                } else {
-                    //addFormattedText(cheer.color, start, end, ranges, rangesStyle);
-                }
-            } catch (NumberFormatException ex) {
-                System.out.println("Error parsing cheer: "+ex);
             }
         }
     }
     
-    private void addEmoticon(Emoticon emoticon, int start, int end,
+    private boolean addEmoticon(Emoticon emoticon, int start, int end,
             Map<Integer, Integer> ranges,
             Map<Integer, MutableAttributeSet> rangesStyle) {
         if (!inRanges(start, ranges) && !inRanges(end, ranges)) {
@@ -1929,8 +1943,10 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
                 // follow in a row)
                 attr.addAttribute("start", start);
                 rangesStyle.put(start, attr);
+                return true;
             }
         }
+        return false;
     }
     
     private void addFormattedText(Color color, int start, int end,
@@ -2053,6 +2069,10 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
     
     public void refreshStyles() {
         styles.refresh();
+    }
+    
+    public void setBufferSize(int size) {
+        styles.setBufferSize(size);
     }
 
     /**
@@ -2426,6 +2446,8 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
          * Store the timestamp format
          */
         private SimpleDateFormat timestampFormat;
+        
+        private int bufferSize = -1;
 
         /**
          * Icons that have been modified for use and saved into a style. Should
@@ -2875,13 +2897,22 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
         }
         
         public int bufferSize() {
+            if (bufferSize > 0) {
+                return bufferSize;
+            }
             return (int)numericSettings.get(Setting.BUFFER_SIZE);
+        }
+        
+        public void setBufferSize(int size) {
+            bufferSize = size;
         }
         
         public long namesMode() {
             return numericSettings.get(Setting.DISPLAY_NAMES_MODE);
         }
     }
+    
+
     
 }
 

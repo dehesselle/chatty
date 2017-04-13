@@ -4,6 +4,7 @@ package chatty.util.api;
 import chatty.Helper;
 import chatty.util.DateTime;
 import chatty.util.StringUtil;
+import chatty.util.api.CommunitiesManager.Community;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.logging.Logger;
@@ -35,7 +36,7 @@ public class StreamInfo {
      */
     private String display_name;
     
-    private long userId = -1;
+    private String userId;
     
     /**
      * Correctly capitalized name of the stream. May be null if not set.
@@ -47,6 +48,7 @@ public class StreamInfo {
     private String status = null;
     private String game = "";
     private int viewers = 0;
+    private Community community;
     private long startedAt = -1;
     private long lastOnline = -1;
     private long startedAtWithPicnic = -1;
@@ -411,12 +413,20 @@ public class StreamInfo {
         return !hasDisplayName() || capitalizedName != null;
     }
     
-    public synchronized boolean setUserId(long userId) {
-        if (this.userId != userId && userId != -1) {
+    public synchronized boolean setUserId(String userId) {
+        if (this.userId == null || (!this.userId.equals(userId) && userId != null)) {
             this.userId = userId;
             return true;
         }
         return false;
+    }
+    
+    public synchronized void setCommunity(Community community) {
+        this.community = community;
+    }
+    
+    public synchronized Community getCommunity() {
+        return community;
     }
     
     public synchronized void setNotFound() {

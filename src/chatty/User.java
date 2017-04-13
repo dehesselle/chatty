@@ -54,7 +54,9 @@ public class User implements Comparable {
     /**
      * The nick, all-lowercase.
      */
-    public final String nick;
+    private volatile String nick;
+    
+    private volatile String id;
     
     /**
      * The nick, could contain different case.
@@ -253,25 +255,28 @@ public class User implements Comparable {
     }
     
     public boolean maxNumberOfLinesReached() {
-        if (numberOfLines > MAXLINES) {
-            return true;
-        }
-        return false;
+        return numberOfLines > MAXLINES;
     }
     
     /**
      * Adds a single chatmessage with the current time.
      * 
      * @param line 
+     * @param action 
+     * @param id 
      */
-    public synchronized void addMessage(String line, boolean action) {
-        addLine(new TextMessage(System.currentTimeMillis(), line, action));
+    public synchronized void addMessage(String line, boolean action, String id) {
+        addLine(new TextMessage(System.currentTimeMillis(), line, action, id));
         numberOfMessages++;
         lastMessage = System.currentTimeMillis();
     }
     
     /**
      * Adds a single ban with the current time.
+     * 
+     * @param duration
+     * @param reason
+     * @param id
      */
     public synchronized void addBan(long duration, String reason, String id) {
         addLine(new BanMessage(System.currentTimeMillis(), duration, reason, id));
@@ -283,6 +288,10 @@ public class User implements Comparable {
     
     public synchronized void addModAction(String commandAndParameters) {
         addLine(new ModAction(System.currentTimeMillis(), commandAndParameters));
+    }
+    
+    public synchronized void addAutoModMessage(String line) {
+        addLine(new AutoModMessage(line));
     }
     
     /**
@@ -308,8 +317,18 @@ public class User implements Comparable {
         return new ArrayList<>(messages);
     }
     
-    public synchronized String getNick() {
+    public synchronized String getName() {
         return nick;
+    }
+    
+    public synchronized String getId() {
+        return id;
+    }
+    
+    public synchronized void setId(String id) {
+        if (id != null) {
+            this.id = id;
+        }
     }
     
     public synchronized String getDisplayNick() {
@@ -833,6 +852,7 @@ public class User implements Comparable {
         public static final int BAN = 1;
         public static final int SUB = 2;
         public static final int MOD_ACTION = 3;
+        public static final int AUTO_MOD_MESSAGE = 4;
         
         private final Long time;
         private final int type;
@@ -852,13 +872,15 @@ public class User implements Comparable {
     }
     
     public static class TextMessage extends Message {
-        private final String text;
-        private final boolean action;
+        public final String text;
+        public final boolean action;
+        public final String id;
         
-        public TextMessage(Long time, String message, boolean action) {
+        public TextMessage(Long time, String message, boolean action, String id) {
             super(MESSAGE, time);
             this.text = message;
             this.action = action;
+            this.id = id;
         }
         
         public String getText() {
@@ -904,6 +926,17 @@ public class User implements Comparable {
         public ModAction(Long time, String commandAndParameters) {
             super(MOD_ACTION, time);
             this.commandAndParameters = commandAndParameters;
+        }
+        
+    }
+    
+    public static class AutoModMessage extends Message {
+        
+        public final String message;
+        
+        public AutoModMessage(String message) {
+            super(AUTO_MOD_MESSAGE, System.currentTimeMillis());
+            this.message = message;
         }
         
     }

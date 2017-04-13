@@ -43,12 +43,15 @@ public class ChatLog {
     
     public ChatLog(Settings settings) {
         this.settings = settings;
-        
+
         Path path = getPath();
         if (path == null) {
             log = null;
         } else {
-            this.log = new LogManager(path);
+            String logSplit = settings.getString("logSplit");
+            boolean logSubdirectories = settings.getBoolean("logSubdirectories");
+            boolean lockFiles = settings.getBoolean("logLockFiles");
+            this.log = new LogManager(path, logSplit, logSubdirectories, lockFiles);
         }
         compactForChannels = new HashMap<>();
         try {
@@ -93,7 +96,7 @@ public class ChatLog {
             String line;
             String name = user.getFullNick();
             if (!user.hasRegularDisplayNick()) {
-                name += " ("+user.getNick()+")";
+                name += " ("+user.getName()+")";
             }
             if (action) {
                 line = timestamp()+"<"+name+">* "+message;
@@ -122,7 +125,7 @@ public class ChatLog {
                     data.args.isEmpty() ? "" : " "+StringUtil.join(data.args, " ")));
         }
     }
-    
+
     public void viewerstats(String channel, ViewerStats stats) {
         if (isTypeEnabled("Viewerstats") && isEnabled(channel)) {
             if (stats != null && stats.isValid()) {
@@ -166,7 +169,7 @@ public class ChatLog {
         }
         compact(channel, "BAN", text);
     }
-    
+
     public void compact(String channel, String type, String info) {
         if (isEnabled(channel)) {
             if ((type.equals("MOD") || type.equals("UNMOD")) && isTypeEnabled("Mod")

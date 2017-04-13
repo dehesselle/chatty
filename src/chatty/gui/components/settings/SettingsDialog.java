@@ -48,7 +48,8 @@ public class SettingsDialog extends JDialog implements ActionListener {
             "capitalizedNames", "correctlyCapitalizedNames", "ircv3CapitalizedNames",
             "tabOrder", "tabsMwheelScrolling", "inputFont",
             "bttvEmotes", "botNamesBTTV", "botNamesFFZ", "ffzEvent",
-            "logPath", "logTimestamp"
+            "logPath", "logTimestamp", "logSplit", "logSubdirectories",
+            "tabsPlacement", "tabsLayout", "logLockFiles"
     ));
     
     private final Set<String> reconnectRequiredDef = new HashSet<>(Arrays.asList(
@@ -92,6 +93,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
     private static final String PANEL_USERCOLORS = "Usercolors";
     private static final String PANEL_LOG = "Log to file";
     private static final String PANEL_WINDOW = "Window";
+    private static final String PANEL_TABS = "Tabs";
     private static final String PANEL_COMMANDS = "Commands";
     private static final String PANEL_OTHER = "Other";
     private static final String PANEL_ADVANCED = "Advanced";
@@ -99,7 +101,8 @@ public class SettingsDialog extends JDialog implements ActionListener {
     private static final String PANEL_COMPLETION = "Completion";
     private static final String PANEL_CHAT = "Chat";
     private static final String PANEL_NAMES = "Names";
-    
+    private static final String PANEL_MODERATION = "Moderation";
+
     private String currentlyShown;
     
     private final CardLayout cardManager;
@@ -111,6 +114,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
     private static final String[] MENU = {
         PANEL_MAIN,
         PANEL_MESSAGES,
+        PANEL_MODERATION,
         PANEL_CHAT,
         PANEL_EMOTES,
         PANEL_USERICONS,
@@ -124,6 +128,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
         PANEL_NOTIFICATIONS,
         PANEL_LOG,
         PANEL_WINDOW,
+        PANEL_TABS,
         PANEL_COMMANDS,
         PANEL_OTHER,
         PANEL_ADVANCED,
@@ -176,7 +181,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
         selection.setBorder(BorderFactory.createEtchedBorder());
 //        selection.setBackground(getBackground());
 //        selection.setForeground(getForeground());
-        
+
         gbc = makeGbc(0,0,1,1);
         gbc.insets = new Insets(10,10,10,3);
         gbc.fill = GridBagConstraints.BOTH;
@@ -188,6 +193,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
         cards = new JPanel(cardManager);
         cards.add(new MainSettings(this), PANEL_MAIN);
         cards.add(new MessageSettings(this), PANEL_MESSAGES);
+        cards.add(new ModerationSettings(this), PANEL_MODERATION);
         cards.add(new EmoteSettings(this), PANEL_EMOTES);
         imageSettings = new ImageSettings(this);
         cards.add(imageSettings, PANEL_USERICONS);
@@ -202,6 +208,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
         cards.add(usercolorSettings, PANEL_USERCOLORS);
         cards.add(new LogSettings(this), PANEL_LOG);
         cards.add(new WindowSettings(this), PANEL_WINDOW);
+        cards.add(new TabSettings(this), PANEL_TABS);
         cards.add(new CommandSettings(this), PANEL_COMMANDS);
         cards.add(new OtherSettings(this), PANEL_OTHER);
         cards.add(new AdvancedSettings(this), PANEL_ADVANCED);
@@ -211,7 +218,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
         cards.add(new ChatSettings(this), PANEL_CHAT);
         nameSettings = new NameSettings(this);
         cards.add(nameSettings, PANEL_NAMES);
-        
+
         currentlyShown = PANEL_MAIN;
         selection.addListSelectionListener(new ListSelectionListener() {
 
@@ -476,8 +483,10 @@ public class SettingsDialog extends JDialog implements ActionListener {
     private void saveMapSettings() {
         for (String settingName : mapSettings.keySet()) {
             MapSetting setting = mapSettings.get(settingName);
-            settings.putMap(settingName, setting.getSettingValue());
-            settings.setSettingChanged(settingName);
+            boolean changed = settings.putMap(settingName, setting.getSettingValue());
+            if (changed) {
+                settings.setSettingChanged(settingName);
+            }
         }
     }
     
@@ -507,8 +516,8 @@ public class SettingsDialog extends JDialog implements ActionListener {
         gbc.anchor = anchor;
         return gbc;
     }
-    
-        protected GridBagConstraints makeGbcSub(int x, int y, int w, int h, int anchor) {
+
+    protected GridBagConstraints makeGbcSub(int x, int y, int w, int h, int anchor) {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = x;
         gbc.gridy = y;
@@ -556,13 +565,6 @@ public class SettingsDialog extends JDialog implements ActionListener {
         return result;
     }
     
-//    protected JTextField addStringSetting(String name, int size, boolean editable) {
-//        JTextField result = new JTextField(size);
-//        result.setEditable(editable);
-//        stringSettings.put(name,result);
-//        return result;
-//   }
-    
     protected StringSetting addStringSetting(String settingName, StringSetting setting) {
         stringSettings.put(settingName, setting);
         return setting;
@@ -574,29 +576,16 @@ public class SettingsDialog extends JDialog implements ActionListener {
         return s;
     }
     
-    protected JPanel addEditorStringSetting(String settingName, int size, boolean editable, final String title, final boolean linebreaks, String info) {
-//        JPanel panel = new JPanel();
-//        ((FlowLayout)panel.getLayout()).setVgap(0);
-//        ((FlowLayout)panel.getLayout()).setHgap(2);
-//        final JTextField text = addSimpleStringSetting(settingName, size, editable);
-//        panel.add(text);
-//        JButton editButton = new JButton("Edit");
-//        editButton.setMargin(GuiUtil.SMALL_BUTTON_INSETS);
-//        panel.add(editButton);
-//        editButton.addActionListener(new ActionListener() {
-//
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                editor.setAllowEmpty(true);
-//                editor.setAllowLinebreaks(linebreaks);
-//                String result = editor.showDialog(title, text.getText());
-//                if (result != null) {
-//                    text.setText(result);
-//                }
-//            }
-//        });
-//        return panel;
-        EditorStringSetting s = new EditorStringSetting(this, title, size, true, linebreaks, info);
+    protected JPanel addEditorStringSetting(String settingName, int size,
+            boolean editable, final String title, final boolean linebreaks,
+            String info) {
+        return addEditorStringSetting(settingName, size, editable, title, linebreaks, info, null);
+    }
+    
+    protected JPanel addEditorStringSetting(String settingName, int size,
+            boolean editable, final String title, final boolean linebreaks,
+            String info, Editor.Tester tester) {
+        EditorStringSetting s = new EditorStringSetting(this, title, size, true, linebreaks, info, tester);
         addStringSetting(settingName, s);
         return s;
     }
@@ -689,8 +678,28 @@ public class SettingsDialog extends JDialog implements ActionListener {
         return result;
     }
     
-    protected StringTableEditor addMapSetting(String name, int width, int height) {
-        StringTableEditor table = new StringTableEditor(this);
+    protected SimpleTableEditor addStringMapSetting(String name, int width, int height) {
+        SimpleTableEditor<String> table = new SimpleTableEditor<String>(this) {
+
+            @Override
+            protected String valueFromString(String input) {
+                return input;
+            }
+        };
+        table.setPreferredSize(new Dimension(width, height));
+        mapSettings.put(name, table);
+        return table;
+    }
+    
+    protected SimpleTableEditor addLongMapSetting(String name, int width, int height) {
+        SimpleTableEditor<Long> table = new SimpleTableEditor<Long>(this) {
+
+            @Override
+            protected Long valueFromString(String input) {
+                return Long.valueOf(input);
+            }
+        };
+        table.setValueFilter("[^0-9]");
         table.setPreferredSize(new Dimension(width, height));
         mapSettings.put(name, table);
         return table;

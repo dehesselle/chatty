@@ -2,7 +2,6 @@
 package chatty.util.api;
 
 import chatty.Chatty;
-import chatty.util.api.TwitchApi.RequestType;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
@@ -33,41 +32,30 @@ public class TwitchApiRequest implements Runnable {
     private static final String CLIENT_ID = Chatty.CLIENT_ID;
     
     private String url;
-    private TwitchApi origin;
-    private RequestType type;
+    private TwitchApiRequestResult origin;
     private String token;
     private String data = null;
     private String encoding;
     private int responseCode = -1;
     private String requestMethod = "GET";
     private String contentType = "application/json";
-    private String apiVersion = "v3";
+    private String apiVersion = null;
     private String error;
-    
-    /**
-     * Construct a new request without a token.
-     * 
-     * @param origin
-     * @param type
-     * @param url 
-     */
-    public TwitchApiRequest(TwitchApi origin, RequestType type, String url) {
-        this(origin, type, url, null);
-    }
+    private String info;
     
     /**
      * Construct a new request with the given type, url and token. The token
      * can be null if no token should be used.
      * 
-     * @param origin
-     * @param type
      * @param url
-     * @param token 
+     * @param version
      */
-    public TwitchApiRequest(TwitchApi origin, RequestType type, String url, String token) {
+    public TwitchApiRequest(String url, String version) {
         this.url = url;
-        this.origin = origin;
-        this.type = type;
+        this.apiVersion = version;
+    }
+    
+    public void setToken(String token) {
         this.token = token;
     }
     
@@ -103,16 +91,22 @@ public class TwitchApiRequest implements Runnable {
     public void setContentType(String contentType) {
         this.contentType = contentType;
     }
+    
+    public void setInfo(String info) {
+        this.info = info;
+    }
+    
+    public void setOrigin(TwitchApiRequestResult origin) {
+        this.origin = origin;
+    }
 
     @Override
     public void run() {
+        if (origin == null) {
+            return;
+        }
         String result = getUrl(url);
-        if (token != null) {
-            origin.requestResult(type, url, result, responseCode, error, encoding, token);
-        }
-        else {
-            origin.requestResult(type, url, result, responseCode, error, encoding);
-        }
+        origin.requestResult(url, result, responseCode, error, encoding, token, info);
     }
     
     /**
@@ -123,6 +117,14 @@ public class TwitchApiRequest implements Runnable {
      * @return 
      */
     private String getUrl(String targetUrl) {
+        // Debug output
+        if (token != null) {
+            LOGGER.info(requestMethod + " (" + apiVersion + "): " + targetUrl + " "
+                    + "(using authorization)");
+        } else {
+            LOGGER.info(requestMethod + " (" + apiVersion + "): " + targetUrl);
+        }
+        
         Charset charset = Charset.forName("UTF-8");
         URL url;
         HttpURLConnection connection = null;
@@ -134,7 +136,9 @@ public class TwitchApiRequest implements Runnable {
             connection.setReadTimeout(READ_TIMEOUT);
         
             // Request properties
-            connection.setRequestProperty("Accept", "application/vnd.twitchtv."+apiVersion+"+json");
+            if (apiVersion != null) {
+                connection.setRequestProperty("Accept", "application/vnd.twitchtv."+apiVersion+"+json");
+            }
             connection.setRequestProperty("Accept-Encoding", "gzip");
             connection.setRequestProperty("Client-ID", CLIENT_ID);
             // Add token if necessary
@@ -153,13 +157,7 @@ public class TwitchApiRequest implements Runnable {
                 LOGGER.info("Sending data: "+data);
             }
 
-            // Whether token was used or not
-            if (token != null) {
-                LOGGER.info(connection.getRequestMethod()+" ("+apiVersion+"): "+targetUrl+" "
-                        + "(using authorization)");
-            } else {
-                LOGGER.info(connection.getRequestMethod()+" ("+apiVersion+"): "+targetUrl);
-            }
+            
             
             encoding = connection.getContentEncoding();
             //System.out.println(connection.getHeaderFields());
@@ -197,6 +195,12 @@ public class TwitchApiRequest implements Runnable {
                 connection.disconnect();
             }
         }
+    }
+    
+    public interface TwitchApiRequestResult {
+        
+        public void requestResult(String url, String result, int responseCode, String error, String encoding, String token, String info);
+        
     }
     
 }

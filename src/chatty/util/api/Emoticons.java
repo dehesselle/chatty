@@ -5,6 +5,7 @@ import chatty.Chatty;
 import chatty.Helper;
 import chatty.gui.emoji.EmojiUtil;
 import chatty.util.settings.Settings;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -99,7 +100,7 @@ public class Emoticons {
      */
     private final Set<Emoticon> globalTwitchEmotes = new HashSet<>();
     
-    private final Map<String, Emoticon> cheerEmotes = new HashMap<>();
+    private final CheersUtil cheers = new CheersUtil();
     
     /**
      * Only other (FFZ/BTTV) global emotes.
@@ -307,8 +308,19 @@ public class Emoticons {
         return globalTwitchEmotes;
     }
     
-    public Map<String, Emoticon> getCheerEmotes() {
-        return cheerEmotes;
+    public Set<CheerEmoticon> getCheerEmotes() {
+        return cheers.get();
+    }
+    
+    /**
+     * Get a String with all Cheer emoticons, or just Cheer emoticons specific
+     * to the given stream.
+     * 
+     * @param stream Only return emotes specific to this stream, or null for all
+     * @return 
+     */
+    public String getCheerEmotesString(String stream) {
+        return cheers.getString(stream);
     }
     
     public Set<Emoticon> getOtherGlobalEmotes() {
@@ -436,15 +448,6 @@ public class Emoticons {
     }
     
     /**
-     * Adds the given emote to the list of ignored emotes, by adding it's code.
-     * 
-     * @param emote The emote to ignore
-     */
-    public void addIgnoredEmote(Emoticon emote) {
-        addIgnoredEmote(emote.code);
-    }
-    
-    /**
      * Adds the given emote code to the list of ignored emotes.
      * 
      * @param emoteCode The emote code to add
@@ -461,6 +464,9 @@ public class Emoticons {
      * @return true if the emote is ignored, false otherwise
      */
     public boolean isEmoteIgnored(Emoticon emote) {
+        if (emote instanceof CheerEmoticon) {
+            return ignoredEmotes.contains(((CheerEmoticon)emote).getSimpleCode());
+        }
         return ignoredEmotes.contains(emote.code);
     }
     
@@ -782,7 +788,7 @@ public class Emoticons {
     public boolean isFavorite(Emoticon emote) {
         return favoritesNotFound.containsKey(emote.code) || favorites.containsValue(emote);
     }
-    
+
     /**
      * A favorite specifying the emote code, the emoteset and how often it
      * hasn't been found. The emote code and emoteset are required to find the
@@ -1125,21 +1131,16 @@ public class Emoticons {
         emoji.addAll(EmojiUtil.makeEmoticons(sourceId));
     }
     
-    public void addCheerEmotes(String type) {
-        cheerEmotes.clear();
-        if (type.equals("animated") || type.equals("static")) {
-            for (CheersUtil.CHEER c : CheersUtil.CHEER.values()) {
-                addCheerEmote(type, c.image, c.info);
-            }
-        }
+    public void setCheerEmotes(Set<CheerEmoticon> newCheerEmotes) {
+        cheers.add(newCheerEmotes);
+        LOGGER.info("Found "+newCheerEmotes.size()+" cheer emotes");
     }
     
-    private void addCheerEmote(String type, String color, String info) {
-        Emoticon.Builder b = new Emoticon.Builder(Emoticon.Type.TWITCH, "", "http://static-cdn.jtvnw.net/bits/light/"+type+"/");
-        b.setSubType(Emoticon.SubType.CHEER);
-        b.setStringId(color);
-        b.addInfo(info);
-        cheerEmotes.put(color, b.build());
+    public void setCheerState(String state) {
+        cheers.setState(state);
     }
     
+    public void setCheerBackground(Color color) {
+        cheers.setBackgroundColor(color);
+    }
 }

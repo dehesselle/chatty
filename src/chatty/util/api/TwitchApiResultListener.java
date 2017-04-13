@@ -2,9 +2,7 @@
 package chatty.util.api;
 
 import chatty.util.api.usericons.Usericon;
-import chatty.util.api.TwitchApi.RequestResult;
-import java.util.HashMap;
-import java.util.HashSet;
+import chatty.util.api.TwitchApi.RequestResultCode;
 import java.util.List;
 import java.util.Set;
 
@@ -15,12 +13,12 @@ import java.util.Set;
  */
 public interface TwitchApiResultListener {
     void receivedEmoticons(Set<Emoticon> emoticons);
+    void receivedCheerEmoticons(Set<CheerEmoticon> emoticons);
     void receivedUsericons(List<Usericon> icons);
-    void gameSearchResult(Set<String> games);
     void tokenVerified(String token, TokenInfo tokenInfo);
-    void runCommercialResult(String stream, String text, RequestResult result);
-    void putChannelInfoResult(RequestResult result);
-    void receivedChannelInfo(String channel, ChannelInfo info, RequestResult result);
+    void runCommercialResult(String stream, String text, RequestResultCode result);
+    void putChannelInfoResult(RequestResultCode result);
+    void receivedChannelInfo(String channel, ChannelInfo info, RequestResultCode result);
     void accessDenied();
     void receivedFollowers(FollowerInfo followerInfo);
     void newFollowers(FollowerInfo followerInfo);
@@ -49,4 +47,6 @@ public interface TwitchApiResultListener {
      * @param message 
      */
     void followResult(String message);
+    
+    void autoModResult(String result, String msgId);
 }

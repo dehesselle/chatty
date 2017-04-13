@@ -5,7 +5,7 @@
         <link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body>
-    <h1><a name="top">Chatty (Version: 0.8.4.1)</a></h1>
+    <h1><a name="top">Chatty (Version: 0.8.5)</a></h1>
     <table>
         <tr>
             <td valign="top">
@@ -32,6 +32,7 @@
                     <li><a href="#userselection">User Selection Mode</a></li>
                     <li><a href="#emoticons">Emoticons/Emote Dialog</a></li>
                     <li><a href="#pausechat">Pause Chat / One-click moderation</a></li>
+                    <li><a href="#automod">AutoMod</a></li>
                 </ul>
                 
                 <strong>Chat customization</strong>
@@ -117,6 +118,10 @@
     </ul>
     <p>You can toggle showing some information under <code>View - Options - Titlebar</code>.</p>
     
+    <p>Note that the stream status (title/game, offline) can take a few minutes
+        to update, since it has to be requested from the Twitch API (which is
+        also heavily cached).</p>
+    
     <h2>
         <a name="shortcuts">Shortcuts</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -156,62 +161,52 @@
         they are just there to show it's a parameter). Equivalently <code>[parameter]</code>
     represents an optional parameter.</p>
     
+    <p>You can also create your own <a href="help-custom_commands.html">Custom Commands &amp; Customized Context Menus</a>.</p>
+    
     <p><em>Tip:</em> You can also use TAB Completion for many commands.</p>
     
-    <p>Chat commands:</p>
+    <h3><a name="commands-chat">Chat commands:</a></h3>
     <ul>
-	    <li><code>/me &lt;message&gt;</code> - Send an action message (* nickname says something) to the channel</li>
-	    <li><code>/to &lt;nick&gt; [time] [reason]</code> - Timeout the user with the given nickname for "time" seconds (time is optional)</li>
-            <li><code>/timeout</code>, <code>/ban</code>, <code>/unban</code>,
+	<li><code>/me &lt;message&gt;</code> - Send an action message (* nickname says something) to the channel</li>
+	<li><code>/to &lt;nick&gt; [time] [reason]</code> - Timeout the user with the given nickname for "time" seconds (time is optional)</li>
+        <li><code>/timeout</code>, <code>/ban</code>, <code>/unban</code>,
                 <code>/slow</code>, <code>/slowoff</code>,
                 <code>/subscribers</code>, <code>/subscribersoff</code>,
                 <code>/clear</code>, <code>/mods</code>, <code>/host</code>,
                 <code>/unhost</code>, <code>/color</code>
                 just like in normal Twitch Chat</li>
-            <li><code>/join &lt;channel&gt;</code> - Joins the given channel</li>
-            <li><code>/part</code> or <code>/close</code> - Leaves the current channel</li>
-            <li><code>/reconnect</code> - Disconnects and reconnects</li>
-            <li><code>/fixMods</code> - Temporarily fixes the list of mods (like
+        <li><code>/join &lt;channel&gt;</code> - Joins the given channel</li>
+        <li><code>/part</code> or <code>/close</code> - Leaves the current channel</li>
+        <li><code>/reconnect</code> - Disconnects and reconnects</li>
+        <li><code>/fixMods</code> - Temporarily fixes the list of mods (like
                 <code>/mods</code> but without showing the list of mods in chat)</li>
-            <li><code>/ignore &lt;user&gt;</code>, <code>/unignore &lt;user&gt;</code> - To ignore/unignore user (chat and whisper)</li>
-            <li><code>/ignoreChat</code>, <code>/unignoreChat</code>, <code>/ignoreWhisper</code>, <code>/unignoreWhisper</code>
+        <li><code>/ignore &lt;user&gt;</code>, <code>/unignore &lt;user&gt;</code> - To ignore/unignore user (chat and whisper)</li>
+        <li><code>/ignoreChat</code>, <code>/unignoreChat</code>, <code>/ignoreWhisper</code>, <code>/unignoreWhisper</code>
                 - To ignore/unignore user only from chat/whispering you</li>
-    </ul>
-    <p>Info commands:</p>
-    <ul>
-            <li><code>/connection</code> - Show info about the current connection</li>
-            <li><code>/uptime</code> - Shows how long Chatty has been running</li>
-            <li><code>/appinfo</code> - Shows Chatty uptime and current memory stats</li>
-	    <li><code>/dir</code> - Show the directory the settings (and other stuff) are saved in</li>
-            <li><code>/wdir</code> - Show the current working directory</li>
-            <li><code>/openDir</code> - Opens the settings directory in your file browser</li>
-            <li><code>/openWdir</code> - Opens the current working directory in your file browser</li>
-            <li><code>/testNotification [channel]</code> - Display a test notification (optionally with channel,
-            which means right-clicking on the notification will join that channel)</li>
-            <li><code>/myemotes</code> - Show your subscriber emote codes (only works if you
-            have joined any channel before, this is only a quick info, better emote
-            integration maybe to be implemented later)</li>
-            <li><code>/ffz</code>, <code>/ffzGlobal</code> - Shows the FFZ channel emote codes for the current channel/global FFZ emotes</li>
-            <li><code>/releaseinfo</code> - Opens the help with the release information</li>
+        <li><code>/clearchat</code> - Clears the current chat window of all text</li>
+        <li><code>/connection</code> - Show info about the current connection</li>
     </ul>
     
-    <p>Other commands:</p>
+    <p><em>Tip:</em> You can circumvent Chatty commands and send Twitch Chat commands
+        directly by prepending them with a dot <code>.</code> instead of a slash,
+        for example: <code>.mods</code>.</p>
+    
+    <h3><a name="commands-settings">Settings/Customization commands:</a></h3>
     <ul>
-        <li><code>/clearchat</code> - Clears the current chat window of all text</li>
+        <li><a href="#settings">Setting commands</a></li>
         <li><code>/setcolor &lt;name&gt;</code> - Opens the usercolor settings
         for the given name</li>
-        <li><code>/echo &lt;text&gt;</code> - Outputs the given text as a info message</li>
         <li><a href="#addressbook">Addressbook commands</a></li>
-        <li><a href="#settings">Setting commands</a></li>
         <li><a href="#streamhighlights">Stream Highlights commands</a></li>
         <li><a href="#streamchat">Stream Chat commands</a></li>
-        <li><code>/copy</code> - Copies the given text to the clipboard</li>
         <li><code>/follow [user]</code>, <code>/unfollow [user]</code> - Follow
             or unfollow the given user, or the current channel if no user is given</li>
     </ul>
     
-    <p>GUI commands:</p>
+    <h3><a name="commands-gui">GUI commands:</a></h3>
     <ul>
+        <li><code>/echo &lt;text&gt;</code> - Outputs the given text as a info message</li>
+        <li><code>/copy</code> - Copies the given text to the clipboard</li>
         <li><code>/settings</code>, <code>/livestreams</code>, <code>/channeladmin</code>,
             <code>/channelinfo</code>, <code>/search</code>, <code>/openFollowers</code>,
             <code>/openSubscribers</code> - Opens the according dialog</li>
@@ -220,15 +215,19 @@
             in a menu)</li>
         <li><code>/insertword &lt;text&gt;</code> - Same as <code>/insert</code>,
             but adds spaces so it's seperated from text before and after (if present)</li>
-        <li><code>/openUrl &lt;url&gt;</code> - Opens the given url</li>
-        <li><code>/openUrlPrompt &lt;url&gt;</code> - Open the given url after
+        <li><code>/openUrl &lt;url&gt;</code> - Opens the given url (see <a href="help-setting_commands.html#openurl">Open URL Command settings</a>)</li>
+        <li><code>/openUrlPrompt &lt;url&gt;</code> - Opens the given url after
         showing a prompt for confirmation</li>
     </ul>
     
-    <p>Advanced commands (<em>not recommended for use unless you know what you do</em>):</p>
+    <h3><a name="commands-system">Housekeeping/System commands:</a></h3>
     <ul>
-        <li><code>/server &lt;host&gt;[:port]</code> - Connect to a custom server</li>
-        <li><code>/raw &lt;command&gt;</code> - Send a raw command to the server</li>
+        <li><code>/uptime</code> - Shows how long Chatty has been running</li>
+        <li><code>/appinfo</code> - Shows Chatty uptime and current memory stats</li>
+	<li><code>/dir</code> - Show the directory the settings (and other stuff) are saved in</li>
+        <li><code>/wdir</code> - Show the current working directory</li>
+        <li><code>/openDir</code> - Opens the settings directory in your file browser</li>
+        <li><code>/openWdir</code> - Opens the current working directory in your file browser</li>
         <li><code>/refresh &lt;emoticons/badges/ffz/ffzglobal/bttvemotes/emotesets&gt;</code>
             - Refresh the given data from it's respective API:
             <ul>
@@ -241,9 +240,33 @@
                     channel name, to display Twitch Subemotes info correctly
                     (twitchemotes.com API)</li>
             </ul>
-            <em>This downloads the lists from the Internet, so don't use this
-            unless you need to (it's basicially like pressing reload in your
-            browser, just only for some stuff).</em></li>
+            <em>This downloads the lists from the Internet, which may be useful
+                if new emotes have been added (it's basicially like pressing
+                reload in your browser, but only for some select stuff per command).</em></li>
+        <li><code>/releaseinfo</code> - Opens the help with the release information</li>
+        <li><code>/myemotes</code> - Show your subscriber emote codes (only works if you
+            have joined any channel before, this is only a quick info, better emote
+            integration maybe to be implemented later)</li>
+        <li><code>/ffz</code>, <code>/ffzGlobal</code> - Shows the FFZ channel emote codes for the current channel/global FFZ emotes</li>
+    </ul>
+    
+    <h3><a name="commands-test">Test commands:</a></h3>
+    <ul>
+        <li><code>/testNotification [channel]</code> - Display a test notification (optionally with channel,
+            which means right-clicking on the notification will join that channel)</li>
+        <li><code>/debug simulate &lt;type&gt;</code> - Simulates a chat message
+            for testing. Some possible types: <code>sub</code>, <code>resub</code>,
+            <code>bits</code>, <code>authost</code>.
+        </li>
+        <li><code>/debug</code> allows for a number of debug commands to be run,
+            but those may produce errors and strange behaviour, so you usually
+            shouldn't mess around with it.</li>
+    </ul>
+    
+    <h3><a name="commands-advanced">Advanced commands (<em>be careful with these</em>):</a></h3>
+    <ul>
+        <li><code>/server &lt;host&gt;[:port]</code> - Connect to a custom server</li>
+        <li><code>/raw &lt;command&gt;</code> - Send a raw command to the server</li>
         <li><code>/changetoken &lt;token&gt;</code> - Checks if the given token
             is valid and sets it as new token if it is</li>
     </ul>
@@ -996,6 +1019,50 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         or else misclicks could be very common.</p>
     
     <h2>
+        <a name="automod">AutoMod</a>
+        <a href="#top" class="top">[back to menu]</a>
+    </h2>
+    <p><a href="https://help.twitch.tv/customer/portal/articles/2662186-how-to-use-automod">AutoMod</a>
+        is a Twitch feature that filters messages before they are send to the
+        chat clients. As mod in the channel you can review and either approve
+        or deny those filtered messages. In Chatty this can be done via
+        <code>Extra - AutoMod</code>.</p>
+    
+    <p>In the dialog you will see filtered messages of the current channel (if
+        you are mod). Open the context menu on a message (usually right-click)
+        to approve or deny that message. Double-click on a message to open the
+        User Info Dialog for that user to be able to see his previous messages
+        or ban/timeout the user.</p>
+    
+    <p>Shortcuts available when you have a message selected:</p>
+    <ul>
+        <li><kbd>A</kbd> to approve, <kbd>D</kbd> to deny message</li>
+        <li><kbd>W</kbd> to move up in the list, <kbd>Alt+W</kbd> to jump over
+            already handled messages</li>
+        <li><kbd>S</kbd> to move down in the list, <kbd>Alt+S</kbd> to jump over
+            already handled messages</li>
+    </ul>
+    
+    <p>Messages can have different prefixes depending on their status:</p>
+    <ul>
+        <li>No prefix - The message has not been approved/denied yet</li>
+        <li><code>Approved</code> - You have approved the message</li>
+        <li><code>Denied</code> - You have denied the message</li>
+        <li><code>Handled</code> - The message has been handled already,
+            probably by another mod (the API does not return whether it's been
+            approved or denied)</li>
+        <li><code>Pending</code> - Your action is being sent to the Twitch API</li>
+        <li><code>N/A</code> - The message is no longer available to be
+            approved or denied (this seems to be the case after a few minutes)</li>
+        <li><code>Error</code> - An error occured sending your action to the
+            Twitch API</li>
+    </ul>
+    
+    <p>Messages that have already been handled or that are older than 5 minutes
+        (and can thus <em>probably</em> not be approved/denied anymore) are
+        shown greyed out.</p>
+    
+    <h2>
         <a name="channelinfo">Channel Info / History</a>
         <a href="#top" class="top">[back to menu]</a>
     </h2>
@@ -1224,17 +1291,28 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     
     <h3>Allow your moderators to add highlights</h3>
     <p>You can also let your moderators add stream highlights
-        (<code>!highlight [comment]</code>), but you first have to
-        change some <a href="help-setting_commands.html#streamhighlights">settings</a>:</p>
+        (<code>!highlight [comment]</code>), but you first have to set the channel with a
+        <a href="help-setting_commands.html#streamhighlights">setting command</a>:</p>
     
-    <ul>
-        <li><code>/set streamHighlightChannel #&lt;yourchannelname&gt;</code> to
-        allow moderators in the given channel to run the command</li>
-        <li><code>/set streamHighlightChannelRespond 1</code> to send a response to
-        chat when the mod command is used (otherwise the message is just shown locally)</li>
-        <li><code>/set streamHighlightCommand !highlight</code> to set <code>!highlight</code>
-        as mod command</li>
-    </ul>
+    <dl class="defList">
+        <dt><code>/set streamHighlightChannel #&lt;yourchannelname&gt;</code></dt>
+        <dd>Allows moderators in the given channel to run the command.</dd>
+        <dd>For example if your channel/stream is called <code>zoton2</code> the
+            command you have to enter would be: <code>/set&nbsp;streamHighlightChannel&nbsp;#zoton2</code></dd>
+    </dl>
+    
+    <p>Optionally you can also set the following settings:</p>
+    <dl class="defList">
+        <dt><code>/set streamHighlightChannelRespond 1</code></dt>
+        <dd>Send a response to chat when the mod command is used (otherwise the
+            message is just shown locally).</dd>
+        <dt><code>/set streamHighlightCommand !highlight</code></dt>
+        <dd>Change the mod command (in this example to <code>!highlight</code>,
+            which is the default)</dd>
+    </dl>
+    
+    <p><em>Tip:</em> <a href="help-setting_commands.html">Setting commands</a>
+        are entered into the chat input box, just like Twitch Chat commands.</p>
 
     <h2>
         <a name="ignoreJoinsParts">Ignore joins/parts</a>
@@ -1396,6 +1474,8 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <li>Thanks to <a href="http://java-sl.com">java-sl.com</a> for some nice articles.</li>
         <li>Thanks to <a href="http://twitchemotes.com">Twitchemotes.com</a> for
             their <a href="http://twitchemotes.com/api/sets">Emoteset API endpoint</a>.</li>
+        <li>Thanks to <a href="https://frankerfacez.com">FrankerFaceZ</a> for
+            their Emotes/APIs and support</li>
         <li>Thanks to <a href="http://www.nightdev.com">Nightdev</a> for allowing the use
             of the <a href="http://www.nightdev.com/betterttv/">BetterTTV</a> emotes.</li>
     </ul>

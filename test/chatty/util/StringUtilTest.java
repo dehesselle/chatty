@@ -1,6 +1,8 @@
 
 package chatty.util;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -9,7 +11,6 @@ import static org.junit.Assert.*;
  * @author tduva
  */
 public class StringUtilTest {
-    
     
     @Test
     public void testRemoveLinebreakCharacters() {
@@ -39,8 +40,26 @@ public class StringUtilTest {
         assertEquals(StringUtil.append("abc", "", "abc"), "abcabc");
         assertEquals(StringUtil.append(null, "|", "b"), "b");
         assertEquals(StringUtil.append("", "|", "b"), "b");
-        assertEquals(StringUtil.append("abc", "|", null), "abc|null");
+        assertEquals(StringUtil.append("abc", "|", null), "abc");
         assertEquals(StringUtil.append("abc", null, "abc"), "abcnullabc");
         assertEquals(StringUtil.append(null, null, null), null);
     }
+    
+    @Test
+    public void testJoin() {
+        Collection<String> list = new ArrayList<>();
+        list.add("a");
+        list.add("b");
+        list.add("c");
+        assertEquals(StringUtil.join(list, " "), "a b c");
+        assertEquals(StringUtil.join(list, ", "), "a, b, c");
+        assertEquals(StringUtil.join(list, ", ", 1), "b, c");
+        assertEquals(StringUtil.join(list, ", ", 0, 2), "a, b");
+        assertEquals(StringUtil.join(list, ", ", -1, 2), "a, b");
+        assertEquals(StringUtil.join(list, ", ", 1, 2), "b");
+        assertEquals(StringUtil.join(list, ", ", 3), "");
+        list.add(" d");
+        assertEquals(StringUtil.join(list, ", "), "a, b, c,  d");
+    }
+    
 }

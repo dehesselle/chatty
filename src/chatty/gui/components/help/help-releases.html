@@ -15,6 +15,7 @@
     <h1><a name="top">Release Information</a></h1>
     
     <p>
+        <a href="#0.8.5">0.8.5</a> |
         <a href="#0.8.4.1">0.8.4.1</a> |
         <a href="#0.8.4">0.8.4</a> |
         <a href="#0.8.3">0.8.3</a> |
@@ -43,7 +44,74 @@
     full list of changes.</p>
     
     <h2>
-        <a name="0.8.4.1">Version 0.8.4.1</a> <a name="latest">(This one!)</a> (2016-10-29)
+        <a name="0.8.5">Version 0.8.5</a> <a name="latest">(This one!)</a> (2017-04-12)
+        <a href="#top" class="top">[back to top]</a>
+    </h2>
+    <p>Custom Commands got a major overhaul in this version, which means that
+        some of the Custom Commands you are using may have to be fixed (although
+        it should be mostly backwards-compatible). Both Custom Commands and
+        adding them to the Context Menus/User Dialog has become more flexible
+        (for example you can add custom submenus, define commands directly in
+        the menu and move/remove the Mod/Unmod button in the User Dialog). Check
+        out the <a href="help-custom_commands.html">updated help</a> if you want
+        to learn more about it.</p>
+    
+    <p>Also featured in this version is support for Communities in the Admin
+        Dialog. As with games Communities can be favorited and are integrated
+        into the Presets.</p>
+    
+<pre>
+### New features
+- Admin Dialog: Added support for setting a Community
+- Added AutoMod dialog (Extra - AutoMod) to approve/deny messages
+- User Dialog: Added ban reasons
+- Added support for Cheer emoticons
+- Added Follower-Only mode support
+- Added "/untimeout" command
+- Added Window Standalone Bundle (no installed Java required)
+
+### Other changes
+- Moved to v5 of the Twitch API
+- Only show 2x size of GIF emotes if scaling is 160% or higher
+- Allow "!highlight" command to be executed locally as well
+- Improved URL parsing a bit
+
+### Settings
+- Added automatic Chat Log splits (daily, weekly, monthly) and channel
+  directories settings
+- Added setting to disable Chat Log file locking
+- Changed line spacing setting defaults
+- Changed Ignore Mode default to "Hide"
+- Further attempts to improve reliability of saving settings
+- Added "maxReconnectionAttempts" setting (commands only)
+- Added setting for placement of the Tabs
+- Added setting for per-Tab Chat Buffer
+- Added "/set" command special value "!" to toggle boolean settings
+- Extended Emote Ignore feature to Cheer Emoticons
+- Moved "Simple Title" setting to Titlebar options submenu
+- Reorganized Settings Dialog a bit
+
+### Custom Commands
+- New parser which may require changes to some existing Custom Commands
+- Added some simple functions for more flexibility (like $if to check if a
+  parameter exists)
+- Changed format of Custom Menus to support defining commands directly in the
+  menu setting as well as custom submenus
+- Changed format of User Dialog Buttons to support adding several rows of
+  buttons, as well as moving/removing the Mod/Unmod button
+- Added "Test" button to some settings to check format of commands and show a
+  limited preview of Custom Menus
+- Added replacements for stream info (title, game, viewers, ..)
+
+### Bugfixes
+- Fixed "/refresh bttvemotes" command when not on a channel
+- Further improved GIF rendering
+- Fixed rare error in Webserver
+- Fixed some Settings Dialog bugs
+</pre>
+    
+    <h2>
+        <a name="0.8.4.1">Version 0.8.4.1</a> (2016-10-29)
         <a href="#top" class="top">[back to top]</a>
     </h2>
     <p>With the new experimental Message Spacing setting (<code>Settings - Main</code>)

@@ -15,23 +15,32 @@
         <a name="commands">Commands</a>
         <a href="#top" class="top">[back to menu]</a>
     </h2>
-    <ul>
-        <li><code>/set &lt;setting&gt; &lt;value&gt;</code> changes a setting</li>
-        <li><code>/get &lt;setting&gt;</code> shows the current value of a
-            setting</li>
-        <li><code>/reset &lt;setting&gt;</code> resets the setting to the
-            default (hard-coded) value</li>
-        <li><code>/clearsetting &lt;setting&gt;</code> sets string settings to
-            an empty string</li>
-        <li><code>/add &lt;setting&gt; &lt;value&gt;</code> adds item to a list
-            of strings/numbers</li>
-        <li><code>/remove &lt;setting&gt; &lt;value&gt;</code> removes item from
-            a list of strings/numbers</li>
-    </ul>
-            
-            <p><em>Tip:</em> You can use <a href="help.html#nickCompletion">TAB Completion</a>
-                for setting names when using it behind a setting command.</p>
-            
+    <dl class="defList">
+        <dt><code>/set &lt;setting&gt; &lt;value&gt;</code></dt>
+        <dd>Changes the value of a setting.</dd>
+        <dd>For Boolean settings you can use <code>true</code>, <code>1</code>
+                or <code>on</code> to enable the setting, <code>!</code> to
+                toggle it and any other value to disable it.</dd>
+        
+        <dt><code>/get &lt;setting&gt;</code></dt>
+        <dd>Shows the current value of a setting.</dd>
+        
+        <dt><code>/reset &lt;setting&gt;</code></dt>
+        <dd>Resets the setting to the default (hard-coded) value.</dd>
+        
+        <dt><code>/clearsetting &lt;setting&gt;</code></dt>
+        <dd>Sets String (text) settings to an empty String.</dd>
+        
+        <dt><code>/add &lt;setting&gt; &lt;value&gt;</code></dt>
+        <dd>Adds an item to a list setting.</dd>
+        
+        <dt><code>/remove &lt;setting&gt; &lt;value&gt;</code></dt>
+        <dd>Removes an item from a list setting.</dd>
+    </dl>
+
+    <p><em>Tip:</em> You can use <a href="help.html#nickCompletion">TAB Completion</a>
+        for setting names when using it behind a setting command.</p>
+
     <h2>
         <a name="settings">Settings</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -61,7 +70,8 @@
         <a href="#streamhighlights">Stream Highlights</a> |
         <a href="#debugging">Debugging</a> |
         <a href="#bots">Bot Badges</a> |
-        <a href="#cm">Copy Messages</a>
+        <a href="#cm">Copy Messages</a> |
+        <a href="#openurl">Open URL Command</a>
     </p>
             <table class="settings" style="border-collapse: collapse;">
                 <tr style="border-bottom: 1px solid #EEE">
@@ -278,6 +288,16 @@
                     <td class="settingDefault"><em>empty</em></td>
                     <td>If set, overrides the <code>defaultPort</code>, can be
                     set by commandline options, not saved in between sessions</td>
+                </tr>
+                <tr class="settingExclusive">
+                    <td class="setting">maxReconnectionAttempts</td>
+                    <td>Integer</td>
+                    <td>How many times Chatty will attempt to reconnect when
+                        connecting fails</td>
+                    <td class="settingDefault">40</td>
+                    <td>You can set a negative value (for example -1) to have no
+                        limit on the number of reconnection attempts. <em>Requires a
+                        restart of Chatty after changing to take any effect.</em></td>
                 </tr>
                 <tr>
                     <td class="setting">username</td>
@@ -571,6 +591,39 @@
                     <td>Only copy highlighted messages.</td>
                 </tr>
             </table>
+            
+            
+            <h3><a name="openurl">Open URL Command</a></h3>
+            <table class="settings">
+                <tr style="border-bottom: 1px solid #EEE">
+                    <th>Setting</th>
+                    <th>Type</th>
+                    <th>Values</th>
+                    <th>Default</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td class="settingExclusive">urlCommandEnabled</td>
+                    <td colspan="2">Boolean</td>
+                    <td>false</td>
+                    <td>Enable using the command set with <code>urlCommand</code>.</td>
+                </tr>
+                <tr>
+                    <td class="settingExclusive">urlCommand</td>
+                    <td>String</td>
+                    <td>OS command to open URL (for example xdg-open on Linux)</td>
+                    <td><em>empty</em></td>
+                    <td>Used to customize with which command/program to open an
+                        URL.</td>
+                </tr>
+            </table>
+            
+            <p>This can be useful if Java doesn't use your default browser, or
+                you want to use a different program. The URL to open
+                automatically gets appended to the command set here and the
+                whole thing gets executed in the OS. For example if you set this
+                to <code>xdg-open</code> and <code>/openUrl https://twitch.tv</code>
+                then <code>xdg-open https://twitch.tv</code> will get executed.</p>
 </body>
 </html>
 

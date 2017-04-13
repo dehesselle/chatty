@@ -72,6 +72,7 @@ public class Helper {
     }
     
     public static String USERNAME_REGEX = "[a-zA-Z0-9_]+";
+    public static String USERNAME_REGEX_STRICT = "[a-zA-Z0-9][a-zA-Z0-9_]+";
     
     /**
      * Kind of relaxed valiadation if a channel, which can have a leading # or
@@ -110,6 +111,14 @@ public class Helper {
         try {
             return stream.matches("(?i)^"+USERNAME_REGEX+"$");
         } catch (PatternSyntaxException | NullPointerException ex) {
+            return false;
+        }
+    }
+    
+    public static boolean validateStreamStrict(String stream) {
+        try {
+            return stream.matches("(?i)^"+USERNAME_REGEX_STRICT+"$");
+        } catch (Exception ex) {
             return false;
         }
     }
@@ -169,6 +178,21 @@ public class Helper {
             return channel.substring(1);
         }
         return channel;
+    }
+    
+    public static String toValidStream(String channel) {
+        if (!validateChannel(channel)) {
+            return null;
+        }
+        return toStream(channel);
+    }
+    
+    public static String[] toStream(String[] channels) {
+        String[] result = new String[channels.length];
+        for (int i=0;i<channels.length;i++) {
+            result[i] = toStream(channels[i]);
+        }
+        return result;
     }
     
     /**
@@ -263,6 +287,7 @@ public class Helper {
     private static final Replacer HTMLSPECIALCHARS_ENCODE;
     private static final Replacer HTMLSPECIALCHARS_DECODE;
     private static final Replacer TAGS_VALUE_DECODE;
+    private static final Replacer TAGS_VALUE_ENCODE;
     
     static {
         Map<String, String> replacements = new HashMap<>();
@@ -285,6 +310,14 @@ public class Helper {
         replacements2.put("\\\\:", ";");
         replacements2.put("\\\\\\\\", "\\");
         
+        Map<String, String> replacements2Reverse = new HashMap<>();
+        replacements2Reverse.put("\\s", "\\s");
+        replacements2Reverse.put("\n", "\\n");
+        replacements2Reverse.put("\r", "\\r");
+        replacements2Reverse.put(";", "\\:");
+        replacements2Reverse.put("\\\\", "\\\\");
+        
+        TAGS_VALUE_ENCODE = new Replacer(replacements2Reverse);
         TAGS_VALUE_DECODE = new Replacer(replacements2);
     }
     
@@ -293,6 +326,13 @@ public class Helper {
             return null;
         }
         return TAGS_VALUE_DECODE.replace(s);
+    }
+    
+    public static String tagsvalue_encode(String s) {
+        if (s == null) {
+            return null;
+        }
+        return TAGS_VALUE_ENCODE.replace(s);
     }
     
     public static String htmlspecialchars_decode(String s) {
@@ -487,7 +527,7 @@ public class Helper {
      */
     private static final String TLD = "(?:tv|com|org|edu|gov|uk|net|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|me|gl|fm|io)";
     
-    private static final String MID = "[-A-Z0-9+&@#/%=~_|$?!:,.()]";
+    private static final String MID = "[-A-Z0-9+&@#/%=~_|$?!:,;.()]";
     
     private static final String END = "[A-Z0-9+&@#/%=~_|$)]";
     
@@ -499,7 +539,7 @@ public class Helper {
     /**
      * Start of the URL (second possibility).
      */
-    private static final String S2 = "(?:[A-Z0-9.-]+\\."+TLD+"\\b)";
+    private static final String S2 = "(?:[A-Z0-9.-]+[A-Z0-9]\\."+TLD+"\\b)";
     
     /**
      * Complete URL.
@@ -646,7 +686,7 @@ public class Helper {
         } else if (displayNamesMode == SettingsManager.DISPLAY_NAMES_MODE_CAPITALIZED) {
             return user.getModeSymbol() + user.getRegularDisplayNick();
         } else if (displayNamesMode == SettingsManager.DISPLAY_NAMES_MODE_USERNAME) {
-            return user.getModeSymbol() + user.getNick();
+            return user.getModeSymbol() + user.getName();
         }
         return user.getFullNick();
     }

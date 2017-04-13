@@ -12,6 +12,7 @@ import org.json.simple.parser.ParseException;
  */
 public class MessageData {
     
+    public final long created_at = System.currentTimeMillis();
     public final String topic;
     public final String message;
     
@@ -20,7 +21,7 @@ public class MessageData {
         this.message = message;
     }
     
-    public static MessageData decode(JSONObject data, Map<Long, String> userIds) throws ParseException {
+    public static MessageData decode(JSONObject data, Map<String, String> userIds) throws ParseException {
         if (data == null) {
             return null;
         }

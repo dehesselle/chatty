@@ -1,8 +1,14 @@
 
 package chatty.gui.components.settings;
 
+import chatty.gui.GuiUtil;
+import chatty.gui.components.menus.ContextMenu;
+import chatty.gui.components.menus.TestContextMenu;
+import chatty.util.commands.CustomCommand;
+import java.awt.Component;
 import java.awt.GridBagConstraints;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 /**
@@ -50,6 +56,25 @@ public class CommandSettings extends SettingsPanel {
                 return input.trim();
             }
         });
+        items.setTester(new Editor.Tester() {
+
+            @Override
+            public void test(Component component, int x, int y, String value) {
+                String message = "";
+                String[] split = value.split(" ", 2);
+                if (split.length != 2) {
+                    message = "No command";
+                } else {
+                    CustomCommand command = CustomCommand.parse(split[1]);
+                    if (command.hasError()) {
+                        message = command.getError();
+                    } else {
+                        message = command.toString();
+                    }
+                }
+                GuiUtil.showNonModalMessage(component, "Custom Command", message, JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
         items.setInfo(INFO_COMMANDS);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1;
@@ -58,25 +83,41 @@ public class CommandSettings extends SettingsPanel {
         
         JPanel menus = addTitledPanel("Menu/Button Commands", 1);
         
+        Editor.Tester menuTester = new Editor.Tester() {
+
+            @Override
+            public void test(Component component, int x, int y, String value) {
+                ContextMenu m = new TestContextMenu(value);
+                m.show(component, x, y);
+            }
+        };
+        
         gbc = d.makeGbc(0, 0, 1, 1);
         gbc.anchor = GridBagConstraints.EAST;
         menus.add(new JLabel("User Context Menu:"), gbc);
         
         gbc = d.makeGbc(1, 0, 1, 1);
-        menus.add(d.addEditorStringSetting("userContextMenu", 20, true, "Edit User Context Menu:", true, INFO), gbc);
+        menus.add(d.addEditorStringSetting("userContextMenu", 20, true, "Edit User Context Menu:", true, INFO, menuTester), gbc);
         
         gbc = d.makeGbc(0, 1, 1, 1);
         gbc.anchor = GridBagConstraints.EAST;
         menus.add(new JLabel("Channel Context Menu:"), gbc);
         
         gbc = d.makeGbc(1, 1, 1, 1);
-        menus.add(d.addEditorStringSetting("channelContextMenu", 20, true, "Edit Channel Context Menu:", true, INFO), gbc);
+        menus.add(d.addEditorStringSetting("channelContextMenu", 20, true, "Edit Channel Context Menu:", true, INFO, menuTester), gbc);
         
         gbc = d.makeGbc(0, 2, 1, 1);
         gbc.anchor = GridBagConstraints.EAST;
-        menus.add(new JLabel("User Dialog Buttons:"), gbc);
+        menus.add(new JLabel("Streams Context Menu:"), gbc);
         
         gbc = d.makeGbc(1, 2, 1, 1);
+        menus.add(d.addEditorStringSetting("streamsContextMenu", 20, true, "Edit Streams Context Menu:", true, INFO, menuTester), gbc);
+        
+        gbc = d.makeGbc(0, 3, 1, 1);
+        gbc.anchor = GridBagConstraints.EAST;
+        menus.add(new JLabel("User Dialog Buttons:"), gbc);
+        
+        gbc = d.makeGbc(1, 3, 1, 1);
         menus.add(d.addEditorStringSetting("timeoutButtons", 20, true, "Edit User Dialog Buttons:", true, INFO_TIMEOUT), gbc);
         
     }

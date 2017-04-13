@@ -129,13 +129,33 @@ public class LogSettings extends SettingsPanel {
         
         PathSetting logPath = new PathSetting(d, Chatty.getUserDataDirectory()+"logs");
         d.addStringSetting("logPath", logPath);
-        gbc = d.makeGbc(1, 0, 1, 1);
+        otherSettings.add(new JLabel("Folder:"),
+                d.makeGbc(0, 0, 1, 1, GridBagConstraints.NORTHWEST));
+        gbc = d.makeGbc(1, 0, 2, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 0.9;
         gbc.insets.bottom += 4;
-        otherSettings.add(new JLabel("Folder:"), d.makeGbc(0, 0, 1, 1, GridBagConstraints.NORTHWEST));
         otherSettings.add(logPath, gbc);
-        
+
+        final Map<String,String> organizationOptions = new LinkedHashMap<>();
+        organizationOptions.put("never", "Never");
+        organizationOptions.put("daily", "Daily");
+        organizationOptions.put("weekly", "Weekly");
+        organizationOptions.put("monthly", "Monthly");
+        ComboStringSetting organizationCombo = new ComboStringSetting(organizationOptions);
+        organizationCombo.setEditable(false);
+        d.addStringSetting("logSplit", organizationCombo);
+
+        otherSettings.add(new JLabel("Split Logs:"), d.makeGbc(0, 1, 1, 1));
+        otherSettings.add(organizationCombo,
+                d.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST));
+
+        otherSettings.add(d.addSimpleBooleanSetting(
+                "logSubdirectories",
+                "Channel Subdirectories",
+                "Organize logs into channel subdirectories."),
+                d.makeGbcCloser(2, 1, 1, 1, GridBagConstraints.WEST));
+
         final Map<String,String> timestampOptions = new LinkedHashMap<>();
         addTimestampFormat(timestampOptions, "off");
         addTimestampFormat(timestampOptions, "[HH:mm:ss]");
@@ -144,12 +164,20 @@ public class LogSettings extends SettingsPanel {
         addTimestampFormat(timestampOptions, "[yyyy-MM-dd HH:mm:ss]");
         addTimestampFormat(timestampOptions, "[yyyy-MM-dd hh:mm:ss a]");
         addTimestampFormat(timestampOptions, "[yyyy-MM-dd hh:mm:ssa]");
-        ComboStringSetting combo = new ComboStringSetting(timestampOptions);
-        combo.setEditable(false);
-        d.addStringSetting("logTimestamp", combo);
+        ComboStringSetting timestampCombo = new ComboStringSetting(timestampOptions);
+        timestampCombo.setEditable(false);
+        d.addStringSetting("logTimestamp", timestampCombo);
+
+        otherSettings.add(new JLabel("Timestamp:"),
+                d.makeGbc(0, 2, 1, 1));
+        otherSettings.add(timestampCombo,
+                d.makeGbc(1, 2, 1, 1, GridBagConstraints.WEST));
         
-        otherSettings.add(new JLabel("Timestamp:"), d.makeGbc(0, 1, 1, 1));
-        otherSettings.add(combo, d.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST));
+        otherSettings.add(d.addSimpleBooleanSetting(
+                "logLockFiles",
+                "Lock files while writing",
+                "Gets exclusive access to logfiles to ensure no other program writes to it."),
+                d.makeGbcCloser(2, 2, 1, 1, GridBagConstraints.WEST));
         
         /**
          * Add panels to the dialog

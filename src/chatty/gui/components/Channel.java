@@ -9,6 +9,7 @@ import chatty.User;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.textpane.ChannelTextPane;
 import chatty.gui.components.textpane.Message;
+import chatty.util.StringUtil;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -186,6 +187,7 @@ public class Channel extends JPanel {
     @Override
     public void setName(String name) {
         this.name = name;
+        refreshBufferSize();
     }
     
     public void addUser(User user) {
@@ -230,14 +232,15 @@ public class Channel extends JPanel {
             "clearStreamChat", "getStreamChatSize", "setStreamChatSize", "streamChatTest", "openStreamChat",
             "customEmotes", "reloadCustomEmotes", "addStreamHighlight", "openStreamHighlights",
             "ignore", "unignore", "ignoreWhisper", "unignoreWhisper", "ignoreChat", "unignoreChat",
-            "follow", "unfollow", "ffzws",
-            "setcolor"
+            "follow", "unfollow", "ffzws", "followers", "followersoff",
+            "setcolor", "untimeout"
         }));
         
         private final Set<String> prefixesPreferUsernames = new HashSet<>(Arrays.asList(new String[]{
             "/ban ", "/to ", "/setname ", "/resetname ", "/timeout ", "/host ",
             "/unban ", "/ignore ", "/unignore ", "/ignoreChat ", "/unignoreChat ",
-            "/ignoreWhisper ", "/unignoreWhisper ", "/follow ", "/unfollow "
+            "/ignoreWhisper ", "/unignoreWhisper ", "/follow ", "/unfollow ",
+            "/untimeout "
         }));
         
         private void updateSettings() {
@@ -315,7 +318,7 @@ public class Channel extends JPanel {
             Set<User> localizedMatched = new HashSet<>();
             for (User user : users.getData()) {
                 boolean matched = false;
-                if (user.nick.startsWith(search)) {
+                if (user.getName().startsWith(search)) {
                     matched = true;
                     regularMatched.add(user);
                 }
@@ -442,7 +445,7 @@ public class Channel extends JPanel {
 
             @Override
             public int compare(User o1, User o2) {
-                return o1.nick.compareToIgnoreCase(o2.nick);
+                return o1.getName().compareToIgnoreCase(o2.getName());
             }
             
         }
@@ -515,6 +518,12 @@ public class Channel extends JPanel {
         input.setForeground(styleManager.getColor("inputForeground"));
         users.setBackground(styleManager.getColor("background"));
         users.setForeground(styleManager.getColor("foreground"));
+        refreshBufferSize();
+    }
+    
+    private void refreshBufferSize() {
+        Long bufferSize = (Long)main.getSettings().mapGet("bufferSizes", StringUtil.toLowerCase(name));
+        text.setBufferSize(bufferSize != null ? bufferSize.intValue() : -1);
     }
     
     public void clearChat() {

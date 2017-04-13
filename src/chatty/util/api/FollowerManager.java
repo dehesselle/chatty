@@ -1,7 +1,9 @@
 
 package chatty.util.api;
 
+import chatty.util.DateTime;
 import chatty.util.StringUtil;
+import chatty.util.api.Follower.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -105,26 +107,31 @@ public class FollowerManager {
      * Checks if there is info already cached and whether it is old enough to
      * be updated, in which case it requests the data from the API.
      * 
-     * @param stream The name of the stream to request the data for
+     * @param streamName The name of the stream to request the data for
      */
-    protected synchronized void request(String stream) {
-        if (stream == null || stream.isEmpty()) {
+    protected synchronized void request(String streamName) {
+        if (streamName == null || streamName.isEmpty()) {
             return;
         }
-        stream = stream.toLowerCase(Locale.ENGLISH);
+        final String stream = streamName.toLowerCase(Locale.ENGLISH);
         FollowerInfo cachedInfo = cached.get(stream);
         if (cachedInfo == null || checkTimePassed(cachedInfo)) {
-            if (type == Follower.Type.FOLLOWER) {
-                api.requestFollowers(stream);
-            } else if (type == Follower.Type.SUBSCRIBER) {
-                api.requestSubscribers(stream);
-            }
+            api.userIDs.getUserIDsAsap(r -> {
+                if (!r.hasError()) {
+                    String streamId = r.getId(stream);
+                    if (type == Follower.Type.FOLLOWER) {
+                        api.requests.requestFollowers(streamId, stream);
+                    } else if (type == Follower.Type.SUBSCRIBER) {
+                        api.requests.requestSubscribers(streamId, stream, api.getToken());
+                    }
+                } else {
+                    FollowerInfo errorResult = new FollowerInfo(type, stream, "Could not resolve id");
+                    sendResult(type, errorResult);
+                    cached.put(stream, errorResult);
+                }
+            }, stream);
         } else {
-            if (type == Follower.Type.FOLLOWER) {
-                listener.receivedFollowers(cachedInfo);
-            } else if (type == Follower.Type.SUBSCRIBER) {
-                listener.receivedSubscribers(cachedInfo);
-            }
+            sendResult(type, cachedInfo);
         }
     }
     
@@ -190,11 +197,7 @@ public class FollowerManager {
             }
             FollowerInfo errorResult = new FollowerInfo(type, stream, errorMessage);
             cached.put(stream, errorResult);
-            if (type == Follower.Type.FOLLOWER) {
-                listener.receivedFollowers(errorResult);
-            } else if (type == Follower.Type.SUBSCRIBER) {
-                listener.receivedSubscribers(errorResult);
-            }
+            sendResult(type, errorResult);
         }
     }
     
@@ -243,14 +246,13 @@ public class FollowerManager {
         try {
             JSONObject data = (JSONObject)o;
             String created_at = (String)data.get("created_at");
-            long time = Util.parseTime(created_at);
+            long time = DateTime.parseDatetime(created_at);
             JSONObject user = (JSONObject)data.get("user");
             String display_name = (String)user.get("display_name");
             String name = (String)user.get("name");
             
             return createFollowerItem(stream, name, display_name, time);
-        } catch (ClassCastException | NullPointerException
-                | java.text.ParseException | NumberFormatException ex) {
+        } catch (Exception ex) {
             LOGGER.warning("Error parsing entry of "+type+": "+o+" ["+ex+"]");
         }
         return null;
@@ -300,6 +302,14 @@ public class FollowerManager {
             alreadyFollowed.get(stream).put(name, newEntry);
         }
         return newEntry;
+    }
+    
+    private void sendResult(Type type, FollowerInfo result) {
+        if (type == Follower.Type.FOLLOWER) {
+            listener.receivedFollowers(result);
+        } else if (type == Follower.Type.SUBSCRIBER) {
+            listener.receivedSubscribers(result);
+        }
     }
     
 }

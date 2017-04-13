@@ -7,7 +7,6 @@ import chatty.util.DateTime;
 import chatty.util.hotkeys.Hotkey;
 import chatty.util.settings.Setting;
 import chatty.util.settings.Settings;
-import java.io.File;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Logger;
@@ -29,7 +28,7 @@ public class SettingsManager {
     public static final long DISPLAY_NAMES_MODE_CAPITALIZED = 1;
     public static final long DISPLAY_NAMES_MODE_LOCALIZED = 2;
     public static final long DISPLAY_NAMES_MODE_USERNAME = 3;
-    
+
     private final String[] debugSettings = {
         "server",
         "port",
@@ -78,7 +77,7 @@ public class SettingsManager {
         //========
         // General
         //========
-        
+
         settings.addBoolean("dontSaveSettings",false);
         settings.addBoolean("debugCommands", false, false);
         settings.addBoolean("debugLogIrc", false);
@@ -88,7 +87,7 @@ public class SettingsManager {
         // Backup
         settings.addLong("backupDelay", 1);
         settings.addLong("backupCount", 5);
-        
+
         // Version/News
         settings.addLong("versionLastChecked", 0);
         settings.addString("updateAvailable", "");
@@ -114,14 +113,14 @@ public class SettingsManager {
         settings.addList("hotkeys", getDefaultHotkeySettingValue(), Setting.LIST);
         settings.addBoolean("globalHotkeysEnabled", true);
         
-        
+
         //===========
         // Connecting
         //===========
-        
+
         settings.addString("serverDefault", "irc.chat.twitch.tv");
         settings.addString("portDefault", "6697,6667,443,80");
-        
+
         // Seperate settings for commandline/temp so others can be saved
         settings.addString("server", "", false);
         settings.addString("port", "", false);
@@ -130,12 +129,16 @@ public class SettingsManager {
         settings.addBoolean("membershipEnabled", true);
         settings.addString("pubsub", "wss://pubsub-edge.twitch.tv");
         
+        settings.addLong("maxReconnectionAttempts", 40);
+
         // Auto-join channels
         settings.addString("channel", "");
-        
+
         // Login Data
         settings.addString("username", "");
         settings.setFile("username", loginFile);
+        settings.addString("userid", "");
+        settings.setFile("userid", loginFile);
         settings.addString("password", "", false);
         settings.addBoolean("connectOnStartup", false, false);
         settings.addLong("onStart", 1);
@@ -147,7 +150,7 @@ public class SettingsManager {
         settings.addBoolean("foreignToken", false);
         // Don't save setting, login with password isn't possible anymore
         settings.addBoolean("usePassword", false, false);
-        
+
         // Token
         settings.addBoolean("token_editor", false);
         settings.setFile("token_editor", loginFile);
@@ -165,18 +168,18 @@ public class SettingsManager {
         //=================
         // Appearance / GUI
         //=================
-        
+
         settings.addBoolean("ontop", false);
         settings.addString("laf","system");
         
         settings.addLong("dialogFontSize", -1);
-        
+
         // Chat Appearance
         settings.addString("font","Consolas");
         settings.addLong("fontSize",14);
         settings.addString("inputFont", "Dialog 14");
-        settings.addLong("lineSpacing", 3);
-        settings.addLong("paragraphSpacing", 0);
+        settings.addLong("lineSpacing", 2);
+        settings.addLong("paragraphSpacing", 6);
         settings.addString("timestamp","[HH:mm]");
         settings.addString("timestampTimezone", "");
         settings.addBoolean("capitalizedNames", true);
@@ -203,7 +206,7 @@ public class SettingsManager {
         
         settings.addString("emoji", "twemoji");
         settings.addString("cheersType", "static");
-        
+
         settings.addBoolean("usericonsEnabled",true);
         
         settings.addList("customUsericons", new ArrayList(), Setting.LIST);
@@ -233,11 +236,11 @@ public class SettingsManager {
         // Usercolors
         settings.addBoolean("customUsercolors", false);
         settings.addList("usercolors", new LinkedList(), Setting.STRING);
-        
+
         //====================
         // Other Customization
         //====================
-        
+
         // Addressbook
         settings.addString("abCommandsChannel", "");
         settings.addString("abCommands", "add,set,remove");
@@ -246,18 +249,21 @@ public class SettingsManager {
         settings.addString("abSubMonthsChan", "");
         settings.addList("abSubMonths", new TreeSet(), Setting.LONG);
         settings.addBoolean("abSaveOnChange", false);
-        
+
         // Custom Commands
         settings.addList("commands", new ArrayList(), Setting.STRING);
         // Default entries, will only be set if setting is not loaded from file
         settings.setAdd("commands", "/slap /me slaps $$1- around a bit with a large trout");
         settings.setAdd("commands", "/permit !permit $$1");
-        
+
         // Menu Entries
         settings.addString("timeoutButtons","/Ban[B], /Unban[U], 5s[1], 2m[2], 10m[3], 30m[4]");
+        settings.addString("banReasons", "Spam\nPosting Bad Links\nBan Evasion\n"
+                                + "Hate / Harassment\nSpoilers / Backseat Gaming");
         settings.addString("userContextMenu", "");
         settings.addString("channelContextMenu", "");
-        
+        settings.addString("streamsContextMenu", "");
+
         // History / Favorites
         settings.addMap("channelHistory",new TreeMap(), Setting.LONG);
         settings.setFile("channelHistory", historyFile);
@@ -271,11 +277,15 @@ public class SettingsManager {
         //=======================
         // Channel Admin Features
         //=======================
-        
+
         // Game Presets
         settings.addList("gamesFavorites",new ArrayList(), Setting.STRING);
         settings.setFile("gamesFavorites", historyFile);
         
+        // Community Presets
+        settings.addMap("communityFavorites", new HashMap(), Setting.STRING);
+        settings.setFile("communityFavorites", historyFile);
+
         // Stream Status Presets
         settings.addList("statusPresets", new ArrayList(), Setting.LIST);
         settings.setFile("statusPresets", statusPresetsFile);
@@ -293,7 +303,7 @@ public class SettingsManager {
         //=======
         // Window
         //=======
-        
+
         // Open URLs
         settings.addBoolean("urlPrompt", true);
         settings.addBoolean("urlCommandEnabled", false);
@@ -315,7 +325,7 @@ public class SettingsManager {
         settings.addMap("windows", new HashMap<>(), Setting.STRING);
         settings.addLong("restoreMode", WindowStateManager.RESTORE_ON_START);
         settings.addBoolean("restoreOnlyIfOnScreen", true);
-        
+
         // Popouts
         settings.addBoolean("popoutSaveAttributes", true);
         settings.addBoolean("popoutCloseLastChannel", true);
@@ -328,19 +338,22 @@ public class SettingsManager {
         settings.addBoolean("titleShowViewerCount", true);
         settings.addBoolean("titleShowChannelState", true);
         settings.addString("titleAddition", "");
-        
+
         // Tabs
         settings.addString("tabOrder", "normal");
         settings.addBoolean("tabsMwheelScrolling", false);
         settings.addBoolean("tabsMwheelScrollingAnywhere", false);
-        
+        settings.addString("tabsPlacement", "top");
+        settings.addString("tabsLayout", "wrap");
+
         // Chat Window
         settings.addBoolean("chatScrollbarAlways", false);
         settings.addLong("userlistWidth", 120);
         settings.addLong("userlistMinWidth", 0);
         settings.addBoolean("userlistEnabled", true);
         settings.addLong("bufferSize", 500);
-        
+        settings.addMap("bufferSizes", new HashMap<>(), Setting.LONG);
+
         settings.addString("liveStreamsSorting", "recent");
         settings.addLong("historyRange", 0);
 
@@ -392,7 +405,7 @@ public class SettingsManager {
         settings.addLong("nActivityTime", 10);
         
         settings.addList("notificationProperties", new ArrayList<>(), Setting.LIST);
-        
+
         settings.addBoolean("tips", true);
         settings.addLong("lastTip", 0);
         
@@ -400,25 +413,26 @@ public class SettingsManager {
         //=====================
         // Basic Chat Behaviour
         //=====================
-        
+
         settings.addString("spamProtection", "18/30");
-        
+
         settings.addBoolean("autoScroll", true);
         settings.addLong("autoScrollTimeout", 30);
         settings.addBoolean("pauseChatOnMouseMove", false);
         settings.addBoolean("pauseChatOnMouseMoveCtrlRequired", false);
         settings.addString("commandOnCtrlClick", "");
-        
+
         // Not really used anymore, kept for compatability
         settings.addBoolean("ignoreJoinsParts",false);
-        
+
         // Message Types
         settings.addBoolean("showJoinsParts", false);
         settings.addBoolean("showModMessages", false);
         settings.addBoolean("twitchnotifyAsInfo", true);
         settings.addBoolean("printStreamStatus", true);
         settings.addBoolean("showModActions", false);
-        
+        settings.addBoolean("showAutoMod", false);
+
         // Timeouts/Bans
         settings.addBoolean("showBanMessages", false);
         settings.addBoolean("banDurationAppended", true);
@@ -438,7 +452,7 @@ public class SettingsManager {
         //==============
         // Chat Features
         //==============
-        
+
         // Highlight
         settings.addList("highlight",new ArrayList(), Setting.STRING);
         settings.addBoolean("highlightEnabled", true);
@@ -447,17 +461,17 @@ public class SettingsManager {
         settings.addBoolean("highlightNextMessages", false);
         settings.addBoolean("highlightIgnored", false);
         settings.addList("noHighlightUsers", new ArrayList(), Setting.STRING);
-        
+
         // Ignore
         settings.addList("ignore", new ArrayList(), Setting.STRING);
         settings.addBoolean("ignoreEnabled", false);
         settings.addBoolean("ignoreOwnText", false);
-        settings.addLong("ignoreMode", 1);
+        settings.addLong("ignoreMode", 0);
         settings.addBoolean("ignoreShowNotDialog", false);
         settings.addList("ignoredUsers", new ArrayList(), Setting.STRING);
         settings.addList("ignoredUsersWhisper", new ArrayList(), Setting.STRING);
         settings.addBoolean("ignoredUsersHideInGUI", true);
-        
+
         // Chat Logging
         settings.addString("logMode", "always");
         settings.addBoolean("logMod", true);
@@ -471,7 +485,10 @@ public class SettingsManager {
         settings.addList("logWhitelist",new ArrayList(), Setting.STRING);
         settings.addList("logBlacklist",new ArrayList(), Setting.STRING);
         settings.addString("logPath", "");
+        settings.addString("logSplit", "never");
+        settings.addBoolean("logSubdirectories", false);
         settings.addString("logTimestamp", "[HH:mm:ss]");
+        settings.addBoolean("logLockFiles", true);
         
         // TAB Completion
         settings.addMap("customCompletion", new HashMap(), Setting.STRING);
@@ -482,13 +499,13 @@ public class SettingsManager {
         settings.addBoolean("completionAllNameTypes", true);
         settings.addBoolean("completionPreferUsernames", true);
         settings.addBoolean("completionAllNameTypesRestriction", true);
-        
+
         // Stream Chat
         settings.addLong("streamChatMessageTimeout", -1);
         settings.addList("streamChatChannels", new ArrayList(), Setting.STRING);
         settings.addBoolean("streamChatBottom", true);
         settings.addBoolean("streamChatResizable", true);
-        
+
         // Whispering
         settings.addBoolean("whisperEnabled", false);
         settings.addBoolean("whisperWhitelist", false);
@@ -502,14 +519,14 @@ public class SettingsManager {
         settings.addString("cmChannel", "");
         settings.addString("cmTemplate", "{user}: {message}");
         settings.addBoolean("cmHighlightedOnly", false);
-        
+
         settings.addBoolean("rulesAutoShow", true);
         settings.addList("rulesShown", new HashSet(), Setting.STRING);
-        
+
         //===============
         // Other Features
         //===============
-        
+
         // Livestreamer
         settings.addBoolean("livestreamer", true);
         settings.addString("livestreamerQualities", "Best, Worst, Select");
@@ -521,14 +538,14 @@ public class SettingsManager {
         settings.addString("streamHighlightCommand", "!highlight");
         settings.addString("streamHighlightChannel", "");
         settings.addBoolean("streamHighlightChannelRespond", false);
-        
+
         // Stream Status Writer
         settings.addBoolean("enableStatusWriter", false);
         settings.addString("statusWriter", "");
-        
+
         // Auto-Unhost
         settings.addBoolean("autoUnhost", false);
-        settings.addList("autoUnhostStreams", new ArrayList(), Setting.STRING); 
+        settings.addList("autoUnhostStreams", new ArrayList(), Setting.STRING);
     }
     
     /**
@@ -649,6 +666,12 @@ public class SettingsManager {
         }
         if (updatedFromBefore("0.8.4")) {
             settings.setBoolean("ircv3CapitalizedNames", true);
+        }
+        if (updatedFromBefore("0.8.5b4")) {
+            String currentValue = settings.getString("timeoutButtons");
+            if (!currentValue.toLowerCase().contains("/modunmod")) {
+                settings.setString("timeoutButtons", currentValue+"\n/ModUnmod");
+            }
         }
     }
     

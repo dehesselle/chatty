@@ -1,7 +1,11 @@
 # https://github.com/dehesselle/chatty
 
-CHATTY_VERSION=0.8.5
-CHATTY_MACOS_BUILD=9
+GIT_DESCRIBE=$(git --git-dir ../.git describe --always --tags)
+
+if [[ "$GIT_DESCRIBE" =~ v(.*)_b([0-9]+).* ]]; then
+   CHATTY_VERSION=${BASH_REMATCH[1]}
+   CHATTY_MACOS_BUILD=${BASH_REMATCH[2]}
+fi
 
 echo "------------------------------"
 echo "Chatty $CHATTY_VERSION (build $CHATTY_MACOS_BUILD)"

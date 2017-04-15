@@ -1,6 +1,6 @@
 # https://github.com/dehesselle/chatty
 
-GIT_DESCRIBE=$(git --git-dir ../.git describe --always --tags)
+GIT_DESCRIBE=$(git describe --always --tags)
 
 if [[ "$GIT_DESCRIBE" =~ v(.*)_b([0-9]+).* ]]; then
    CHATTY_VERSION=${BASH_REMATCH[1]}

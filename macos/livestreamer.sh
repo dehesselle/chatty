@@ -22,5 +22,5 @@ if [ ! -f $VLC ]; then
       end tell
 EOT
 else
-   $STREAMLINK_DIR/bin/streamlink -p "/Applications/VLC.app/Contents/MacOS/VLC --meta-title $STREAM" $ARGS
+   $STREAMLINK_DIR/bin/streamlink -p "$VLC --meta-title $STREAM" $ARGS
 fi

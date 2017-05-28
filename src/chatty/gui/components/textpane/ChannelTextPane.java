@@ -17,7 +17,6 @@ import chatty.gui.components.menus.ContextMenuListener;
 import chatty.util.DateTime;
 import chatty.util.StringUtil;
 import chatty.util.api.CheerEmoticon;
-import chatty.util.api.CheersUtil;
 import chatty.util.api.Emoticon;
 import chatty.util.api.Emoticon.EmoticonImage;
 import chatty.util.api.Emoticon.EmoticonUser;
@@ -184,6 +183,8 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
         } else {
             updateTimer = null;
         }
+        
+        FixSelection.install(this);
     }
     
     /**
@@ -961,6 +962,9 @@ public class ChannelTextPane extends JTextPane implements LinkListener, Emoticon
          * applicable.
          */
         private void disable() {
+            if (currentSelection == null) {
+                return;
+            }
             resetSearch();
             if (currentSelection != null) {
                 scrollManager.scrollDown();

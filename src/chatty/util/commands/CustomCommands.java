@@ -10,6 +10,7 @@ import chatty.util.settings.Settings;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -23,7 +24,8 @@ public class CustomCommands {
     
     private static final Logger LOGGER = Logger.getLogger(CustomCommands.class.getName());
     
-    private final Map<String, CustomCommand> commands = new HashMap<>();
+    private final Map<String, Map<String, CustomCommand>> commands = new HashMap<>();
+    private final Map<String, Map<String, CustomCommand>> replacements = new HashMap<>();
     
     private final Settings settings;
     private final TwitchApi api;
@@ -44,9 +46,9 @@ public class CustomCommands {
      * command doesn't exist or the number of parameters were invalid
      */
     public synchronized String command(String commandName, Parameters parameters, String channel) {
-        commandName = StringUtil.toLowerCase(commandName);
-        if (commands.containsKey(commandName)) {
-            return command(commands.get(commandName), parameters, channel);
+        CustomCommand command = getCommand(commands, commandName, channel);
+        if (command != null) {
+            return command(command, parameters, channel);
         }
         return null;
     }
@@ -54,7 +56,8 @@ public class CustomCommands {
     public synchronized String command(CustomCommand command, Parameters parameters, String channel) {
         // Add some more parameters
         parameters.put("chan", Helper.toStream(channel));
-        if (command.containsIdentifier("stream")) {
+        if (!command.getIdentifiersWithPrefix("stream").isEmpty()) {
+            System.out.println("request");
             String stream = Helper.toValidStream(channel);
             StreamInfo streamInfo = api.getStreamInfo(stream, null);
             if (streamInfo.isValid()) {
@@ -67,18 +70,27 @@ public class CustomCommands {
                 }
             }
         }
+        
+        // Add parameters for custom replacements
+        Set<String> customIdentifiers = command.getIdentifiersWithPrefix("_");
+        for (String identifier : customIdentifiers) {
+            CustomCommand replacement = getCommand(replacements, identifier, channel);
+            if (replacement != null) {
+                parameters.put(identifier, replacement.replace(parameters));
+            }
+        }
 
         return command.replace(parameters);
     }
-    
+
     /**
      * Checks if the given command exists (case-insensitive).
      * 
      * @param command The command
      * @return {@code true} if the command exists, {@code false} otherwise
      */
-    public synchronized boolean containsCommand(String command) {
-        return commands.containsKey(StringUtil.toLowerCase(command));
+    public synchronized boolean containsCommand(String command, String chan) {
+        return getCommand(commands, command, chan) != null;
     }
     
     /**
@@ -89,6 +101,7 @@ public class CustomCommands {
     public synchronized void loadFromSettings() {
         List<String> commandsToLoad = settings.getList("commands");
         commands.clear();
+        replacements.clear();
         for (String c : commandsToLoad) {
             if (c != null && !c.isEmpty()) {
                 String[] split = c.split(" ", 2);
@@ -97,14 +110,25 @@ public class CustomCommands {
                     if (commandName.startsWith("/")) {
                         commandName = commandName.substring(1);
                     }
-                    commandName = commandName.trim();
+                    commandName = StringUtil.toLowerCase(commandName.trim());
+                    String chan = null;
+                    if (commandName.contains("#")) {
+                        String[] splitChan = commandName.split("#", 2);
+                        commandName = splitChan[0];
+                        chan = splitChan[1];
+                    }
+                    
                     // Trim when loading, to ensure consistent behaviour
                     // (in-line menu commands and Test-button parsing trim too)
                     String commandValue = split[1].trim();
                     if (!commandName.isEmpty()) {
                         CustomCommand parsedCommand = CustomCommand.parse(commandValue);
                         if (parsedCommand.getError() == null) {
-                            commands.put(StringUtil.toLowerCase(commandName), parsedCommand);
+                            if (commandName.startsWith("_") && commandName.length() > 1) {
+                                addCommand(replacements, commandName, chan, parsedCommand);
+                            } else {
+                                addCommand(commands, commandName, chan, parsedCommand);
+                            }
                         } else {
                             LOGGER.warning("Error parsing custom command: "+parsedCommand.getError());
                         }
@@ -112,6 +136,50 @@ public class CustomCommands {
                 }
             }
         }
+    }
+    
+    /**
+     * Get the CustomCommand from the given dataset, based on name and channel.
+     * This will prefer the command variation of the channel, but fallback on
+     * the non-restricted command, if that is available.
+     * 
+     * @param commands The dataset to retrieve the Custom Command from
+     * @param commandName The name of the command
+     * @param channel The channel the command is run in
+     * @return 
+     */
+    private static CustomCommand getCommand(Map<String, Map<String, CustomCommand>> commands,
+            String commandName, String channel) {
+        commandName = StringUtil.toLowerCase(commandName);
+        channel = StringUtil.toLowerCase(Helper.toStream(channel));
+        if (!commands.containsKey(commandName)) {
+            return null;
+        }
+        Map<String, CustomCommand> variations = commands.get(commandName);
+        if (variations.containsKey(channel)) {
+            // If the channel parameter was null, this will try to get the
+            // non-restricted command
+            return variations.get(channel);
+        }
+        // Non-restricted commands are saved under "null"
+        return variations.get(null);
+    }
+    
+    /**
+     * Add the given CustomCommand to the dataset, with it's name and channel.
+     * 
+     * @param commands The dataset to store the CustomCommand in
+     * @param commandName The name of the command (all lowercase)
+     * @param channel The channel the command is restricted to (all lowercase),
+     * can be null if non-restricted
+     * @param parsedCommand The CustomCommand
+     */
+    private static void addCommand(Map<String, Map<String, CustomCommand>> commands,
+            String commandName, String channel, CustomCommand parsedCommand) {
+        if (!commands.containsKey(commandName)) {
+            commands.put(commandName, new HashMap<>());
+        }
+        commands.get(commandName).put(channel, parsedCommand);
     }
     
 }

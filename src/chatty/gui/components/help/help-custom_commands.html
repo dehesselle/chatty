@@ -17,6 +17,7 @@
                 <li><a href="#simple-replacements">Simple Replacements</a></li>
                 <li><a href="#parameters-context">Pre-defined Parameters</a></li>
                 <li><a href="#functions">Functions</a></li>
+                <li><a href="#custom-replacements">Custom Replacements</a></li>
             </ul>
         </li>
         <li>
@@ -26,6 +27,7 @@
                 <li><a href="#inline-commands">Format 2: Inline-Commands</a></li>
                 <li><a href="#submenus">Format 3: Submenus</a></li>
                 <li><a href="#shortcuts">Shortcuts</a></li>
+                <li><a href="#positioning">Positioning</a></li>
             </ul>
         </li>
     </ul>
@@ -51,6 +53,16 @@
         enter <code>/hello</code> in the inputbox, then it would send
         <code>Hello World!</code> to chat, just as if you would have written it
         yourself and pressed Enter.</p>
+    
+    <p>Adding a <code>#</code> and a channel name you can restrict the command
+        to that channel:</p>
+    
+    <p><code>/hello#joshimuz Hello Joshimuz Chat!</code></p>
+    
+    <p>This <code>/hello</code> command would only be executed in #joshimuz,
+        however if you still have the version without a channel in the Custom
+        Commands list as well, it will fallback to that in other channels. This
+        way to can add variations of commands for specific channels.</p>
     
     <h2><a name="replacements">Replacements</a></h2>
     <p>Anything starting with <code>$</code> in the <code>&lt;what the command
@@ -205,15 +217,24 @@
         replacements, however they have a function name before the identifier (there
         is no short notation for functions):</p>
         
-    <p><code>$&lt;functionName&gt;(&lt;identifier&gt;,&lt;some parameters&gt;)</code></p>
+    <p><code>$&lt;functionName&gt;(&lt;identifier&gt;,&lt;some parameters&gt;,[optional parameters])</code></p>
     
     <p>The following functions are available:</p>
     <dl class="defList">
-        <dt><code>$if(&lt;identifier&gt;,&lt;replacement if exists&gt;,&lt;replacement if doesn't exist&gt;)</code></dt>
+        <dt><code>$if(&lt;identifier&gt;,&lt;output if exists&gt;,[output if not])</code></dt>
         <dd>If the value the identifier refers to exists (non-empty), it will
             return the first function parameter, the second otherwise.</dd>
-        <dd><em>Example:</em> <code>$if(1,$1,nope)</code> with parameters <code>cheese cake</code> turns into <code>cheese</code>,
-            with no parameters turns into <code>nope</code></dd>
+        <dd><em>Example:</em> <code>$if(1,$1,nope)</code> with command parameters <code>cheese cake</code> turns into <code>cheese</code>,
+            with no parameters turns into <code>nope</code>, the optional <code>[output if not]</code> function parameter.</dd>
+        
+        <dt><code>$ifeq(&lt;identifier&gt;,&lt;comparison&gt;,&lt;output if equal&gt;,[output if not])</code></dt>
+        <dd>Similar to <code>$if</code>, but instead of just checking fot the
+            existence of a parameter it compares it to a given value
+            (<code>&lt;comparison&gt;</code>).</dd>
+        <dd><em>Example:</em> <code>$ifeq(1,cheesecake,yummy)</code> with parameters
+            <code>cheesecake</code> turns into <code>yummy</code>, with parameters
+            <code>cheese cake</code> turns into an an empty string, since the
+            optional <code>[output if not]</code> has not been specified.</dd>
         
         <dt><code>$join(&lt;identifier&gt;,&lt;separator&gt;)</code></dt>
         <dd>Joins together the arguments the identifier refers to, using the
@@ -248,7 +269,28 @@
         In this example only the closing one after <code>n/a</code> has to be
         escaped, because the opening one doesn't have a special meaning in this
         context and the ones around <code>streamuptime</code> have a special
-        meaning that takes precedence (closing the replacement).</p>
+        meaning that takes precedence (opening/closing the replacement).</p>
+    
+    <h3><a name="custom-replacements">Custom Replacements</a></h3>
+    <p>You can create your own identifiers for replacements by adding an entry
+        to the Custom Commands list starting with an underscore:</p>
+    
+    <p><code>_m $ifeq(1,$(chan),,$$1: )</code></p>
+    
+    <p>Instead of a command, this creates an identifier that can be used in a
+        replacement:</p>
+    
+    <p><code>/faq $(_m)FAQ: https://pastebin.com/KySx3KDu</code></p>
+    
+    <p>When the <code>/faq</code> command is run, the <code>$(_m)</code> gets
+        replaced with whatever is defined in <code>_m</code>, in this case it
+        creates a mention if the first parameter isn't equal to the current
+        channel.</p>
+    
+    <p class="note"><em>Note:</em> Custom identifiers always start with an
+        underscore and can themselves not contain replacements with custom
+        identifiers (well they technicially can, but they won't get replaced).</p>
+    
     
     <h2><a name="menus">Custom Context Menus / User Dialog Buttons</a></h2>
     <p>Under <code>Settings - Commands</code> there are several settings that
@@ -285,7 +327,12 @@ Spoiler[S]=/timeout $$1 600 No spoilers
 ./Message /Report
 .Warn User=$$1: Plz no spammerino</pre></div>
     
-    <h3><a name="command-list">Format 1: List Custom Command Names</a></h3>
+    <p class="note"><em>Note:</em> Command Names/Labels may not contain the
+        characters <code>[ ] { }</code> except for their special meaning of
+        <a href="#shortcuts">Shortcuts</a> and <a href="#positioning">Positioning</a>.</p>
+    
+    
+    <h3><a name="commands-list">Format 1: List Custom Command Names</a></h3>
     <p>You can list the name of several Custom Commands in one line, for example:</p>
     
     <p><code>/Slap /Permit</code></p>
@@ -394,9 +441,10 @@ Spoiler[S]=/timeout $$1 600 No spoilers
         timeout buttons as well as a single bottom row for the <code>Slap</code>
         command.</p>
     
+    
     <h3><a name="shortcuts">Shortcuts</a></h3>
     <p>You can add a shortcut to the end of a label or command name by enclosing
-        it with <code>[ ]</code>:</p>
+        it with <code>[ ]</code> (square brackets):</p>
     
     <p><code>/Ban[B]</code> or <code>Spoiler[S]=/timeout $$1 ..</code></p>
     
@@ -422,6 +470,40 @@ Spoiler[S]=/timeout $$1 600 No spoilers
         may also contain the same syntax: <code>@Rules[R]</code> (which would
         allow you to open that submenu by pressing R on your keyboard when the
         context menu is open).</p>
+    
+    
+    <h3><a name="positioning">Positioning</a></h3>
+    <p>You can define an absolute position in the menu the entry should appear
+        at by enclosing it with <code>{ }</code> (curly brackets) at the end of
+        the label or command name (but before a shortcut if there is any):</p>
+    
+    <p><code>Mention{1}=/insertword $$1: \</code></p>
+    
+    <p>This will put the <code>Mention</code> menu entry at the <em>second</em>
+        position in the menu (counting starts from 0).</p>
+    
+    <p>Another example:</p>
+    
+    <div class="codeblock"><pre>
+@Twitch Stream[s]
+.Videos{2}[v]=/openUrlPrompt https://www.twitch.tv/$$1/videos/past-broadcasts
+@Important{0}
+.Slap=/me slaps $$1 around a bit with a large trout
+@Really Important{0}
+.FAQ=FAQ: https://pastebin.com/KySx3KDu
+</pre></div>
+
+    <p>This puts the <code>Videos</code> entry into the pre-defined
+        <code>Twitch Stream</code> submenu at the third position in the submenu
+        (also adding the accelerator key <code>s</code> to the menu and
+        <code>v</code> to the entry).</p>
+    
+    <p>It also adds the <code>Important</code> submenu at the first position
+        (since it hasn't been added yet) and after that adds the
+        <code>Really Important</code> submenu at the first position as well,
+        moving down <code>Important</code>. This demonstrates that the
+        positioning is based on the current state of the menu, so it can matter
+        <em>when</em> you add entries with absolute positioning.</p>
     
 </body>
 </html>

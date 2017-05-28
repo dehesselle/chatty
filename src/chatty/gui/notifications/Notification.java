@@ -2,449 +2,353 @@
 package chatty.gui.notifications;
 
 import chatty.Helper;
-import chatty.util.ActivityListener;
-import chatty.util.ActivityTracker;
+import chatty.User;
+import chatty.gui.Highlighter;
+import chatty.gui.HtmlColors;
+import chatty.util.StringUtil;
 import java.awt.Color;
-import java.awt.Dialog;
-import java.awt.Dimension;
-import java.awt.GraphicsDevice;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Point;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JWindow;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import javax.swing.border.Border;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
- * A notification which is displayed in a window.
+ * Settings for a single notification type/entry.
  * 
  * @author tduva
  */
 public class Notification {
-    
-    private static final int SECOND = 1000;
-    
-    private static final ImageIcon ICON = new ImageIcon(Notification.class.getResource("app_16.png"));
 
-    private static final Border PADDING_BORDER = BorderFactory.createEmptyBorder(9, 9, 9, 8);
-    private static final Border LINE_BORDER = BorderFactory.createLineBorder(new Color(50, 50, 50), 1);
-    private static final Border BORDER = BorderFactory.createCompoundBorder(LINE_BORDER, PADDING_BORDER);
+    private static final Logger LOGGER = Logger.getLogger(Notification.class.getName());
 
-    private static final int MAX_WIDTH = 190;
-
-    private static final String HTML = "<html><body style='font-weight: normal;'>";
-    private static final String HTML_FIXED_WIDTH = "<html><body style='width:" + MAX_WIDTH + "px;font-weight: normal;'>";
-    
-    private static final Color BACKGROUND_COLOR = new Color(255, 255, 240);
-    
-    /**
-     * Maximum number of characters to display as message
-     */
-    private static final int MAX_MESSAGE_LENGTH = 250;
-    
-    private static final float DEFAULT_OPACITY = 0.99f;
-
-    private static final int UPDATE_TIME_INTERVAL = 1*60*1000;
-    
-    private static final boolean SHORTER_AFTER_ACTIVITY = true;
-    private static final int SHORTER_CUTOFF = 2*SECOND;
-    
-    /**
-     * Times
-     */
-    private int timeout = 10*1000;
-    private int fallbackTimeout = 30*60*1000;
-    private int activityTime = 60*1000;
-    
-    private long visibleSince = 0;
-    private long createdAt;
-    
-    private boolean closed = false;
-
-    /**
-     * References
-     */
-    private final JWindow window;
-    private final NotificationListener listener;
-    
-    private boolean translucencySupported = false;
-    private HideMethod hideMethod = HideMethod.FADE_OUT;
-    
-    private final JLabel timeLabel;
-
-    /**
-     * Timers
-     */
-    private Timer fadeOutTimer;
-    private Timer fallbackTimer;
-    private Timer regularTimer;
-    private final Timer updateTimeTimer;
-    
-    private ActivityListener activityListener;
-
-    /**
-     * A notification.
-     * 
-     * @param title
-     * @param message
-     * @param listener Listener that gets informed about the notification state
-     * @param expireTime When the notification will expire
-     */
-    public Notification(String title, String message,
-            final NotificationListener listener, int expireTime) {
-        // Window
-        window = new JWindow();
-        window.setFocusable(false);
-        window.setFocusableWindowState(false);
-        window.setAutoRequestFocus(false);
-        window.setAlwaysOnTop(true);
-        window.setModalExclusionType(Dialog.ModalExclusionType.APPLICATION_EXCLUDE);
-        checkTranslucencySupport();
-        setOpacity(DEFAULT_OPACITY);
-
-        // Panel
-        final JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BORDER);
-        panel.setOpaque(true);
-        panel.setBackground(BACKGROUND_COLOR);
-
-        GridBagConstraints gbc = new GridBagConstraints();
-
-        // Icon
-        JLabel iconLabel = new JLabel();
-        iconLabel.setIcon(ICON);
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.NORTH;
-        gbc.insets = new Insets(2, 0, 0, 5);
-        panel.add(iconLabel, gbc);
+    public enum Type {
         
-        timeLabel = new JLabel("55m");
-        timeLabel.setFont(timeLabel.getFont().deriveFont(10.0f));
-        timeLabel.setForeground(Color.GRAY);
-        //gbc.anchor = GridBagConstraints.WEST;
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        panel.add(timeLabel, gbc);
+        STREAM_STATUS("Stream Status",createStreamStatusSubtypes()),
+        HIGHLIGHT("Highlights"),
+        MESSAGE("Chat Message"),
+        WHISPER("Whisper"),
+        JOIN("User Joined"),
+        PART("User Left"),
+        NEW_FOLLOWERS("New Followers"),
+        SUBSCRIBER("Subscriber Notification"),
+        AUTOMOD("AutoMod Message");
         
-        // Content Label
-        message = Helper.htmlspecialchars_encode(message);
-        if (message.length() > MAX_MESSAGE_LENGTH) {
-            message = message.substring(0, MAX_MESSAGE_LENGTH)+"[..]";
-        }
-        JLabel content = new JLabel(makeContent(title, message, false));
-        content.setForeground(Color.BLACK);
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.gridheight = 2;
-        panel.add(content, gbc);
-
-        // Finish Window
-        window.add(panel);
-        window.setMaximumSize(new Dimension(MAX_WIDTH, 100));
+        public final String label;
+        public final Map<String, String> subTypes;
         
-        // Set fixed width if window width exceeds the max width
-        if (window.getPreferredSize().width > MAX_WIDTH) {
-            content.setText(makeContent(title, message, true));
+        Type(String name, Map<String, String> subTypes) {
+            this.label = name;
+            this.subTypes = Collections.unmodifiableMap(subTypes);
         }
         
-        // Listeners
-        this.listener = listener;
-        window.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                close();
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    if (listener != null) {
-                        listener.notificationAction(Notification.this);
-                    }
+        Type(String name) {
+            this(name, new HashMap<>());
+        }
+        
+        private static Map<String, String> createStreamStatusSubtypes() {
+            Map<String, String> result = new LinkedHashMap<>();
+            result.put("noOffline", "Not when: 'Stream offline'");
+            return result;
+        }
+    }
+    
+    public enum State {
+        ALWAYS(1, "Enabled"),
+        OFF(0, "Off"),
+        CHANNEL_ACTIVE(2, "Chan focused"),
+        CHANNEL_NOT_ACTIVE(3, "Chan not focused"),
+        APP_NOT_ACTIVE(4, "App not focused"),
+        CHANNEL_OR_APP_NOT_ACTIVE(5, "Chan or app not focused"),
+        CHANNEL_AND_APP_NOT_ACTIVE(6, "Chan/app not focused");
+        
+        
+        public String label;
+        public int id;
+        
+        State(int id, String label) {
+            this.label = label;
+            this.id = id;
+        }
+        
+        public static State getTypeFromId(int triggerStateId) {
+            for (State type : values()) {
+                if (type.id == triggerStateId) {
+                    return type;
                 }
             }
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                Notification.this.mouseEntered();
-            }
-            @Override
-            public void mouseExited(MouseEvent e) {
-                Notification.this.mouseExited();
-            }
-        });
-        window.pack();
+            return OFF;
+        }
+    }
+    
+    public static class Builder {
         
-        createdAt = System.currentTimeMillis();
-        updateCreatedTime();
+        private final Type type;
         
-        // Update Time Timer
-        updateTimeTimer = new Timer(UPDATE_TIME_INTERVAL, new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateCreatedTime();
-            }
-        });
-        updateTimeTimer.setRepeats(true);
-        updateTimeTimer.start();
+        private State soundState = State.OFF;
+        private State desktopState = State.OFF;
+        private String matcher;
+        
+        private Color foregroundColor = Color.BLACK;
+        private Color backgroundColor = Color.WHITE;
+        private int fontSize;
+        private String soundFile;
+        private long soundVolume = 20;
+        private int soundCooldown;
+        private int soundInactiveCooldown;
+        private List<String> options = new ArrayList<>();
+        private String channel;
+        
+        public Builder(Type type) {
+            this.type = type;
+        }
+        
+        public Builder setForeground(Color c) {
+            this.foregroundColor = c;
+            return this;
+        }
+        
+        public Builder setBackground(Color c) {
+            this.backgroundColor = c;
+            return this;
+        }
+        
+        public Builder setFontSize(int fontSize) {
+            this.fontSize = fontSize;
+            return this;
+        }
+        
+        public Builder setVolume(long volume) {
+            this.soundVolume = volume;
+            return this;
+        }
+        
+        public Builder setSoundCooldown(int cooldown) {
+            this.soundCooldown = cooldown;
+            return this;
+        }
+        
+        public Builder setSoundInactiveCooldown(int cooldown) {
+            this.soundInactiveCooldown = cooldown;
+            return this;
+        }
+        
+        public Builder setSoundFile(String file) {
+            this.soundFile = file;
+            return this;
+        }
+        
+        public Builder setSoundEnabled(State enabled) {
+            this.soundState = enabled;
+            return this;
+        }
+        
+        public Builder setDesktopEnabled(State enabled) {
+            this.desktopState = enabled;
+            return this;
+        }
+        
+        public Builder setOptions(List<String> options) {
+            this.options = options;
+            return this;
+        }
+        
+        public Builder setChannel(String channel) {
+            this.channel = channel;
+            return this;
+        }
+        
+        public Builder setMatcher(String matcher) {
+            this.matcher = matcher;
+            return this;
+        }
+        
     }
     
-
+    public final Type type;
+    public final List<String> options;
+    public final String channel;
+    public final String matcher;
+    private final Highlighter.HighlightItem matcherItem;
     
-    public long getVisibleTime() {
-        return System.currentTimeMillis() - visibleSince;
-    }
+    // Desktop Notification
+    public final State desktopState;
+    public final Color foregroundColor;
+    public final Color backgroundColor;
+    public final int fontSize;
     
-    public void setActivityTime(int time) {
-        this.activityTime = time;
-    }
+    // Sounds Notification
+    public final State soundState;
+    public final String soundFile;
+    public final long soundVolume;
+    public final int soundCooldown;
+    public final int soundInactiveCooldown;
+    public int soundFileDelay;
     
-    public void setHideMethod(HideMethod method) {
-        this.hideMethod = method;
-    }
-    
-    public void setTimeout(int timeout) {
-        this.timeout = timeout;
-    }
-    
-    public void setLocation(Point location) {
-        window.setLocation(location);
-    }
+    // State
+    private long lastMatched;
+    private long lastSoundPlayed;
 
-    public int getHeight() {
-        return window.getHeight();
-    }
-
-    public Dimension getSize() {
-        return window.getSize();
-    }
-
-    public void moveVertical(int offset) {
-        Point location = window.getLocation();
-        location.y += offset;
-        window.setLocation(location);
-    }
-
-    public void show() {
-        if (activityTime <= 0 || ActivityTracker.getLastActivityAgo() < activityTime) {
-            startTimer(false);
+    public Notification(Builder builder) {
+        
+        // Both
+        type = builder.type;
+        this.options = builder.options;
+        String tempChannel = StringUtil.trim(builder.channel);
+        this.channel = tempChannel == null || tempChannel.isEmpty() ? null : Helper.toChannel(tempChannel);
+        this.matcher = StringUtil.trim(builder.matcher);
+        if (matcher != null && !matcher.isEmpty()) {
+            this.matcherItem = new Highlighter.HighlightItem(matcher);
         } else {
-            activityListener = new MyActivityListener();
-            ActivityTracker.addActivityListener(activityListener);
+            this.matcherItem = null;
         }
-        startFallbackTimer();
-        visibleSince = System.currentTimeMillis();
-        window.setVisible(true);
+        
+        // Desktop
+        this.desktopState = builder.desktopState;
+        this.foregroundColor = builder.foregroundColor;
+        this.backgroundColor = builder.backgroundColor;
+        this.fontSize = builder.fontSize;
+        
+        // Sound
+        this.soundState = builder.soundState;
+        this.soundFile = builder.soundFile;
+        this.soundVolume = builder.soundVolume;
+        this.soundCooldown = builder.soundCooldown;
+        this.soundInactiveCooldown = builder.soundInactiveCooldown;
     }
 
-    /**
-     * Perform the configured hide action.
-     */
-    public void hide() {
-        switch (hideMethod) {
-            case FADE_OUT:
-                fadeOut();
-                break;
-            case CLOSE:
-                close();
-                break;
-        }
+    public String getDesktopState() {
+        return desktopState.label;
     }
     
-    /**
-     * Sets the time for the fallback timer and restarts if it is already
-     * running.
-     *
-     * @param timeout
-     */
-    public void setFallbackTimeout(int timeout) {
-        fallbackTimeout = timeout;
-        if (fallbackTimer != null && fallbackTimer.isRunning()) {
-            fallbackTimer.stop();
-            startFallbackTimer();
-        }
+    public String getSoundState() {
+        return soundState.label;
     }
     
-    /**
-     * Close the window immediately and cleanup.
-     */
-    public void close() {
-        stopTimers();
-        closed = true;
-        window.dispose();
-        if (listener != null) {
-            listener.notificationRemoved(this);
-        }
-        if (activityListener != null) {
-            ActivityTracker.removeActivityListener(activityListener);
-        }
+    public boolean hasEnabled() {
+        return desktopState != State.OFF || soundState != State.OFF;
     }
-    
-    /**
-     * Start the timer to fade out the window.
-     */
-    private void fadeOut() {
-        if (fadeOutTimer == null) {
-            fadeOutTimer = new Timer(80, new ActionListener() {
 
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    performFadeOut();
+    public void setMatched() {
+        this.lastMatched = System.currentTimeMillis();
+    }
+    
+    public void setSoundPlayed() {
+        this.lastSoundPlayed = System.currentTimeMillis();
+    }
+    
+    public long lastMatchedAgo() {
+        return System.currentTimeMillis() - lastMatched;
+    }
+    
+    public long lastPlayedAgo() {
+        return System.currentTimeMillis() - lastSoundPlayed;
+    }
+    
+    public boolean matchesChannel(String channel) {
+        if (channel == null) {
+            return true;
+        }
+        if (this.channel == null) {
+            return true;
+        }
+        return channel.equalsIgnoreCase(this.channel);
+    }
+    
+    public boolean matches(User user, String text) {
+        if (matcherItem == null || text == null) {
+            return true;
+        }
+        return matcherItem.matches(user, text, StringUtil.toLowerCase(text));
+    }
+    
+    public boolean hasChannel() {
+        return channel != null;
+    }
+
+    public boolean hasOption(String option) {
+        return options.contains(option);
+    }
+    
+    public boolean hasMatcher() {
+        return matcherItem != null;
+    }
+    
+    public boolean hasSound() {
+        return soundFile != null && !soundFile.isEmpty();
+    }
+    
+    public String getMatcherString() {
+        return matcher == null ? "" : matcher;
+    }
+    
+    public List toList() {
+        List result = new ArrayList<>();
+        result.add(type.name());
+        result.add(desktopState.id);
+        result.add(soundState.id);
+        result.add(HtmlColors.getColorString(foregroundColor));
+        result.add(HtmlColors.getColorString(backgroundColor));
+        result.add(fontSize);
+        result.add(options);
+        result.add(soundFile);
+        result.add(soundVolume);
+        result.add(soundCooldown);
+        result.add(soundInactiveCooldown);
+        result.add(channel);
+        result.add(matcher);
+        return result;
+    }
+    
+    public static Notification fromList(List list) {
+        try {
+            Type type = Type.valueOf((String)list.get(0));
+            State desktopState = State.getTypeFromId(((Number)list.get(1)).intValue());
+            State soundState = State.getTypeFromId(((Number)list.get(2)).intValue());
+            Color foregroundColor = HtmlColors.decode((String)list.get(3));
+            Color backgroundColor = HtmlColors.decode((String)list.get(4));
+            int fontSize = ((Number)list.get(5)).intValue();
+            List<String> options = getStringList(list.get(6));
+            String soundFile = (String)list.get(7);
+            long volume = ((Number)list.get(8)).longValue();
+            int soundCooldown = ((Number)list.get(9)).intValue();
+            int soundInactiveCooldown = ((Number)list.get(10)).intValue();
+            String channel = (String)list.get(11);
+            String matcher = (String)list.get(12);
+            
+            Builder b = new Builder(type);
+            b.setDesktopEnabled(desktopState);
+            b.setSoundEnabled(soundState);
+            b.setForeground(foregroundColor);
+            b.setBackground(backgroundColor);
+            b.setFontSize(fontSize);
+            b.setOptions(options);
+            b.setSoundFile(soundFile);
+            b.setVolume(volume);
+            b.setSoundCooldown(soundCooldown);
+            b.setSoundInactiveCooldown(soundInactiveCooldown);
+            b.setChannel(channel);
+            b.setMatcher(matcher);
+            return new Notification(b);
+        } catch (Exception ex) {
+            LOGGER.warning("Error parsing NotificationSettings: "+ex);
+        }
+        return null;
+    }
+    
+    private static List<String> getStringList(Object o) {
+        List<String> result = new ArrayList<>();
+        if (o instanceof Collection) {
+            for (Object item : (Collection)o) {
+                if (item instanceof String) {
+                    result.add((String)item);
                 }
-            });
-            fadeOutTimer.start();
-        }
-    }
-    
-
-
-    /**
-     * Starts the regular timer that will hide the window after it's finished.
-     */
-    private void startTimer(boolean afterActivity) {
-        if (regularTimer == null && !closed) {
-            int timerDelay = timeout;
-            if (SHORTER_AFTER_ACTIVITY && afterActivity
-                    && timerDelay > SHORTER_CUTOFF) {
-                timerDelay *= 0.5;
-                if (timerDelay < SHORTER_CUTOFF) {
-                    timerDelay = SHORTER_CUTOFF;
-                }
-            }
-            regularTimer = new Timer(timerDelay, new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    hide();
-                }
-            });
-            regularTimer.setRepeats(false);
-            regularTimer.start();
-        }
-    }
-
-    private void startFallbackTimer() {
-        fallbackTimer = new Timer(fallbackTimeout, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                hide();
-            }
-        });
-        fallbackTimer.setRepeats(false);
-        fallbackTimer.start();
-    }
-
-    private String makeContent(String title, String message, boolean fixedWidth) {
-        return (fixedWidth ? HTML_FIXED_WIDTH : HTML) + "<p style='margin-bottom: 1px;'><b>" + title + "</b></p>"
-                + "<p>" + message + "</p>";
-    }
-
-    /**
-     * Lower the opacity by a bit or close the window if opacity is low enough.
-     */
-    private void performFadeOut() {
-        if (!translucencySupported) {
-            close();
-        } else {
-            float opacity = window.getOpacity();
-            if (opacity < 0.1) {
-                close();
-            } else {
-                setOpacity(opacity - 0.05f);
             }
         }
+        return result;
     }
     
-    /**
-     * Sets the opacity of the window, if supported.
-     * 
-     * @param opacity 
-     */
-    private void setOpacity(float opacity) {
-        if (translucencySupported) {
-            if (opacity < 0) {
-                opacity = 0;
-            }
-            window.setOpacity(opacity);
-        }
-    }
-
-    /**
-     * Check if translucecncy is supported on this device.
-     */
-    private void checkTranslucencySupport() {
-        translucencySupported = window.getGraphicsConfiguration().getDevice()
-                .isWindowTranslucencySupported(GraphicsDevice.WindowTranslucency.TRANSLUCENT);
-    }
-    
-
-    
-    private void mouseEntered() {
-        setOpacity(DEFAULT_OPACITY);
-        stopTimers();
-    }
-    
-    private void mouseExited() {
-        if (!closed && regularTimer != null) {
-            regularTimer.restart();
-        }
-    }
-
-    /**
-     * Stops all timers that are running.
-     */
-    private void stopTimers() {
-        stopTimer(fadeOutTimer);
-        stopTimer(regularTimer);
-        stopTimer(fallbackTimer);
-        stopTimer(updateTimeTimer);
-        fadeOutTimer = null;
-    }
-
-    /**
-     * Stops the given timer if it is running.
-     * 
-     * @param timer 
-     */
-    private void stopTimer(Timer timer) {
-        if (timer != null && timer.isRunning()) {
-            timer.stop();
-        }
-    }
-
-    private void updateCreatedTime() {
-        long ago = (System.currentTimeMillis() - createdAt) / 1000;
-        timeLabel.setText(makeTimeString(ago));
-    }
-
-    private String makeTimeString(long time) {
-        if (time < 60) {
-            return "";
-        }
-        long minutes = time / 60;
-        if (minutes < 60) {
-            return minutes + "m";
-        }
-        long hours = minutes / 60;
-        return hours + "h";
-    }
-    
-    public enum HideMethod {
-        FADE_OUT, CLOSE
-    }
-    
-    private class MyActivityListener implements ActivityListener {
-
-        @Override
-        public void activity() {
-            startTimer(true);
-        }
-    }
 }

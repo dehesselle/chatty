@@ -906,7 +906,9 @@ public class TwitchConnection {
             }
             if (onChannel(channel)) {
                 if (settings.getBoolean("twitchnotifyAsInfo") && nick.equals("twitchnotify")) {
-                    listener.onSubscriberNotification(channel, users.dummyUser, text, null, 1, null);
+                    // Just output as Notification, subs shouldn't come over this anymore (soon),
+                    // but just in case
+                    listener.onInfo(channel, "[Notification] "+text);
                 } else {
                     User user = userJoined(channel, nick);
                     updateUserFromTags(user, tags);
@@ -959,7 +961,7 @@ public class TwitchConnection {
             }
             User user = userJoined(channel, login);
             updateUserFromTags(user, tags);
-            if (tags.isValue("msg-id", "resub")) {
+            if (tags.isValue("msg-id", "resub") || tags.isValue("msg-id", "sub")) {
                 listener.onSubscriberNotification(channel, user, text, message, months, emotes);
             } else {
                 // Not sure about this, there may be some weird messages
@@ -1197,6 +1199,9 @@ public class TwitchConnection {
                     if (tags.containsKey("followers-only")) {
                         channelStates.setFollowersOnly(channel, tags.get("followers-only"));
                     }
+                    if (!tags.isEmpty("room-id")) {
+                        listener.onRoomId(channel, tags.get("room-id"));
+                    }
                 }
             } else if (command.equals("SERVERCHANGE")) {
                 listener.onInfo(channel, "*** You may be on the wrong server "
@@ -1359,6 +1364,8 @@ public class TwitchConnection {
         void onSubscriberNotification(String channel, User user, String text, String message, int months, String emotes);
         
         void onSpecialMessage(String name, String message);
+        
+        void onRoomId(String channel, String id);
         
     }
 

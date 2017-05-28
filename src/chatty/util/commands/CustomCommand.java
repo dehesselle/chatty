@@ -1,8 +1,9 @@
 
 package chatty.util.commands;
 
-import chatty.util.commands.Parser.Item;
 import java.text.ParseException;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  *
@@ -10,10 +11,10 @@ import java.text.ParseException;
  */
 public class CustomCommand {
     
-    private final Parser.Items items;
+    private final Items items;
     private final String error;
 
-    private CustomCommand(Parser.Items items) {
+    private CustomCommand(Items items) {
         this.items = items;
         this.error = null;
     }
@@ -43,15 +44,15 @@ public class CustomCommand {
         return error != null;
     }
     
-    public boolean containsIdentifier(String prefix) {
-        return items.containsIdentifier(prefix);
+    public Set<String> getIdentifiersWithPrefix(String prefix) {
+        return items.getIdentifiersWithPrefix(prefix);
     }
     
     public String getCommand() {
         if (items != null && !items.isEmpty()) {
             Item firstToken = items.getItem(0);
-            if (firstToken instanceof Parser.Literal) {
-                String text = ((Parser.Literal)firstToken).getLiteral();
+            if (firstToken instanceof Literal) {
+                String text = ((Literal)firstToken).getLiteral();
                 if (text.startsWith("/") && text.contains(" ")) {
                     return text.substring(1, text.indexOf(" "));
                 }
@@ -69,6 +70,32 @@ public class CustomCommand {
         }
     }
     
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final CustomCommand other = (CustomCommand) obj;
+        if (!Objects.equals(this.items, other.items)) {
+            return false;
+        }
+        if (!Objects.equals(this.error, other.error)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 73 * hash + Objects.hashCode(this.items);
+        hash = 73 * hash + Objects.hashCode(this.error);
+        return hash;
+    }
+
     public static void main(String[] args) {
         CustomCommand command = CustomCommand.parse("$join");
         System.out.println(command);

@@ -14,7 +14,7 @@ This is Chatty as you know and like it, just with a few additions:
 - includes JRE
 - includes Streamlink
 
-You don't need to install Java and you can watch streams out-of-the-box, without having to install Livestreamer, as long as you have [VLC](http://www.videolan.org) in your `/Applications` folder.
+You don't need to install Java and you can watch streams out-of-the-box, without having to install Streamlink, as long as you have [VLC](http://www.videolan.org) in your `/Applications` folder.
 
 ![alt-text](/macos/app_screenshot.png)
 

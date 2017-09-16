@@ -21,12 +21,12 @@ public class ContextMenuHelper {
     protected static final ImageIcon ICON_COMMANDLINE = new ImageIcon(ContextMenuHelper.class.getResource("commandline.png"));
     protected static final ImageIcon ICON_COPY = new ImageIcon(ContextMenuHelper.class.getResource("edit-copy.png"));
 
-    public static boolean enableLivestreamer = true;
-    public static String livestreamerQualities;
+    public static boolean enableStreamlink = true;
+    public static String streamlinkQualities;
     public static Settings settings;
     
     /**
-     * Pattern for finding the qualities in the Livestreamer qualities setting
+     * Pattern for finding the qualities in the Streamlink qualities setting
      */
     private static final Pattern LIVESTREAMER_PATTERN
             = Pattern.compile("(\\|)|(?:\\{(.+?)\\})|([^,\\s]+)");
@@ -70,7 +70,7 @@ public class ContextMenuHelper {
         m.addItem("streamsMultitwitchtv", "Multitwitch.tv", streamSubmenu);
         m.addItem("streamsSpeedruntv", "Speedrun.tv", streamSubmenu);
         m.addItem("streamsKadgar", "Kadgar.net", streamSubmenu);
-        addLivestreamerOptions(m);
+        addStreamlinkOptions(m);
         if (join) {
             m.addSeparator();
             m.addItem("join", "Join " + count + "channel" + s);
@@ -86,17 +86,17 @@ public class ContextMenuHelper {
     }
     
     /**
-     * Parses the livestreamer qualities setting and adds the defined qualities
+     * Parses the streamlink qualities setting and adds the defined qualities
      * as menu items.
      * 
      * @param m 
      */
-    public static void addLivestreamerOptions(ContextMenu m) {
-        if (enableLivestreamer) {
-            String livestreamerMenu = "Livestreamer";
-            m.setSubMenuIcon(livestreamerMenu, ICON_COMMANDLINE);
+    public static void addStreamlinkOptions(ContextMenu m) {
+        if (enableStreamlink) {
+            String streamlinkMenu = "Streamlink";
+            m.setSubMenuIcon(streamlinkMenu, ICON_COMMANDLINE);
             
-            Matcher matcher = LIVESTREAMER_PATTERN.matcher(livestreamerQualities);
+            Matcher matcher = LIVESTREAMER_PATTERN.matcher(streamlinkQualities);
             boolean sep = false;
             while (matcher.find()) {
                 String match = matcher.group();
@@ -104,12 +104,12 @@ public class ContextMenuHelper {
                     sep = true;
                 } else {
                     if (sep) {
-                        m.addSeparator(livestreamerMenu);
+                        m.addSeparator(streamlinkMenu);
                     }
                     if (match.charAt(0) == '{') {
-                    	match = livestreamerQualities.substring(matcher.start()+1, matcher.end()-1);
+                    	match = streamlinkQualities.substring(matcher.start()+1, matcher.end()-1);
                     }
-                    m.addItem("livestreamerQ"+match, match, livestreamerMenu);
+                    m.addItem("streamlinkQ"+match, match, streamlinkMenu);
                     sep = false;
                 }
             }

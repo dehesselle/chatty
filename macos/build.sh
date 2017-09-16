@@ -55,6 +55,7 @@ RESOURCE_DIR=$WORK_DIR/deploy/bundles/Chatty.app/Contents/Resources
 cp -r $STREAMLINK_DIR $RESOURCE_DIR
 cp -r $WORK_DIR/chatty/assets/img $RESOURCE_DIR
 cp -r $WORK_DIR/chatty/assets/sounds $RESOURCE_DIR
+cp    $WORK_DIR/chatty/LICENSE.txt $WORK_DIR/deploy/bundles/Chatty.app/Contents
 
 INFO_PLIST=$WORK_DIR/deploy/bundles/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set CFBundleShortVersionString $CHATTY_VERSION" $INFO_PLIST

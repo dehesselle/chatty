@@ -24,7 +24,7 @@
                     <li><a href="#favorites">Favorites / History</a></li>
                     <li><a href="help-whisper.html">Whisper Feature</a></li>
                 </ul>
-                
+
                 <strong>Chat moderation / utility</strong>
                 <ul class="menu">
                     <li><a href="#nickCompletion">TAB Completion</a></li>
@@ -34,7 +34,7 @@
                     <li><a href="#pausechat">Pause Chat / One-click moderation</a></li>
                     <li><a href="#automod">AutoMod</a></li>
                 </ul>
-                
+
                 <strong>Chat customization</strong>
                 <ul class="menu">
                     <li><a href="#highlight">Highlight</a></li>
@@ -43,13 +43,13 @@
                     <li><a href="#customemotes">Custom Emotes</a></li>
                     <li><a href="#customNames">Custom Usernames</a></li>
                 </ul>
-                
+
                 <strong>Stream features</strong>
                 <ul class="menu">
                     <li><a href="#channelinfo">Channel Info / History</a></li>
                     <li><a href="#notifications">Live Streams / Notifications</a></li>
                     <li><a href="help-admin.html">Admin Dialog</a></li>
-                    <li><a href="help-livestreamer.html">Livestreamer / Streamlink</a>
+                    <li><a href="help-streamlink.html">Streamlink</a>
                     <li><a href="help-srl.html">SpeedrunsLive (SRL)</a></li>
                     <li><a href="#followers">Followers/Subscribers List</a></li>
                     <li><a href="#streamhighlights">Stream Highlights</a></li>
@@ -67,7 +67,7 @@
                     <li><a href="help-guide_folders.html">Chatty Directories and Files</a></li>
                     <li><a href="help-custom_commands.html">Custom Commands</a></li>
                 </ul>
-                
+
                 <strong>Miscellaneous</strong>
                 <ul class="menu">
                     <li><a href="help-releases.html">Release Information</a></li>
@@ -107,7 +107,7 @@
     viewercount, followed by the current stream title and game. Anything other
     than the number of people in the chat is requested from the Twitch API about
     every two minutes.</p>
-    
+
     <p>In addition, the titlebar will also show additional information, if enabled:</p>
     <ul>
         <li>The name of the channel that is being hosted</li>
@@ -118,11 +118,11 @@
         <li>A language code if Broadcaster Language Mode is enabled</li>
     </ul>
     <p>You can toggle showing some information under <code>View - Options - Titlebar</code>.</p>
-    
+
     <p>Note that the stream status (title/game, offline) can take a few minutes
         to update, since it has to be requested from the Twitch API (which is
         also heavily cached).</p>
-    
+
     <h2>
         <a name="shortcuts">Shortcuts</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -151,7 +151,7 @@
         <li><kbd>Shift-F10</kbd> - Toggle Userlist</li>
         <li><kbd>F11</kbd> - Toggle "Fullscreen"-Mode (actually only removes the menubar and maximizes the window)</li>
     </ul>
-    
+
     <h2>
         <a name="commands">Commands</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -161,11 +161,11 @@
         work properly (you don't enter the surrounding <code>&lt; &gt;</code>,
         they are just there to show it's a parameter). Equivalently <code>[parameter]</code>
     represents an optional parameter.</p>
-    
+
     <p>You can also create your own <a href="help-custom_commands.html">Custom Commands &amp; Customized Context Menus</a>.</p>
-    
+
     <p><em>Tip:</em> You can also use TAB Completion for many commands.</p>
-    
+
     <h3><a name="commands-chat">Chat commands:</a></h3>
     <ul>
 	<li><code>/me &lt;message&gt;</code> - Send an action message (* nickname says something) to the channel</li>
@@ -187,11 +187,11 @@
         <li><code>/clearchat</code> - Clears the current chat window of all text</li>
         <li><code>/connection</code> - Show info about the current connection</li>
     </ul>
-    
+
     <p><em>Tip:</em> You can circumvent Chatty commands and send Twitch Chat commands
         directly by prepending them with a dot <code>.</code> instead of a slash,
         for example: <code>.mods</code>.</p>
-    
+
     <h3><a name="commands-settings">Settings/Customization commands:</a></h3>
     <ul>
         <li><a href="#settings">Setting commands</a></li>
@@ -203,7 +203,7 @@
         <li><code>/follow [user]</code>, <code>/unfollow [user]</code> - Follow
             or unfollow the given user, or the current channel if no user is given</li>
     </ul>
-    
+
     <h3><a name="commands-gui">GUI commands:</a></h3>
     <ul>
         <li><code>/echo &lt;text&gt;</code> - Outputs the given text as a info message</li>
@@ -222,7 +222,7 @@
         <li><code>/openUrlPrompt &lt;url&gt;</code> - Opens the given url after
         showing a prompt for confirmation</li>
     </ul>
-    
+
     <h3><a name="commands-system">Housekeeping/System commands:</a></h3>
     <ul>
         <li><code>/uptime</code> - Shows how long Chatty has been running</li>
@@ -252,7 +252,7 @@
             integration maybe to be implemented later)</li>
         <li><code>/ffz</code>, <code>/ffzGlobal</code> - Shows the FFZ channel emote codes for the current channel/global FFZ emotes</li>
     </ul>
-    
+
     <h3><a name="commands-test">Test commands:</a></h3>
     <ul>
         <li><code>/testNotification [channel]</code> - Display a test notification (optionally with channel,
@@ -265,7 +265,7 @@
             but those may produce errors and strange behaviour, so you usually
             shouldn't mess around with it.</li>
     </ul>
-    
+
     <h3><a name="commands-advanced">Advanced commands (<em>be careful with these</em>):</a></h3>
     <ul>
         <li><code>/server &lt;host&gt;[:port]</code> - Connect to a custom server</li>
@@ -273,7 +273,7 @@
         <li><code>/changetoken &lt;token&gt;</code> - Checks if the given token
             is valid and sets it as new token if it is</li>
     </ul>
-    
+
     <h2>
         <a name="login">Twitch Login</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -282,33 +282,33 @@
         importantly an <em>access token</em>, which is sort of a revokable
         password that can also have different types of access associated with
         it, the ones usable for Chatty being:</p>
-    
+
     <dl>
         <dt><code>Chat access</code></dt>
         <dd>Required to connect to chat (required for Chatty).</dd>
-        
+
         <dt><code>Read user info</code></dt>
         <dd>Required to request the streams you follow, so you can get <a href="#notifications">notified</a>
             when they start streaming.</dd>
-        
+
         <dt><code>Editor access</code></dt>
         <dd>Allows you to change the title/game of your stream and streams you
             are an editor in via the <a href="help-admin.html">Admin Dialog</a>.</dd>
-        
+
         <dt><code>Run commercials</code></dt>
-        <dd>Allows you to run comercials on your stream 
+        <dd>Allows you to run comercials on your stream
         via the <a href="help-admin.html">Admin Dialog</a> (if you are partnered).</dd>
-        
+
         <dt><code>Show subscribers</code></dt>
-        <dd>Required to view the list of your subscribers 
+        <dd>Required to view the list of your subscribers
             via the <a href="#followers">Subscribers Dialog</a> (if you have a sub button).</dd>
-        
+
         <dt><code>Follow channels</code>
         <dd>Gives you access to use the context menu (right-click) entries
             <code>Miscellaneous - Follow/Unfollow Channel</code> and use the
             <code>/follow</code> and <code>/unfollow</code> commands.</dd>
     </dl>
-    
+
     <p>Once requested from Twitch, the login data is stored locally on your
         computer along with the other settings of Chatty.
         <span style="text-decoration: line-through">Since Twitch gives out the
@@ -317,16 +317,16 @@
         token</span>.
         <span style="text-decoration: underline">This doesn't seem to be the
             case anymore.</span></p>
-    
+
     <p>If getting login data fails, read <a href="help-guide2.html">this guide</a>.
         If your login was determined invalid, read <a href="#login-invalid">down below</a>.</p>
-    
+
     <h3><a name="access">Allow more access</a></h3>
     <p>To allow Chatty more access than it already has (e.g. if you haven't
         selected editor access before, but you want it now), you need to request
         a new access token. Just go to <code>&lt;Main - Login..&gt;</code>,
         delete the login and request it again with the necessary access.</p>
-    
+
     <h3>Allow less access</h3>
     <p>To allow Chatty less access than it already has (e.g. you don't want it
         to have editor access anymore) you need to first revoke access
@@ -336,7 +336,7 @@
         token without selecting the now unwanted access. Twitch will always
         respond with a token that has at least as much access as the previous
         one.</p>
-    
+
     <h3><a name="login-security">Security</a></h3>
     <p>The access token is saved in the <code>login</code> file in the settings
         <a href="help-guide_folders.html">directory</a> and can thus be accessed
@@ -348,7 +348,7 @@
     <a href="http://www.twitch.tv/settings/connections">Connections</a>
     and <em>revoke the accesss</em> there. You can then request a new one for
     which Twitch will ask you to authorize Chatty again.</p>
-    
+
     <h3><a name="login-invalid">Invalid Login</a></h3>
     <p>If your login is determined invalid (either by checking it manually or
     when Chatty performed an automatic check), this can mean one of two things:</p>
@@ -397,7 +397,7 @@
             </ul>
         </li>
     </ol>
-    
+
     <p>What happens when your login is no longer valid:</p>
     <ul>
         <li>You can't connect to chat anymore. If you are already connected and
@@ -408,14 +408,14 @@
         <li>Other features that require authentication won't work properly anymore, like
         the Admin Dialog.</li>
     </ul>
-    
+
     <h2>
         <a name="symbols">User Status Symbols</a>
         <a href="#top" class="top">[back to menu]</a>
     </h2>
     <p>There are a few special symbols that are used for users in chat. These
     are displayed in the userlist and - if usericons are disabled - also in chat:</p>
-    
+
     <table class="compact" style="border-collapse: collapse;">
         <tr>
             <td class="symbol">~</td>
@@ -454,10 +454,10 @@
             <td>Staff</td>
         </tr>
     </table>
-    
+
     <p>When you copy&amp;paste a message from chat that contains Badges, you may
         also encounter the following symbols:</p>
-    
+
     <table class="compact" style="border-collapse: collapse;">
         <tr>
             <td class="symbol">'</td>
@@ -469,18 +469,18 @@
                 be available for some time or in some channels)</td>
         </tr>
     </table>
-    
+
     <p><a href="http://frankerfacez.com">FrankerFaceZ</a> provides a custom
     mod icon for some channels. You can disable this in the settings if you
     want to keep the default one for all channels.</p>
-    
+
     <h2>
         <a name="userlist">Userlist</a>
         <a href="#top" class="top">[back to menu]</a>
     </h2>
     <p>The userlist on the side of the channel shows all users currently
         considered to be in the channel.</p>
-    
+
     <ul>
         <li>A user gets added to the userlist..
             <ul>
@@ -501,14 +501,14 @@
             </ul>
         </li>
     </ul>
-    
+
     <p>In order to receive JOIN/PART messages, the setting <code>Correct Userlist</code>
         under <code>Settings - Advanced - Connection</code> has to be enabled.</p>
-    
+
     <p><em>Note:</em> The userlist is not very reliable and should only be taken
         as a rough estimate of who is currently in the channel. This is because:
     </p>
-    
+
     <ul>
         <li>JOIN/PART messages are sent in batches and can be pretty delayed, so
         so it may happen that a user who only just started showing up in the
@@ -519,12 +519,12 @@
         userlist may not always be correct. Twitch Chat has also been known to
         sometimes spam MOD/UNMOD messages.</li>
     </ul>
-    
+
     <p>Also note that the userlist doesn't necessarily have to do with who
         watches your stream. A user can be logged into chat without watching the
         stream and vice versa. Overall, just don't take the userlist too
         seriously.</p>
-    
+
     <h2>
         <a name="nickCompletion">TAB Completion</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -533,10 +533,10 @@
         things, by using either <kbd>TAB</kbd> or <kbd>Shift-TAB</kbd> to
         initiate Completion, which complete different types depending on the
         <a href="help-settings.html#Completion">Completion settings</a>.</p>
-    
+
     <p>Some prefixes automatically switch to a certain type of completion
         independant of whether you use <kbd>TAB</kbd> or <kbd>Shift-TAB</kbd>:</p>
-    
+
     <ul>
         <li>Prefixing <code>@</code> completes usernames</li>
         <li>Prefixing <code>/</code> completes command names</li>
@@ -546,7 +546,7 @@
         <li>Setting commands such as <code>/set</code> complete setting names
             for their first parameter</li>
     </ul>
-    
+
     <h3>How it works</h3>
     <p>How the TAB Completion process works:</p>
 
@@ -582,13 +582,13 @@
             </ul>
         </li>
     </ol>
-    
+
     <p>The found matches are all ordered alphabetically, except for nickcompletion
     for which you can choose different types of sorting. By default nicknames use
     predictive sorting, which means users who recently wrote a message or highlighted
     you have a higher priority, increasing the chance that the users you want to
     address appear as the first few matches.</p>
-    
+
     <h3>Example: Nick Completion</h3>
     <ul>
         <li>Enter <code>z</code> in the editbox</li>
@@ -606,7 +606,7 @@
             </ul>
         </li>
     </ul>
-    
+
     <h3>Example: Emote Completion</h3>
     <ul>
         <li>Enter <code>dat</code> in the editbox</li>
@@ -673,7 +673,7 @@
     </h2>
     <p><em>This does not apply anymore since Twitch changed their system to use
         IRCv3 capabilities. Joining several channels does not have any drawbacks.</em></p>
-    
+
     <h2>
         <a name="favorites">Favorites / History</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -694,7 +694,7 @@
     open under <code>View - Highlights</code> (you can clear the highlights window
     in it's context menu).</p>
     <div class="moreInfo">More information: <a href="help-settings.html#Highlight">Highlight Settings</a></div>
-    
+
     <h2>
         <a name="ignore">Ignore</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -703,11 +703,11 @@
         it hides messages instead of highlighting them. They however also get
         added to a seperated window, which you can open under <code>View - Ignored</code>
         (you can clear the messagess in the window in it's context menu).</p>
-    
+
     <p>Right-click on a user in chat to open the User Context Menu, where you
         can ignore or unignore that user from the <code>Miscellaneous</code>
         submenu. You can view and edit the list of ignored users in the settings.</p>
-    
+
     <div class="moreInfo">More information: <a href="help-settings.html#Ignore">Ignore Settings</a></div>
 
     <h2>
@@ -724,14 +724,14 @@
     <p>Chatty attempts to make colors more readable automatically by changing
     them to increase contrast. This doesn't work very well though, although it
     should work for extreme cases like white on white or black on black.</p>
-    
+
     <h3>Custom Colors</h3>
     <p>You can also specify custom colors for certain users or types of users
     in the settings. Custom colors are indicated by two asterisks (**) in the
     User Info Dialog.</p>
-    
+
     <div class="moreInfo">More information: <a href="help-settings.html#Usercolors">Usercolor Settings</a></div>
-    
+
     <h2>
         <a name="emoticons">Emoticons/Emote Dialog</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -762,16 +762,16 @@
             </ul>
         </li>
     </ul>
-    
+
     <p>You can enable/disable Emoticons in general (displaying the images instead
         of the text) in the settings under <code>Emoticons</code>. You can also
         ignore specific emotes in the same place in the settings.</p>
-    
+
     <p>In chat you can right-click on an emoticon to show some info about it.
         Click on the emote code (e.g. <code>FrankerZ</code>) in the context menu
         to insert the emote in the inputbox. If it is a subscriber emote, you
         also have some more options.</p>
-    
+
     <h3>Emote Dialog</h3>
     <p>Use <code>Extra - Emoticons</code> or press <kbd>Ctrl-E</kbd> to open
         the Emote Dialog, which has various pages:</p>
@@ -793,15 +793,15 @@
         on an emote to also close the Emote Dialog in the process, or press <kbd>ESC</kbd> or
     <kbd>Ctrl-E</kbd> to close it. Right-click on an emote to show a context menu
     with some more information/options.</p>
-    
+
     <p>Right-click on an emote and choose <code>Show Details</code> to open the
     Detail View in the Emote Dialog, which shows the emote in different sizes
     and some information about it. Clicking on an emote in chat also opens the
     Detail View.</p>
-    
+
     <p><em>Note that you need to have joined at least one channel for your subemotes/turbo emotes
         to show up, because only then does Twitch Chat send that information to the client.</em></p>
-    
+
         <h2>
             <a name="customemotes">Custom Emotes (local)</a>
             <a href="#top" class="top">[back to menu]</a>
@@ -810,29 +810,29 @@
             in the settings directory (enter <code>/dir</code> in Chatty to find the
             settings directory, <code>/openDir</code> to directly open it). The
         file can have one emote on each line, for example:</p>
-        
+
         <pre>
 D:      aww.png     size:18x18
 re:Gr[e|a]yface Kappa.png
 # Switching Kappa and MiniK
 Kappa   http://static-cdn.jtvnw.net/emoticons/v1/3287/1.0
 MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre>
-        
+
         <p>This can be used to replace existing emotes, since custom emotes are
         checked first and thus take precedence. This is not intended to replace
         FFZ or BTTV emotes, just to help configure emotes to your personal
         preference. For example you could also add an image for you own name to
         have it highlighted in chat in a different way.</p>
-        
+
         <h3>Syntax</h3>
-        
+
         <p>The syntax per line is (you can use as many spaces or TABs as seperators as you want):</p>
-        
+
         <p><code>[settings] &lt;code&gt; [settings] &lt;image&gt; [settings]</code></p>
-        
+
         <p>Settings can be in any of the shown places, but are always optional. Available settings are:
         </p>
-        
+
         <ul>
             <li><code>set:&lt;setid&gt;</code> to specify a
         Twitch emote set. This will only affect messages you write yourself.</li>
@@ -844,7 +844,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
             size of the emote (you can omit this if you want to use the image
             size).</li>
         </ul>
-        
+
         <p>Required:</p>
         <ul>
             <li>The <strong>code</strong> can be prefixed with <code>re:</code>
@@ -855,9 +855,9 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
             the <code>emotes.txt</code> in), so just put them in the same directory.
         You should also be able to use URLs to load the image from the internet.</li>
         </ul>
-        
+
         <p>Lines starting with <code>#</code> are ignored and can be used for comments.</p>
-        
+
         <p>The <code>emotes.txt</code> file is loaded when you start Chatty, so if you edit the file
             while Chatty is running, you have to use the <code>/reloadCustomEmotes</code>
             command for it to take effect.
@@ -868,7 +868,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <a href="#top" class="top">[back to menu]</a>
      </h2>
     <p><em>This has been moved to it's <a href="help-addressbook.html">own page</a></em></p>
-    
+
     <h2>
         <a name="userselection">User/Line Selection Mode</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -876,7 +876,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     <p>With this feature, you can select a user in chat with keyboard shortcuts
     (if the window is active). So you can e.g. timeout a user with your keyboard
     alone.</p>
-    
+
     <p>Press <kbd>Ctrl-Space</kbd> (can be changed in the settings) to enter
         this mode. If there are any user
     messages in chat, then the newest message will get another background color
@@ -890,28 +890,28 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <li><kbd>Q</kbd> to quit out of the mode</li>
         <li><kbd>E</kbd> to open the User Dialog for the currently selected user</li>
     </ul>
-    
+
     <p>When you move up and down, it actually switches to the next user instead
     of to the next line. So if the same user send 10 messages in a row, it will
     jump to the first message of the next user above it.</p>
-    
+
     <p>In addition to the currently selected message, it will also highlight all
         other messages by the same user. You can also hold <kbd>AltGr</kbd> and
     click on a username in chat to highlight all that users messages (and enter
     User Selection Mode).</p>
-    
+
     <p>You can also click and hold in an empty area of the textpane, which puts
     and holds the focus there, so you can just use the shortcuts in the list
     above to enter the User Selection Mode and switch between messages. However
     if you let go of the mouse key, it will immediately leave the mode again.</p>
-    
+
     <h3>Using Global Hotkeys</h3>
     <p>You can also configure global hotkeys with some User Selection actions.
     However, if the focus is not on the chat, then the usual shortcuts won't
     work, so you'll have to define additional global hotkeys to e.g. timeout the
     currently selected user. See the hotkey settings for what actions are
     available.</p>
-    
+
     <h2>
         <a name="streamchat">Stream Chat</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -921,13 +921,13 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     channels redirected to it (only regular chat messages, so no JOINS/PARTS, info messages
     and so on). It also can have a message timeout set, so messages will
     disappear after a certain amount of seconds.</p>
-        
+
         <p>The idea is to capture Stream Chat to display chat on stream and
         messages will only be displayed if the chat has been recently active. So
         this doesn't really make a lot of sense for busier channels, unless you
         simply prefer to only have regular messages or to have a seperate dialog
         for the capture.</p>
-        
+
         <h3>Getting started</h3>
         <p>You need to add the channel which messages are redirected to the
         Stream Chat dialog before anything will appear. The setting you are required
@@ -945,7 +945,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <p>In addition, make sure you have <code>Settings - Window - Restore dialogs</code>
             set to at least <code>Restore dialogs from last session</code> in order
             to keep the position/size of the Stream Chat dialog between sessions.</p>
-        
+
         <h3>Commands</h3>
         <ul>
             <li><code>/openStreamChat</code> - Opens the Stream Chat dialog</li>
@@ -955,7 +955,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
             <li><code>/streamChatTest [message]</code> - Adds a test message to the Stream Chat dialog, if you don't specify a message
             a default one is used</li>
         </ul>
-    
+
     <h2>
         <a name="customNames">Custom Names</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -964,22 +964,22 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     in the userlist instead of the regular Twitch username and in the User Info
     Dialog in addition to the regular Twitch username. In other places (like
     the User Context Menu) the regular Twitch username is used.</p>
-    
+
     <p>TAB Completion also allows you to complete Custom Names and by default
         also includes the original name in the results.</p>
-    
+
     <p>The following commands are used to set custom names:</p>
     <ul>
         <li><code>/setname &lt;username&gt; &lt;custom name&gt;</code> - to set a custom name</li>
         <li><code>/resetname &lt;username&gt;</code> - to remove a custom name</li>
     </ul>
-    
+
     <p>In addition to these commands, you can also view and change Custom Names
         via the Settings GUI under <code>Names</code>. You can also right-click
         on a user in chat to open the User Context Menu and choose
         <code>Miscellaneous - Set name</code> to open the Settings with the name
         preset.</p>
-    
+
     <h2>
         <a name="pausechat">Pause Chat / One-click moderation</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -995,14 +995,14 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         conjunction with moving the mouse to initiate pausing. You can let go of
         <kbd>Ctrl</kbd> as soon as pausing is started and it will stay paused as
         long as you move the mouse inside the chat area.</p>
-    
+
     <p>A little popup in the top-right will indicate that the chat is paused.</p>
-    
+
     <p><em>Please note:</em> This only works when the chat area is already filled, so the scrollbar is
         actually used. In addition, there may be instances where something you
         want to click will move anyway, for example if a message is deleted due
         to a timeout/ban, causing other messages to move.</p>
-    
+
     <h3>Scroll up to stop scrolling</h3>
     <p>Another way of preventing scrolling down is scrolling up. Once you are
         manually scrolled up, chat will stop scrolling down automatically.
@@ -1010,18 +1010,18 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         to move despite it not actively scrolling down. It will stop removing
         messages to get moving to a minimum as long as you keep holding
         <kbd>Ctrl</kbd>.</p>
-    
+
     <p>A certain time after not moving the scroll position, it will scroll down
         automatically (unless <kbd>Ctrl</kbd> is still being pressed).</p>
-    
+
     <h3>One-click moderation</h3>
     <p>Holding <kbd>Ctrl</kbd> and clicking on a user in chat can execute a ban
         or timeout on that user. Enable this feature and define what it does in
         the settings (<code>Main - Settings - Chat</code>).</p>
-    
+
     <p>It is recommended to enable the pause chat feature if you are using this,
         or else misclicks could be very common.</p>
-    
+
     <h2>
         <a name="automod">AutoMod</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -1030,7 +1030,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         is a Twitch feature that filters messages before they are send to the
         chat clients. As mod in the channel you can review and either approve
         or deny those filtered messages in different ways:</p>
-    
+
     <ul>
         <li>The AutoMod Dialog under <code>Extra - AutoMod</code></li>
         <li>Enable <code>Settings - Moderation - Show messages rejected by AutoMod</code>
@@ -1044,14 +1044,14 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
             </ul>
         </li>
     </ul>
-    
+
     <h3>AutoMod Dialog</h3>
     <p>In the dialog you will see filtered messages of the current channel (if
         you are mod). Open the context menu on a message (usually right-click)
         to approve or deny that message. Double-click on a message to open the
         User Info Dialog for that user to be able to see his previous messages
         or ban/timeout the user.</p>
-    
+
     <p>Shortcuts available when you have a message selected:</p>
     <ul>
         <li><kbd>A</kbd> to approve, <kbd>D</kbd> to deny message</li>
@@ -1060,7 +1060,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <li><kbd>S</kbd> to move down in the list, <kbd>Alt+S</kbd> to jump over
             already handled messages</li>
     </ul>
-    
+
     <p>Messages can have different prefixes depending on their status:</p>
     <ul>
         <li>No prefix - The message has not been approved/denied yet</li>
@@ -1075,11 +1075,11 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <li><code>Error</code> - An error occured sending your action to the
             Twitch API</li>
     </ul>
-    
+
     <p>Messages that have already been handled or that are older than 5 minutes
         (and can thus <em>probably</em> not be approved/denied anymore) are
         shown greyed out.</p>
-    
+
     <h2>
         <a name="channelinfo">Channel Info / History</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -1087,13 +1087,13 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     <p>The Channel Info Dialog shows the current stream status of the active
     stream. The data is requested from the Twitch API in a semi-regular interval,
     so it can take some time to update.</p>
-    
+
     <h3>Stream Uptime</h3>
     <p>If the stream is online, the <code>Live: 1h 30m</code>
     shows how long ago the stream was started. That time comes directly from the
     Twitch API, so it is able to show the correct online time, even if you started
     Chatty after the stream started.</p>
-    
+
     <p>If there is a time in parentheses
     (like <code>1h 30m (2h)</code>), then that time denotes how long the stream
     was online, but including small offline periods (PICNICs) of at most 10 minutes,
@@ -1101,7 +1101,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     stream online time and also depends on when Chatty got the data (if you join
     the channel after a PICNIC, then it won't include the time before, because it
     never received the data for it).</p>
-    
+
     <h3>History Graph</h3>
     <p>The History is a graph that shows the development of the viewers
                     of the currently active channel and also indicates stream status changes
@@ -1111,7 +1111,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     <table>
         <tr>
             <td>
-                
+
                 <p>There are two ways to change which time range is being displayed:</p>
                 <ul>
                     <li><strong>Time Range</strong> means only the last <em>x hours</em>
@@ -1135,12 +1135,12 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
                     This setting is channel-specific and isn't saved when you
                     close Chatty.</li>
                 </ul>
-                
-                
+
+
             </td>
             <td>
                 <img src="viewerhistory_small.gif" alt="History Demonstration" />
-                
+
             </td>
         </tr>
     </table>
@@ -1164,15 +1164,15 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         no longer online, or whose channels you have left and you don't follow,
         are added to a list that you can open in the Live Streams window context
         menu (<code>Removed streams..</code>).</p>
-    
+
     <h3>Notifications</h3>
     <p>Chatty Notifications are little info boxes that can be shown for stream
     status changes and highlighted messages. When you left-click on a notification
     it is closed immediately, right-clicking closes it as well and in addition
     also joins the associated channel.</p>
-    
+
     <div class="moreInfo">More information: <a href="help-settings.html#Notifications">Notification Settings</a></div>
-    
+
     <h3><a name="followed">Followed Streams</a></h3>
     <p>Chatty can request a list of streams you follow on a regular basis, so
     you have both an overview of currently live streams as well as be
@@ -1184,13 +1184,13 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         request your followed streams. Read the <a href="#login">section about login</a>
     to learn more about login data and access.</p>
     <p>You can enable/disable this feature in the Settings under <code>Notifications</code>.</p>
-    
+
     <h2>
         <a name="admin">Admin Dialog</a>
         <a href="#top" class="top">[back to menu]</a>
      </h2>
     <p><em>This has been moved to it's <a href="help-admin.html">own page</a></em></p>
-    
+
     <h2>
         <a name="followers">Followers/Subscribers List</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -1199,17 +1199,17 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         and then opening the Followers Dialog via <code>Extra - Followers</code>.
     It always opens on the currently active channel, or if you are in no channel
     at all, your own channel.</p>
-    
+
     <p>You can open a list of your <em>Subscribers</em> by opening the Subscribers Dialog
         via <code>Extra - Subscribers</code>. It always opens on your own channel,
     because you can only display the Subscribers of your own channel. If you don't
     have any Subscribers, it will simply show an empty list (and an error). You
     also need to have selected the necessary <a href="#login">access</a> when
     requesting login data.</p>
-    
+
     <p>You can save the current list to a file by right-clicking on the dialog
     (not the list) and selecting the format.</p>
-    
+
     <h3>Usage</h3>
     <p>Both the Followers and Subscribers Dialog otherwise work in pretty much
         the same way. Data is only requested as long as you have the dialog open. It
@@ -1245,7 +1245,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
                     <li><span style="background-color:#FFFAF0">Entries of the last 15 minutes</span></li>
                     <li><span style="background-color:#F5F5F5">Entries of the last hour</span></li>
                 </ul>
-                
+
                 <p>The time has different colors for older entries:</p>
                 <ul>
                     <li><span style="color:#787878">Entries older than a day</span></li>
@@ -1257,7 +1257,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
             <td valign="top"><img src="followers.jpg" alt="Followers Dialog" /></td>
         </tr>
     </table>
-    
+
     <h3>About New Followers/Refollows</h3>
     <p>Everything that determines whether a follower is new or a refollow is
     saved per session. So if you restart Chatty, it assumes that all followers
@@ -1266,7 +1266,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     time and show none of them as new. Now if it updates a minute later, and there
     are users it hasn't seen as having followed before, then it assumes these
     users as new followers.</p>
-    
+
     <p>Now a user of course might have been a follower for a year, then unfollow
         and follow again. Chances are that Chatty won't notice that and assume a new
         follower. What it however does is that it only shows each user as new follower
@@ -1274,7 +1274,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         then that user unfollows and follows again, Chatty will notice that the first
         and the second follow time are different, and will show this user as a refollow
         (the name slightly grey).</p>
-    
+
     <p>So this basicially just prevents the same user from e.g. making a sound
         go off (if you have that enabled) several times just by refollowing several
         times. At most that will happen once per session. Other than that
@@ -1289,7 +1289,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     the stream time (how long the stream has been online) using a command or
     hotkey. When you add a Stream Highlight in Chatty, it is written to a file
     which you can then view later.</p>
-    
+
     <p>The following commands are available:</p>
     <ul>
         <li><code>/addStreamHighlight [comment]</code> - Adds a highlight at
@@ -1297,28 +1297,28 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <li><code>/openStreamHighlights</code> - Opens the file where the stream
         highlights are stored in your default text editor.</li>
     </ul>
-    
+
     <p>You can also add a hotkey to add stream highlights, so you can also do it
     yourself while streaming out of a game (given that global hotkeys work in
     the game).</p>
-    
+
     <p>The highlights are written to the file <code>stream_highlights.txt</code>
         in the <code>exported</code> subfolder of the settings directory (which
         you can open with the <code>/openDir</code> and show with the
         <code>/dir</code> command).</p>
-    
+
     <h3>Allow your moderators to add highlights</h3>
     <p>You can also let your moderators add stream highlights
         (<code>!highlight [comment]</code>), but you first have to set the channel with a
         <a href="help-setting_commands.html#streamhighlights">setting command</a>:</p>
-    
+
     <dl class="defList">
         <dt><code>/set streamHighlightChannel #&lt;yourchannelname&gt;</code></dt>
         <dd>Allows moderators in the given channel to run the command.</dd>
         <dd>For example if your channel/stream is called <code>zoton2</code> the
             command you have to enter would be: <code>/set&nbsp;streamHighlightChannel&nbsp;#zoton2</code></dd>
     </dl>
-    
+
     <p>Optionally you can also set the following settings:</p>
     <dl class="defList">
         <dt><code>/set streamHighlightChannelRespond 1</code></dt>
@@ -1328,7 +1328,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <dd>Change the mod command (in this example to <code>!highlight</code>,
             which is the default)</dd>
     </dl>
-    
+
     <p><em>Tip:</em> <a href="help-setting_commands.html">Setting commands</a>
         are entered into the chat input box, just like Twitch Chat commands.</p>
 
@@ -1339,16 +1339,16 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     <p><em>Both the ignore joins/parts and Twitch Client Version 3 option have
             been removed. You can now disable the <a href="help-settings.html#Advanced-Userlist">Correct Userlist</a>
         setting to not get any joins/parts if you think it could improve performance.</em></p>
-    
+
     <h2>
         <a name="custom-processes">Run custom processes</a>
         <a href="#top" class="top">[back to menu]</a>
     </h2>
     <p>Using the <code>/proc</code> command you can start processes directly out
         of Chatty. An example of where this is already integrated into Chatty is
-        starting Livestreamer, however this is a more basic implementation.
+        starting Streamlink, however this is a more basic implementation.
         <em>This is probably only interesting for advanced users.</em></p>
-    
+
     <ul>
         <li><code>/proc exec &lt;command and parameters&gt;</code> - Try to
             start a process on your computer.</li>
@@ -1357,13 +1357,13 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <li><code>/proc kill &lt;id&gt;</code> - Forcefully end the process with
             the given id (get the id from the list of processes).</li>
     </ul>
-    
+
     <p>Example: <code>/proc exec notepad H:\hl.txt</code> will start Notepad
         and open the given file.</p>
-    
+
     <p><em>Note:</em> Commands and output of the process is logged in the Debug Log which
         is written to file and output to <code>Extra&nbsp;-&nbsp;Debug window</code>.</p>
-        
+
     <h2>
         <a name="launch">Launch options</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -1372,56 +1372,56 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     settings loaded from the settings file. You need to run Chatty from the
     commandline or <a href="help-guide_create_shortcut.html">Create a shortcut</a>
     to use these.</p>
-    
+
     <p>These need to be defined after the <code>Chatty.jar</code>, for example:
         <code>javaw -jar Chatty.jar -channel lotsofs</code></p>
-    
+
     <dl class="dl-settings">
         <dt><code>-server &lt;host/ip&gt;</code></dt>
         <dd>Specify a different server to connect to</dd>
-        
+
         <dt><code>-port &lt;port&gt;</code></dt>
         <dd>Specify a different port to use for connecting</dd>
-        
+
         <dt><code>-user &lt;username&gt;</code></dt>
         <dd>Your username</dd>
-        
+
         <dt><code>-password [password]</code></dt>
         <dd>Login with password instead of access token, optionally
                     also the actual password to use. <em>Twitch doesn't allow
                     password login anymore.</em></dd>
-                    
+
         <dt><code>-token [token]</code></dt>
         <dd>Login with the given token.</dd>
         <dd>The username currently saved in Chatty must match the account
             associated with the given token. If no login data is currently
             saved in Chatty or the username is different, you have to use
             <code>-user</code> to set the correct username.</dd>
-        
+
         <dt><code>-connect</code></dt>
         <dd>Connect immediately when starting Chatty</dd>
-        
+
         <dt><code>-channel &lt;channel&gt;</code></dt>
         <dd>The channel to join (you can specify more than one channel by
             separating them with a comma)</dd>
-        
+
         <dt><code>-ds</code></dt>
         <dd>Don't save settings on exit (settings are everything that is
                 saved between sessions like login data, always on top, ..)</dd>
-        
+
         <dt><code>-cd</code></dt>
         <dd>Use current working directory (usually the directory you
                 start Chatty from) for saving/loading settings and other files.
                 This can be useful to make Chatty more portable or use several
                 different setting files on the same computer.
                 <a href="help-guide_folders.html">More information..</a></dd>
-        
+
         <dt><code>-set:&lt;settingName&gt; &lt;setting value&gt;</code></dt>
         <dd>Change any setting that can be edited via the <code>/set</code>
         command (see <a href="help-setting_commands.html">Setting Commands</a>).</dd>
-        
+
         <dt><code>-single [port]</code></dt>
-        <dd>Run in single instance mode, which means if you start Chatty while 
+        <dd>Run in single instance mode, which means if you start Chatty while
             it's already running the parameters are forwarded to the already
             running instance instead of starting another one. You have to
             specify the <code>-single</code> parameter with the same port (or
@@ -1432,16 +1432,16 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
             supply a port a default one is used. If the used port is already
             taken by another program you have to specify one that works or else
             no instance of Chatty will be able to start.</dd>
-        <dd>Currently only the <code>-channel</code> parameter is used when 
+        <dd>Currently only the <code>-channel</code> parameter is used when
             forwarded to an already running instance (joining the channel).</dd>
     </dl>
-    
+
     <h2>
         <a name="settings">Setting commands</a>
         <a href="#top" class="top">[back to menu]</a>
     </h2>
     <p><em>This has been moved to it's <a href="help-setting_commands.html">own page</a></em></p>
-    
+
     <h2>
         <a name="settingFiles">Setting files</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -1464,9 +1464,9 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
         <li><code>statusPresets</code>: Contains status (title/game) presets
         from the Admin Dialog.</li>
     </ul>
-    
+
     <div class="moreInfo">More information: <a href="help-guide_folders.html">Chatty directories and files</a></div>
-    
+
     <h2>
         <a name="contact">Contact</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -1482,7 +1482,7 @@ MiniK   http://static-cdn.jtvnw.net/emoticons/v1/25/1.0     set:793 id:3287</pre
     actual version number, which you can find on the top of the main help page in Chatty
     (this one if you are reading this in Chatty, otherwise go to Chatty and open
     <code>Help - About/Help</code> or press <kbd>F1</kbd>).</p>
-    
+
     <h2>
         <a name="thanks">Miscellaneous/Thanks</a>
         <a href="#top" class="top">[back to menu]</a>
@@ -1554,4 +1554,3 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.</pre>
 </body>
 </html>
-

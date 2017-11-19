@@ -42,7 +42,7 @@ PIP_DIR=$WORK_DIR/pip
 mkdir -p $SITE_PKG_DIR
 export PYTHONPATH=$SITE_PKG_DIR
 easy_install --prefix=$PIP_DIR pip
-$PIP_DIR/bin/pip install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink PySocks
+$PIP_DIR/bin/pip install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink
 cp $REPO_DIR/macos/streamlink_vlc.sh $STREAMLINK_DIR/bin/streamlink_vlc.sh
 
 #--- build macOS app

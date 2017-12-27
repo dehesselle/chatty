@@ -174,7 +174,7 @@ public class SettingsManager {
         //=================
 
         settings.addBoolean("ontop", false);
-        settings.addString("laf","default");
+        settings.addString("laf","system");
         settings.addString("lafTheme","Default");
         settings.addMap("lafCustomTheme", new HashMap<>(), Setting.STRING);
         
@@ -549,9 +549,9 @@ public class SettingsManager {
         //===============
 
         // Livestreamer
-        settings.addBoolean("livestreamer", false);
+        settings.addBoolean("livestreamer", true);
         settings.addString("livestreamerQualities", "Best, Worst, Select");
-        settings.addString("livestreamerCommand", "livestreamer");
+        settings.addString("livestreamerCommand", "../Resources/streamlink/bin/streamlink_vlc.sh");
         settings.addBoolean("livestreamerUseAuth", false);
         settings.addBoolean("livestreamerShowDialog", true);
 

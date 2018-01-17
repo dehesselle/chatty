@@ -57,6 +57,12 @@ cp -r $WORK_DIR/chatty/assets/img $RESOURCE_DIR
 cp -r $WORK_DIR/chatty/assets/sounds $RESOURCE_DIR
 cp    $WORK_DIR/chatty/macos/LICENSE.txt $WORK_DIR/deploy/bundles/Chatty.app/Contents
 
+SCRIPTS_DIR=$RESOURCE_DIR/scripts
+mkdir $SCRIPTS_DIR
+cp $REPO_DIR/macos/streamlink_vlc.sh $SCRIPTS_DIR
+cp $REPO_DIR/macos/iina.sh $SCRIPTS_DIR
+cp $REPO_DIR/macos/play.sh $SCRIPTS_DIR
+
 INFO_PLIST=$WORK_DIR/deploy/bundles/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set CFBundleShortVersionString $CHATTY_VERSION" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set CFBundleVersion $CHATTY_MACOS_BUILD" $INFO_PLIST

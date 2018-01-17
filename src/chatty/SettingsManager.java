@@ -551,7 +551,7 @@ public class SettingsManager {
         // Livestreamer
         settings.addBoolean("livestreamer", true);
         settings.addString("livestreamerQualities", "Best, Worst, Select");
-        settings.addString("livestreamerCommand", "../Resources/streamlink/bin/streamlink_vlc.sh");
+        settings.addString("livestreamerCommand", "../Resources/scripts/play.sh");
         settings.addBoolean("livestreamerUseAuth", false);
         settings.addBoolean("livestreamerShowDialog", true);
 

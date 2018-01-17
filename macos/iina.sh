@@ -12,10 +12,6 @@ function get_format
 {
    local quality=$1
 
-   local cmd="\
-$(dirname $IINA)/youtube-dl --list-formats https://www.twitch.tv/$STREAM | \
-tail -5 | grep -v 'audio only' | awk '{ print $1 }'"
-
    case $quality in
       best)
          $(dirname $IINA)/youtube-dl --list-formats https://www.twitch.tv/$STREAM |

@@ -6,6 +6,8 @@
 
 IINA=/Applications/IINA.app/Contents/MacOS/iina-cli
 
+OK=true
+
 #--- functions -----------------------------------------------------------------
 
 function get_format
@@ -15,11 +17,22 @@ function get_format
    case $quality in
       best)
          $(dirname $IINA)/youtube-dl --list-formats https://www.twitch.tv/$STREAM |
-grep 'mp4' | grep -v 'audio only' | awk '{ print $1 }' | sort -r | head -1
+grep 'mp4' | grep -v 'audio only' | awk '{ print $1 }' | tail -r | head -1
          ;;
       worst)
          $(dirname $IINA)/youtube-dl --list-formats https://www.twitch.tv/$STREAM |
-grep 'mp4' | grep -v 'audio only' | awk '{ print $1 }' | sort | head -1
+grep 'mp4' | grep -v 'audio only' | awk '{ print $1 }' | head -1
+         ;;
+      "")
+         quality="Available streams: "
+         
+         for item in  $($(dirname $IINA)/youtube-dl --list-formats https://www.twitch.tv/$STREAM |
+            grep 'mp4' | awk '{ print $1 }'); do
+            quality="$quality $item,"
+         done
+         
+         quality="${quality%??????????}"
+         echo $quality
          ;;
       *)
          echo $quality
@@ -30,10 +43,19 @@ grep 'mp4' | grep -v 'audio only' | awk '{ print $1 }' | sort | head -1
 #--- main ----------------------------------------------------------------------
 
 if [ -f $IINA ]; then
-   $IINA --mpv-ytdl-format=$(get_format $QUALITY) https://www.twitch.tv/$STREAM
-   exit 0
+   OK=true
 elif [ -f $HOME/$IINA ]; then
    IINA=$HOME/$IINA
-   $IINA --mpv-ytdl-format=$(get_format $QUALITY) https://www.twitch.tv/$STREAM
+   OK=true
+else
+   OK=false
+fi
+
+if $OK; then
+   if [ -z "$QUALITY" ]; then
+      get_format ""
+   else
+      $IINA --mpv-ytdl-format=$(get_format $QUALITY) https://www.twitch.tv/$STREAM
+   fi
    exit 0
 fi

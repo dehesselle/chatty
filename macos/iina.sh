@@ -31,7 +31,7 @@ grep 'mp4' | grep -v 'audio only' | awk '{ print $1 }' | head -1
             quality="$quality $item,"
          done
          
-         quality="${quality%??????????}"
+         quality="${quality%?}"
          echo $quality
          ;;
       *)

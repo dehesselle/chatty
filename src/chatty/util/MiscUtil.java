@@ -3,9 +3,14 @@ package chatty.util;
 
 import java.awt.Component;
 import java.awt.Desktop;
+import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -16,6 +21,7 @@ import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 
@@ -43,7 +49,7 @@ public class MiscUtil {
             Desktop.getDesktop().open(folder);
         } catch (Exception ex) {
             if (parent != null) {
-                JOptionPane.showMessageDialog(parent, "Opening folder failed.");
+                JOptionPane.showMessageDialog(parent, "Opening folder failed.\n"+ex.getLocalizedMessage());
             }
             return false;
         }
@@ -97,21 +103,59 @@ public class MiscUtil {
      * @param from The file to move
      * @param to The target filename, which will be overwritten if it already
      * exists
+     * @throws java.io.IOException
      */
-    public static void moveFile(Path from, Path to) {
+    public static void moveFile(Path from, Path to) throws IOException {
         try {
             Files.move(from, to, ATOMIC_MOVE);
         } catch (IOException ex) {
-            LOGGER.warning("Error moving file "+from+": " + ex);
-            System.out.println("Error moving file "+from+": " + ex);
-
-            try {
-                Files.move(from, to, REPLACE_EXISTING);
-            } catch (IOException ex2) {
-                LOGGER.warning("Error moving file "+from+" (2): " + ex2);
-                System.out.println("Error moving file "+from+" (2): " + ex2);
+            // Based on the Files.move() docs it may throw an IOException when
+            // the target file already exists (implementation specific), so try
+            // alternate move on that instead of AtomicMoveNotSupportedException
+            LOGGER.info("ATOMIC_MOVE failed: "+ex);
+            Files.move(from, to, REPLACE_EXISTING);
+        }
+    }
+    
+    /**
+     * Delete all files and directories in the given directory.
+     * 
+     * The prefix can be used if all the files to delete share a common prefix,
+     * to ensure that only the correct files are deleted.
+     * 
+     * If the deleteDir parameter is true, then the given directory itself is
+     * also deleted, otherwise only subdirectories are deleted.
+     * 
+     * If a file or directory fails to be deleted (for directories this often
+     * occurs because it is not empty), then the rest of the process will still
+     * continue and no error is thrown.
+     * 
+     * @param dir The directory to act upon
+     * @param prefix Files need to have this prefix to be deleted
+     * @param deleteDir If true, delete the given directory itself as well
+     * @return The number of files successfully deleted
+     */
+    public static int deleteInDir(File dir, String prefix, boolean deleteDir) {
+        int count = 0;
+        if (dir.isDirectory()) {
+            File[] files = dir.listFiles();
+            if (null != files) {
+                for (int i = 0; i < files.length; i++) {
+                    File file = files[i];
+                    if (file.isDirectory()) {
+                        count += deleteInDir(file, prefix, true);
+                    } else if (file.getName().startsWith(prefix)) {
+                        if (files[i].delete()) {
+                            count++;
+                        }
+                    }
+                }
             }
         }
+        if (deleteDir) {
+            dir.delete();
+        }
+        return count;
     }
     
     /**
@@ -134,4 +178,38 @@ public class MiscUtil {
         String os = System.getProperty("os.name");
         return os.startsWith(check);
     }
+    
+    /**
+     * Returns System.nanoTime() as milliseconds and can thus only be used to
+     * compare two values to eachother to get elapsed time that is not dependent
+     * on system clock time.
+     * 
+     * @return Some elapsed time in milliseconds
+     */
+    public static long ems() {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
+    }
+    
+    public static boolean biton(int value, int i) {
+        return (value & (1 << i)) != 0;
+    }
+
+    public static Image rotateImage(Image image) {
+        BufferedImage bi;
+        if (image instanceof BufferedImage) {
+            bi = (BufferedImage)image;
+        } else {
+            bi = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+            Graphics g = bi.createGraphics();
+            g.drawImage(image, 0, 0, null);
+            g.dispose();
+        }
+        AffineTransform tx;
+        AffineTransformOp op;
+        tx = AffineTransform.getScaleInstance(-1, -1);
+        tx.translate(-image.getWidth(null), -image.getHeight(null));
+        op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+        return op.filter(bi, null);
+    }
+    
 }

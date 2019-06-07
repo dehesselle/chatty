@@ -4,6 +4,7 @@ package chatty.gui.components.admin;
 import chatty.Chatty;
 import chatty.gui.MainGui;
 import chatty.gui.components.LinkLabel;
+import chatty.lang.Language;
 import chatty.util.api.ChannelInfo;
 import chatty.util.api.TwitchApi;
 import chatty.util.api.TwitchApi.RequestResultCode;
@@ -26,10 +27,10 @@ public class AdminDialog extends JDialog {
     
     private final static String EDITOR_TEXT = "[help-admin:status Help]";
     private final static String EDITOR_TEXT_NO_ACCESS
-            = "No Editor Access available. [help-admin:top More information..]";
+            = "Required access not available. [help-admin:access More information..]";
     private final static String COMMERCIALS_TEXT = "[help-admin:commercials Help]";
     private final static String COMMERCIALS_TEXT_NO_ACCESS
-            = "No Commercial Access available. [help-admin:top More information..]";
+            = "No Commercial Access available. [help-admin:access More information..]";
     
     // Colors for hideable labels
     private static final Color LABEL_INVISIBLE = new Color(0, 0, 0, 0);
@@ -50,7 +51,7 @@ public class AdminDialog extends JDialog {
 
     // Shared
     private final JTabbedPane tabs;
-    private final JButton close = new JButton("Close");
+    private final JButton close = new JButton(Language.getString("dialog.button.close"));
     private final LinkLabel infoText;
     
     // Current state/settings (currentChannel specific)
@@ -91,8 +92,8 @@ public class AdminDialog extends JDialog {
                 updateInfoText();
             }
         });
-        tabs.addTab("Status", statusPanel);
-        tabs.addTab("Commercial", commercialPanel);
+        tabs.addTab(Language.getString("admin.tab.status"), statusPanel);
+        tabs.addTab(Language.getString("admin.tab.commercial"), commercialPanel);
         gbc = makeGbc(0,0,2,1);
         gbc.insets = new Insets(0,0,0,0);
         add(tabs, gbc);
@@ -177,10 +178,11 @@ public class AdminDialog extends JDialog {
      * appropriate info texts.
      * 
      * @param editor
+     * @param edit_broadcast
      * @param commercials 
      */
-    public void updateAccess(boolean editor, boolean commercials) {
-        this.editorAccess = editor;
+    public void updateAccess(boolean editor, boolean edit_broadcast, boolean commercials) {
+        this.editorAccess = editor && edit_broadcast;
         this.commercialAccess = commercials;
         updateInfoText();
     }
@@ -227,7 +229,7 @@ public class AdminDialog extends JDialog {
         if (channel != null && !channel.isEmpty()) {
             //update.setEnabled(true);
         }
-        setTitle("Channel Admin - "+currentChannel);
+        setTitle(Language.getString("admin.title", currentChannel));
     }
 
     /**

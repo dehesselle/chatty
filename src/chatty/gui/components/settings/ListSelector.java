@@ -3,6 +3,7 @@ package chatty.gui.components.settings;
 
 import chatty.gui.components.LinkLabelListener;
 import chatty.gui.components.settings.Editor.Tester;
+import chatty.lang.Language;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -40,15 +41,19 @@ public class ListSelector extends JPanel implements ListSetting<String> {
     private final JButton editAll = new JButton();
     private final JTextField input = new JTextField();
     
+    private final String title;
+    
     private String info;
     
     private DataFormatter<String> formatter;
     
-    private final Editor editor;
+    private StringEditor editor;
     private final Editor allEditor;
 
-    public ListSelector(Window parent, boolean manualSorting,
+    public ListSelector(Window parent, String title, boolean manualSorting,
             boolean alphabeticSorting) {
+        
+        this.title = title;
         
         // Button actions
         ActionListener buttonAction = new ActionListener() {
@@ -87,6 +92,14 @@ public class ListSelector extends JPanel implements ListSetting<String> {
                 removeItem();
             }
         });
+        list.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "editItem");
+        list.getActionMap().put("editItem", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                changeItem();
+            }
+        });
         
         // List double-click
         list.addMouseListener(new MouseAdapter() {
@@ -110,13 +123,13 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         });
         
         // Buttons
-        configureButton(add, "list-add.png", "Add item (or press enter in inputbox)");
-        configureButton(remove, "list-remove.png", "Remove selected item");
-        configureButton(change, "edit.png", "Edit selected item (or double-click on item)");
-        configureButton(moveUp, "go-up.png", "Move selected item up");
-        configureButton(moveDown, "go-down.png", "Move selected item down");
-        configureButton(sort, "sort.png", "Sort list alphabetically");
-        configureButton(editAll, "edit-all.png", "Edit all entries at once");
+        configureButton(add, "list-add.png", Language.getString("settings.listSelector.button.add.tip"));
+        configureButton(remove, "list-remove.png", Language.getString("settings.listSelector.button.remove.tip"));
+        configureButton(change, "edit.png", Language.getString("settings.listSelector.button.edit.tip"));
+        configureButton(moveUp, "go-up.png", Language.getString("settings.listSelector.button.moveUp.tip"));
+        configureButton(moveDown, "go-down.png", Language.getString("settings.listSelector.button.moveDown.tip"));
+        configureButton(sort, "sort.png", Language.getString("settings.listSelector.button.sort.tip"));
+        configureButton(editAll, "edit-all.png", Language.getString("settings.listSelector.button.editAll.tip"));
         
         // Listeners
         add.addActionListener(buttonAction);
@@ -175,7 +188,7 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         add(new JScrollPane(list), gbc);
         
         updateEditButtons();
-        
+
         editor = new Editor(parent);
         allEditor = new Editor(parent);
         allEditor.setAllowLinebreaks(true);
@@ -192,7 +205,13 @@ public class ListSelector extends JPanel implements ListSetting<String> {
     }
     
     public void setTester(Tester tester) {
-        editor.setTester(tester);
+        if (editor instanceof Editor) {
+            ((Editor)editor).setTester(tester);
+        }
+    }
+    
+    public void setEditor(StringEditor editor) {
+        this.editor = editor;
     }
     
     private void configureButton(JButton button, String icon, String tooltip) {
@@ -209,7 +228,8 @@ public class ListSelector extends JPanel implements ListSetting<String> {
      * in the list.
      */
     private void addItem() {
-        String item = editor.showDialog("Add entry:", "", info);
+        String item = editor.showDialog(
+                Language.getString("settings.listSelector.addEntry", title), "", info);
         item = format(item);
         if (item != null && !item.isEmpty() && !data.contains(item)) {
             int selectedIndex = list.getSelectedIndex();
@@ -244,7 +264,8 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         String selectedValue = list.getSelectedValue();
         int selectedIndex = list.getSelectedIndex();
         if (selectedIndex > -1) {
-            String newValue = editor.showDialog("Change entry:", selectedValue, info);
+            String newValue = editor.showDialog(
+                    Language.getString("settings.listSelector.editEntry", title), selectedValue, info);
             newValue = format(newValue);
             if (newValue != null && !newValue.isEmpty()) {
                 data.set(selectedIndex, newValue);
@@ -257,7 +278,8 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         for (int i=0;i<data.size();i++) {
             b.append(data.get(i)).append("\n");
         }
-        String result = allEditor.showDialog("Edit all entries (one per line)", b.toString(), info);
+        String result = allEditor.showDialog(
+                Language.getString("settings.listSelector.editAllEntries"), b.toString(), info);
         if (result != null) {
             String[] split = result.split("\n");
             data.clear();
@@ -294,8 +316,8 @@ public class ListSelector extends JPanel implements ListSetting<String> {
     
     private void sort() {
         if (JOptionPane.showConfirmDialog(sort,
-                "Sort list alphabetically (case sensitive)?",
-                "Sort",
+                Language.getString("settings.listSelector.sortEntries"),
+                Language.getString("settings.listSelector.sortEntries.title"),
                 JOptionPane.YES_NO_OPTION) == JOptionPane.OK_OPTION) {
             List<String> sortData = getData();
             Collections.sort(sortData);
@@ -308,12 +330,15 @@ public class ListSelector extends JPanel implements ListSetting<String> {
      * edit buttons accordingly.
      */
     private void updateEditButtons() {
-        boolean somethingIsSelected = list.getSelectedIndex() != -1;
-        boolean exactlyOneIsSelected = list.getSelectedIndices().length == 1;
+        boolean somethingIsSelected = list.getSelectedIndex() != -1 && isEnabled();
+        boolean exactlyOneIsSelected = list.getSelectedIndices().length == 1 && isEnabled();
         remove.setEnabled(somethingIsSelected);
         change.setEnabled(exactlyOneIsSelected);
         moveUp.setEnabled(exactlyOneIsSelected);
         moveDown.setEnabled(exactlyOneIsSelected);
+        add.setEnabled(isEnabled());
+        sort.setEnabled(isEnabled());
+        editAll.setEnabled(isEnabled());
     }
     
     /**
@@ -354,8 +379,10 @@ public class ListSelector extends JPanel implements ListSetting<String> {
     
     @Override
     public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
         input.setEnabled(enabled);
         list.setEnabled(enabled);
+        updateEditButtons();
     }
     
     public void setDataFormatter(DataFormatter<String> formatter) {
@@ -377,4 +404,5 @@ public class ListSelector extends JPanel implements ListSetting<String> {
         }
         return input;
     }
+    
 }

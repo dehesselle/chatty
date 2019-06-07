@@ -1,11 +1,16 @@
 
 package chatty.gui;
 
+import chatty.util.colors.HtmlColors;
+import chatty.Addressbook;
 import chatty.Helper;
+import chatty.Logging;
 import chatty.User;
-import chatty.util.StringUtil;
+import chatty.util.Debugging;
+import chatty.util.MiscUtil;
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -13,12 +18,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Checks if a given String matches the saved highlight items.
+ * Used for checking messages against stored items, including additional
+ * settings such as a blacklist. Not only used for Highlighting, but that is
+ * where the name originates.
  * 
  * @author tduva
  */
@@ -29,11 +38,16 @@ public class Highlighter {
     private static final int LAST_HIGHLIGHTED_TIMEOUT = 10*1000;
     
     private final Map<String, Long> lastHighlighted = new HashMap<>();
+    private final Map<String, HighlightItem> lastHighlightedItem = new HashMap<>();
     private final List<HighlightItem> items = new ArrayList<>();
-    private Pattern usernamePattern;
+    private final List<HighlightItem> blacklistItems = new ArrayList<>();
+    private HighlightItem usernameItem;
     private Color lastMatchColor;
+    private Color lastMatchBackgroundColor;
     private boolean lastMatchNoNotification;
     private boolean lastMatchNoSound;
+    private List<Match> lastTextMatches;
+    private String lastReplacement;
     
     // Settings
     private boolean highlightUsername;
@@ -46,10 +60,21 @@ public class Highlighter {
      * @throws NullPointerException if newItems is null
      */
     public void update(List<String> newItems) {
-        items.clear();
+        compile(newItems, items);
+    }
+    
+    public void updateBlacklist(List<String> newItems) {
+        compile(newItems, blacklistItems);
+    }
+    
+    private void compile(List<String> newItems, List<HighlightItem> into) {
+        into.clear();
         for (String item : newItems) {
             if (item != null && !item.isEmpty()) {
-                items.add(new HighlightItem(item));
+                HighlightItem compiled = new HighlightItem(item);
+                if (!compiled.hasError()) {
+                    into.add(compiled);
+                }
             }
         }
     }
@@ -61,15 +86,14 @@ public class Highlighter {
      */
     public void setUsername(String username) {
         if (username == null) {
-            usernamePattern = null;
+            usernameItem = null;
         }
         else {
-            // Create pattern to match username on word boundaries
-            try {
-                usernamePattern = Pattern.compile("(?i).*\\b"+username+"\\b.*");
-            } catch (PatternSyntaxException ex) {
-                LOGGER.warning("Invalid regex for username: " + ex.getLocalizedMessage());
-                usernamePattern = null;
+            HighlightItem newItem = new HighlightItem("w:"+username);
+            if (!newItem.hasError()) {
+                usernameItem = newItem;
+            } else {
+                usernameItem = null;
             }
         }
     }
@@ -87,16 +111,6 @@ public class Highlighter {
         this.highlightNextMessages = highlight;
     }
     
-    public boolean check(User fromUser, String text) {
-        if (checkMatch(fromUser, text)) {
-            if (fromUser != null) {
-                addMatch(fromUser.getName());
-            }
-            return true;
-        }
-        return false;
-    }
-    
     /**
      * Returns the color for the last match, which can be used to make the
      * highlight appear in the appropriate custom color.
@@ -105,6 +119,10 @@ public class Highlighter {
      */
     public Color getLastMatchColor() {
         return lastMatchColor;
+    }
+    
+    public Color getLastMatchBackgroundColor() {
+        return lastMatchBackgroundColor;
     }
     
     public boolean getLastMatchNoNotification() {
@@ -116,46 +134,106 @@ public class Highlighter {
     }
     
     /**
-     * Checks whether the given message consisting of username and text should
-     * be highlighted.
+     * Get all text matches from the last match (only from the item that caused
+     * the match).
      * 
-     * @param userName The name of the user who send the message
-     * @param text The text of the message
-     * @return true if the message should be highlighted, false otherwise
+     * @return 
      */
-    private boolean checkMatch(User user, String text) {
+    public List<Match> getLastTextMatches() {
+        return lastTextMatches;
+    }
+    
+    public String getLastReplacement() {
+        return lastReplacement;
+    }
+    
+    /**
+     * Check if this matches as a REGULAR message, getting all additional data
+     * from the User. See  for more.
+     * 
+     * @param user The User associated with this message
+     * @param text The message text
+     * @return true if the message matches, false otherwise
+     * @see #check(HighlightItem.Type, String, String, Addressbook, User)
+     */
+    public boolean check(User user, String text) {
+        return check(HighlightItem.Type.REGULAR, text, null, null, user);
+    }
+    
+    /**
+     * Check if the message with the given data matches the stored items and a
+     * match is not prevented by the blacklist.
+     * <p>
+     * The channel, Addressbook and User can be null, in which case any
+     * associated requirements are ignored. If User is not null, then channel
+     * and Addressbook, if null, will be retrieved from User.
+     * <p>
+     * Use {@link #update(List)} and {@link #updateBlacklist(List)} and other
+     * setting methods to define what is being matched by this Highlighter.
+     * 
+     * @param type What kind of message this is, REGULAR, INFO or ANY (which
+     * means the type is ignored)
+     * @param text The text of the message to check
+     * @param channel The channel of this message
+     * @param ab The Addressbook for checking channel category
+     * @param user The User associated with this message, for checking username
+     * and user Addressbook category
+     * @return true if the message matches, false otherwise
+     */
+    public boolean check(HighlightItem.Type type, String text, String channel,
+            Addressbook ab, User user) {
+        Blacklist blacklist = null;
+        if (!blacklistItems.isEmpty()) {
+            blacklist = new Blacklist(type, text, channel, ab, user, blacklistItems);
+        }
         
-        lastMatchColor = null;
-        lastMatchNoNotification = false;
-        lastMatchNoSound = false;
-        
-        String lowercaseText = text.toLowerCase();
+        // Only reset matches, since the other variables are filled anyway,
+        // except for "follow-up", where they should stay the same
+        lastTextMatches = null;
         
         // Try to match own name first (if enabled)
-        if (highlightUsername && usernamePattern != null &&
-                usernamePattern.matcher(text).matches()) {
+        if (highlightUsername && usernameItem != null &&
+                usernameItem.matches(type, text, blacklist,
+                        channel, ab, user)) {
+            fillLastMatchVariables(usernameItem, text);
+            addMatch(user, usernameItem);
             return true;
         }
         
         // Then try to match against the items
         for (HighlightItem item : items) {
-            if (item.matches(user, text, lowercaseText)) {
-                lastMatchColor = item.getColor();
-                lastMatchNoNotification = item.noNotification();
-                lastMatchNoSound = item.noSound();
+            if (item.matches(type, text, blacklist, channel, ab, user)) {
+                fillLastMatchVariables(item, text);
+                addMatch(user, item);
                 return true;
             }
         }
         
-        // Then see if there is a recent match
+        // Then see if there is a recent match ("Highlight follow-up")
         if (highlightNextMessages && user != null && hasRecentMatch(user.getName())) {
+            fillLastMatchVariables(lastHighlightedItem.get(user.getName()), null);
             return true;
         }
         return false;
     }
     
-    private void addMatch(String fromUsername) {
-        lastHighlighted.put(fromUsername, System.currentTimeMillis());
+    private void fillLastMatchVariables(HighlightItem item, String text) {
+        lastMatchColor = item.getColor();
+        lastMatchBackgroundColor = item.getBackgroundColor();
+        lastMatchNoNotification = item.noNotification();
+        lastMatchNoSound = item.noSound();
+        lastReplacement = item.getReplacement();
+        if (text != null) {
+            lastTextMatches = item.getTextMatches(text);
+        }
+    }
+    
+    private void addMatch(User user, HighlightItem item) {
+        if (highlightNextMessages && user != null) {
+            String username = user.getName();
+            lastHighlighted.put(username, MiscUtil.ems());
+            lastHighlightedItem.put(username, item);
+        }
     }
     
     private boolean hasRecentMatch(String fromUsername) {
@@ -166,40 +244,34 @@ public class Highlighter {
     private void clearRecentMatches() {
         Iterator<Map.Entry<String, Long>> it = lastHighlighted.entrySet().iterator();
         while (it.hasNext()) {
-            if (System.currentTimeMillis() - it.next().getValue() > LAST_HIGHLIGHTED_TIMEOUT) {
+            Map.Entry<String, Long> entry = it.next();
+            if (MiscUtil.ems() - entry.getValue() > LAST_HIGHLIGHTED_TIMEOUT) {
                 it.remove();
+                lastHighlightedItem.remove(entry.getKey());
             }
         }
     }
     
     /**
-     * A single item that itself parses the item String and prepares it for
-     * matching. The item can be asked whether it matches a message.
-     * 
-     * A message matches the item if the message text contains the text of this
-     * item (case-insensitive).
-     * 
-     * Prefixes that change this behaviour:
-     * user: - to match the exact username the message is from
-     * cs: - to match the following term case-sensitive
-     * re: - to match as regex
-     * chan: - to match when the user is on this channel (can be a
-     * comma-seperated list)
-     * !chan: - same as chan: but inverted
-     * status:m
-     * 
-     * An item can be prefixed with a user:username, so the username as well
-     * as the item after it has to match.
+     * A single Highlight item that parses the item string and prepares it for
+     * matching. It provides methods to check if an error occured parsing, as
+     * well as methods to check if the item matches a message or text, to
+     * retrieve all match indices and some meta information.
      */
     public static class HighlightItem {
+        
+        public enum Type {
+            REGULAR, INFO, ANY
+        }
+        
+        /**
+         * A regex that will never match.
+         */
+        private static final Pattern NO_MATCH = Pattern.compile("(?!)");
         
         private String username;
         private Pattern usernamePattern;
         private Pattern pattern;
-        private Pattern pattern2;
-        private String caseSensitive;
-        private String caseInsensitive;
-        private String startsWith;
         private String category;
         private final Set<String> notChannels = new HashSet<>();
         private final Set<String> channels = new HashSet<>();
@@ -207,24 +279,52 @@ public class Highlighter {
         private String channelCategoryNot;
         private String categoryNot;
         private Color color;
+        private Color backgroundColor;
         private boolean noNotification;
         private boolean noSound;
-        private boolean appliesToInfo;
+        private Type appliesToType = Type.REGULAR;
+        private boolean firstMsg;
+        // Replacement string for filtering parts of a message
+        private String replacement;
         
-        private boolean error;
+        private String error;
+        private String textWithoutPrefix = "";
         
         private final Set<Status> statusReq = new HashSet<>();
         private final Set<Status> statusReqNot = new HashSet<>();
         
-        enum Status {
+        private enum Status {
             MOD("m"), SUBSCRIBER("s"), BROADCASTER("b"), ADMIN("a"), STAFF("f"),
-            TURBO("t"), ANY_MOD("M"), GLOBAL_MOD("g"), BOT("r");
+            TURBO("t"), ANY_MOD("M"), GLOBAL_MOD("g"), BOT("r"), VIP("v");
             
             private final String id;
             
             Status(String id) {
                 this.id = id;
             }
+        }
+        
+        /**
+         * Contains all the text matching prefixes that are turned into a Regex
+         * and their associated pattern builder functions.
+         */
+        private static final Map<String, Function<String, String>> patternPrefixes = new HashMap<>();
+        
+        static {
+            /**
+             * Add text matching prefixes and their pattern builder functions
+             * (with possible aliases).
+             */
+            addPatternPrefix(text -> text, "re*:", "reg:");
+            addPatternPrefix(text -> "(?iu)"+text, "regi:");
+            addPatternPrefix(text -> "\\b(?:"+text+")\\b", "regw:");
+            addPatternPrefix(text -> "(?iu)\\b(?:"+text+")\\b", "regwi:");
+            addPatternPrefix(text -> "^(?:"+text+")$", "re:", "regm:");
+            addPatternPrefix(text -> "(?iu)^(?:"+text+")$", "regmi:");
+            addPatternPrefix(text -> "(?iu)\\b"+Pattern.quote(text)+"\\b", "w:");
+            addPatternPrefix(text -> "\\b"+Pattern.quote(text)+"\\b", "wcs:");
+            addPatternPrefix(text -> Pattern.quote(text), "cs:");
+            addPatternPrefix(text -> "(?iu)^"+Pattern.quote(text), "start:");
         }
         
         public HighlightItem(String item) {
@@ -239,47 +339,43 @@ public class Highlighter {
          */
         private void prepare(String item) {
             item = item.trim();
-            if (item.startsWith("re:") && item.length() > 3) {
-                compilePattern(item.substring(3));
-            } else if (item.startsWith("re*:") && item.length() > 4) {
-                compilePattern2(item.substring(4));
-            } else if (item.startsWith("w:") && item.length() > 2) {
-                compilePattern("(?i).*\\b"+item.substring(2)+"\\b.*");
-            } else if (item.startsWith("wcs:") && item.length() > 4) {
-                compilePattern(".*\\b"+item.substring(4)+"\\b.*");
-            } else if (item.startsWith("cs:") && item.length() > 3) {
-                caseSensitive = item.substring(3);
-            } else if (item.startsWith("start:") && item.length() > 6) {
-                startsWith = item.substring(6).toLowerCase();
-            } else if (item.startsWith("cat:")) {
-                category = parsePrefix(item, "cat:");
-            } else if (item.startsWith("!cat:")) {
-                categoryNot = parsePrefix(item, "!cat:");
-            } else if (item.startsWith("user:")) {
-                username = parsePrefix(item, "user:").toLowerCase(Locale.ENGLISH);
-            } else if (item.startsWith("reuser:")) {
-                String regex = parsePrefix(item, "reuser:").toLowerCase(Locale.ENGLISH);
-                compileUsernamePattern(regex);
-            } else if (item.startsWith("chan:")) {
-                parseListPrefix(item, "chan:");
-            } else if (item.startsWith("!chan:")) {
-                parseListPrefix(item, "!chan:");
-            } else if (item.startsWith("chanCat:")) {
-                channelCategory = parsePrefix(item, "chanCat:");
-            } else if (item.startsWith("!chanCat:")) {
-                channelCategoryNot = parsePrefix(item, "!chanCat:");
-            } else if (item.startsWith("color:")) {
-                color = HtmlColors.decode(parsePrefix(item, "color:"));
-            } else if (item.startsWith("status:")) {
-                String status = parsePrefix(item, "status:");
-                parseStatus(status, true);
-            } else if (item.startsWith("!status:")) {
-                String status = parsePrefix(item, "!status:");
-                parseStatus(status, false);
-            } else if (item.startsWith("config:")) {
-                parseListPrefix(item, "config:");
-            } else {
-                caseInsensitive = item.toLowerCase();
+            if (!findPatternPrefixAndCompile(item)) {
+                // If not a text matching prefix, search for other prefixes
+                if (item.startsWith("cat:")) {
+                    category = parsePrefix(item, "cat:");
+                } else if (item.startsWith("!cat:")) {
+                    categoryNot = parsePrefix(item, "!cat:");
+                } else if (item.startsWith("user:")) {
+                    username = parsePrefix(item, "user:").toLowerCase(Locale.ENGLISH);
+                } else if (item.startsWith("reuser:")) {
+                    String regex = parsePrefix(item, "reuser:").toLowerCase(Locale.ENGLISH);
+                    compileUsernamePattern(regex);
+                } else if (item.startsWith("chan:")) {
+                    parseListPrefix(item, "chan:");
+                } else if (item.startsWith("!chan:")) {
+                    parseListPrefix(item, "!chan:");
+                } else if (item.startsWith("chanCat:")) {
+                    channelCategory = parsePrefix(item, "chanCat:");
+                } else if (item.startsWith("!chanCat:")) {
+                    channelCategoryNot = parsePrefix(item, "!chanCat:");
+                } else if (item.startsWith("color:")) {
+                    color = HtmlColors.decode(parsePrefix(item, "color:"));
+                } else if (item.startsWith("bgcolor:")) {
+                    backgroundColor = HtmlColors.decode(parsePrefix(item, "bgcolor:"));
+                } else if (item.startsWith("status:")) {
+                    String status = parsePrefix(item, "status:");
+                    parseStatus(status, true);
+                } else if (item.startsWith("!status:")) {
+                    String status = parsePrefix(item, "!status:");
+                    parseStatus(status, false);
+                } else if (item.startsWith("config:")) {
+                    parseListPrefix(item, "config:");
+                } else if (item.startsWith("replacement:")) {
+                    replacement = parsePrefix(item, "replacement:");
+                } else {
+                    textWithoutPrefix = item;
+                    compilePattern("(?iu)" + Pattern.quote(item));
+                }
             }
         }
         
@@ -328,7 +424,7 @@ public class Highlighter {
         }
         
         /**
-         * Parses a comma-seperated list of a prefix.
+         * Parses a comma-separated list of a prefix.
          * 
          * @param list The String containing the list
          * @param prefix The prefix for this list, used to determine what to do
@@ -348,10 +444,47 @@ public class Highlighter {
                         } else if (part.equals("!notify")) {
                             noNotification = true;
                         } else if (part.equals("info")) {
-                            appliesToInfo = true;
+                            appliesToType = Type.INFO;
+                        } else if (part.equals("any")) {
+                            appliesToType = Type.ANY;
+                        } else if (part.equals("firstmsg")) {
+                            firstMsg = true;
                         }
                     }
                 }
+            }
+        }
+        
+        /**
+         * Based on the pre-defined static pattern map, look if the given input
+         * contains a text matching prefix and compile the associated pattern.
+         * 
+         * @param input The input string
+         * @return true if a text matching prefix was found, false otherwise
+         */
+        private boolean findPatternPrefixAndCompile(String input) {
+            for (String prefix : patternPrefixes.keySet()) {
+                // Check for prefix and that there is more text after it
+                if (input.startsWith(prefix) && input.length() > prefix.length()) {
+                    String withoutPrefix = input.substring(prefix.length());
+                    String pattern = patternPrefixes.get(prefix).apply(withoutPrefix);
+                    textWithoutPrefix = withoutPrefix;
+                    compilePattern(pattern);
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        /**
+         * Adds a prefix and associated pattern builder to the static map.
+         * 
+         * @param patternBuilder
+         * @param prefixes 
+         */
+        private static void addPatternPrefix(Function<String, String> patternBuilder, String... prefixes) {
+            for (String prefix : prefixes) {
+                patternPrefixes.put(prefix, patternBuilder);
             }
         }
         
@@ -364,17 +497,9 @@ public class Highlighter {
             try {
                 pattern = Pattern.compile(patternString);
             } catch (PatternSyntaxException ex) {
-                error = true;
+                error = ex.getDescription();
+                pattern = NO_MATCH;
                 LOGGER.warning("Invalid regex: " + ex);
-            }
-        }
-        
-        private void compilePattern2(String patternString) {
-            try {
-                pattern2 = Pattern.compile(patternString);
-            } catch (PatternSyntaxException ex) {
-                error = true;
-                LOGGER.warning("Invalid regex2: " + ex);
             }
         }
         
@@ -382,93 +507,240 @@ public class Highlighter {
             try {
                 usernamePattern = Pattern.compile(patternString);
             } catch (PatternSyntaxException ex) {
-                error = true;
+                error = ex.getDescription();
+                pattern = NO_MATCH;
                 LOGGER.warning("Invalid username regex: " + ex);
             }
         }
         
-        public boolean matches(String text) {
-            return matches(null, text, StringUtil.toLowerCase(text), true);
+        /**
+         * Check if the given text matches the text matching pattern,
+         * disregarding matches that are blacklisted.
+         *
+         * @param text The input text to find the match in
+         * @param blacklist The blacklist for the same input text
+         * @return true if matches taking account the blacklist, false otherwise
+         */
+        private boolean matchesPattern(String text, Blacklist blacklist) {
+            if (pattern == null) {
+                return true;
+            }
+            try {
+                Matcher m = pattern.matcher(text);
+                while (m.find()) {
+                    if (blacklist == null || !blacklist.isBlacklisted(m.start(), m.end())) {
+                        return true;
+                    }
+                }
+            } catch (Exception ex) {
+                /**
+                 * Catch error since there seems to be a rare case where some
+                 * regex matching on some text may trigger an exception:
+                 * 
+                 * Excerpt:
+                 * java.lang.StringIndexOutOfBoundsException: String index out of range: 21
+                 *   at java.lang.String.charAt(String.java:658)
+                 *   at java.lang.Character.codePointAt(Character.java:4866)
+                 *   at java.util.regex.Pattern$CIBackRef.match(Pattern.java:4948)
+                 *   at java.util.regex.Pattern$BmpCharProperty.match(Pattern.java:3800)
+                 *   at java.util.regex.Pattern$GroupTail.match(Pattern.java:4719)
+                 *   at java.util.regex.Pattern$CharProperty.match(Pattern.java:3779)
+                 *   at java.util.regex.Pattern$Curly.match0(Pattern.java:4274)
+                 *   at java.util.regex.Pattern$Curly.match0(Pattern.java:4265)
+                 *   at java.util.regex.Pattern$Curly.match(Pattern.java:4236)
+                 *   at java.util.regex.Pattern$CharProperty.match(Pattern.java:3779)
+                 *   at java.util.regex.Pattern$GroupHead.match(Pattern.java:4660)
+                 *   at java.util.regex.Pattern$GroupTail.match(Pattern.java:4719)
+                 *   at java.util.regex.Pattern$BranchConn.match(Pattern.java:4570)
+                 *   at java.util.regex.Pattern$Begin.match(Pattern.java:3527)
+                 *   at java.util.regex.Pattern$Branch.match(Pattern.java:4606)
+                 *   at java.util.regex.Pattern$GroupHead.match(Pattern.java:4660)
+                 *   at java.util.regex.Pattern$Start.match(Pattern.java:3463)
+                 *   at java.util.regex.Matcher.search(Matcher.java:1248)
+                 *   at java.util.regex.Matcher.find(Matcher.java:637)
+                 *   at chatty.gui.Highlighter$HighlightItem.matchesPattern(Highlighter.java:526)
+                 * 
+                 * Possibly related: https://stackoverflow.com/q/16008974
+                 */
+                if (Debugging.millisecondsElapsed("HighlighterRegexError", 5000)) {
+                    /**
+                     * Some delay to not spam too much as well as preventing
+                     * possible infinite loop (since this outputs an info
+                     * message which would in turn trigger an error again,
+                     * however unlikely).
+                     */
+                    LOGGER.log(Logging.USERINFO,
+                            String.format("Error: Regex '%s' failed with %s",
+                                    pattern, ex));
+                    LOGGER.warning(
+                        String.format("Error: Regex '%s' failed on '%s' with %s",
+                        pattern, text, Debugging.getStacktrace(ex)));
+                }
+            }
+            return false;
         }
         
-        public boolean matches(String text, String lowercaseText) {
-            return matches(null, text, lowercaseText, true);
+        /**
+         * Returns all matches by the text pattern, or null if this item has no
+         * text pattern.
+         * 
+         * @param text The string to look for matches in
+         * @return List of Match objects, or null if no text pattern is set
+         */
+        public List<Match> getTextMatches(String text) {
+            if (pattern == null) {
+                return null;
+            }
+            List<Match> result = new ArrayList<>();
+            try {
+                Matcher m = pattern.matcher(text);
+                while (m.find()) {
+                    result.add(new Match(m.start(), m.end()));
+                }
+            } catch (Exception ex) {
+                // See matchesPattern() for explanation
+                if (Debugging.millisecondsElapsed("HighlighterRegexError", 5000)) {
+                    LOGGER.log(Logging.USERINFO,
+                            String.format("Error: Regex '%s' failed with %s",
+                                    pattern, ex));
+                    LOGGER.warning(
+                        String.format("Error: Regex '%s' failed on '%s' with %s",
+                        pattern, text, Debugging.getStacktrace(ex)));
+                }
+            }
+            return result;
         }
         
-        public boolean matches(User user, String text, String lowercaseText) {
-            return matches(user, text, lowercaseText, false);
+        /**
+         * Test for possible bug. See matchesPattern() for explanation.
+         * 
+         * @return true if an error is thrown on the test text, false otherwise
+         */
+        public boolean patternThrowsError() {
+            if (pattern != null) {
+                try {
+                    pattern.matcher("💕💕💕").find();
+                } catch (Exception ex) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        /**
+         * Get the text part of this item, without any prefixes.
+         * 
+         * @return The text, may be empty
+         */
+        public String getTextWithoutPrefix() {
+            return textWithoutPrefix;
+        }
+        
+        public String getPatternText() {
+            if (pattern != null) {
+                return pattern.pattern();
+            }
+            return null;
+        }
+        
+        public boolean matchesAny(String text, Blacklist blacklist) {
+            return matches(Type.ANY, text, blacklist, null);
+        }
+        
+        public boolean matches(Type type, String text, User user) {
+            return matches(type, text, null, null, null, user);
+        }
+        
+        public boolean matches(Type type, String text, Blacklist blacklist,
+                User user) {
+            return matches(type, text, blacklist, null, null, user);
+        }
+        
+        public boolean matches(Type type, String text, String channel, Addressbook ab) {
+            return matches(type, text, null, channel, ab, null);
         }
         
         /**
          * Check whether a message matches this item.
          * 
-         * @param user The User object, or null if this message has none
+         * The type of the message can be ANY to disregard what type this item
+         * applies to, otherwise the type has to be equal, unless the item
+         * itself applies to ANY.
+         * 
+         * The channel, Addressbook and User can be null, in which case any
+         * associated requirements are ignored. If User is not null, then
+         * channel and Addressbook, if null, will be retrieved from User.
+         * 
+         * @param type The type of this message
          * @param text The text as received
-         * @param lowercaseText The text in lowercase (minor optimization, so
-         *  it doesn't have to be made lowercase for every item)
-         * @param noUserRequired Will continue matching when no User object is
-         * given, even without config:info
+         * @param blacklist The blacklist, can be null
+         * @param channel The channel, can be null
+         * @param ab The Addressbook, can be null
+         * @param user The User object, can be null
          * @return true if it matches, false otherwise
          */
-        public boolean matches(User user, String text, String lowercaseText,
-                boolean noUserRequired) {
+        public boolean matches(Type type, String text, Blacklist blacklist,
+                String channel, Addressbook ab, User user) {
+            //------
+            // Type
+            //------
+            if (type != appliesToType && appliesToType != Type.ANY
+                    && type != Type.ANY) {
+                return false;
+            }
             
-            if (pattern != null && !pattern.matcher(text).matches()) {
+            //------
+            // Text
+            //------
+            if (pattern != null && !matchesPattern(text, blacklist)) {
                 return false;
             }
-            if (pattern2 != null && !pattern2.matcher(text).find()) {
+            
+            //---------
+            // Channel
+            //---------
+            if (user != null) {
+                if (channel == null) {
+                    channel = user.getChannel();
+                }
+                if (ab == null) {
+                    ab = user.getAddressbook();
+                }
+            }
+            if (!channels.isEmpty() && channel != null
+                    && !channels.contains(channel)) {
                 return false;
             }
-            if (caseSensitive != null && !text.contains(caseSensitive)) {
+            if (!notChannels.isEmpty() && channel != null
+                    && notChannels.contains(channel)) {
                 return false;
             }
-            if (caseInsensitive != null && !lowercaseText.contains(caseInsensitive)) {
+            if (channelCategory != null && ab != null && channel != null
+                    && !ab.hasCategory(channel, channelCategory)) {
                 return false;
             }
-            if (startsWith != null && !lowercaseText.startsWith(startsWith)) {
+            if (channelCategoryNot != null && ab != null && channel != null
+                    && ab.hasCategory(channel, channelCategoryNot)) {
                 return false;
             }
-            /**
-             * This was called without User object, so only match if either
-             * "config:info" was present or wanted by the caller (e.g. if only
-             * applied to one message type).
-             */
-            if (user == null) {
-                return appliesToInfo || noUserRequired;
-            }
-            /**
-             * If a User object was supplied and "config:info" was present, then
-             * this shouldn't be matched, because it can't be an info message.
-             * 
-             * TODO: If message types should be matched more reliably, there
-             * should probably be an extra message type parameter instead of
-             * reyling on whether an User object was supplied.
-             */
-            if (user != null && appliesToInfo) {
+
+            //------
+            // User
+            //------
+            if (username != null && user != null
+                    && !username.equals(user.getName())) {
                 return false;
             }
-            if (username != null && !username.equals(user.getName())) {
+            if (usernamePattern != null && user != null
+                    && !usernamePattern.matcher(user.getName()).matches()) {
                 return false;
             }
-            if (usernamePattern != null && !usernamePattern.matcher(user.getName()).matches()) {
+            if (category != null && user != null
+                    && !user.hasCategory(category)) {
                 return false;
             }
-            if (category != null && !user.hasCategory(category)) {
-                return false;
-            }
-            if (categoryNot != null && user.hasCategory(categoryNot)) {
-                return false;
-            }
-            if (!channels.isEmpty() && !channels.contains(user.getChannel())) {
-                return false;
-            }
-            if (!notChannels.isEmpty() && notChannels.contains(user.getChannel())) {
-                return false;
-            }
-            if (channelCategory != null && !user.hasCategory(channelCategory, user.getChannel())) {
-                return false;
-            }
-            if (channelCategoryNot != null && user.hasCategory(channelCategoryNot, user.getChannel())) {
+            if (categoryNot != null && user != null
+                    && user.hasCategory(categoryNot)) {
                 return false;
             }
             if (!checkStatus(user, statusReq)) {
@@ -477,6 +749,12 @@ public class Highlighter {
             if (!checkStatus(user, statusReqNot)) {
                 return false;
             }
+            // Message count is updated after printing message, so it checks 0
+            if (firstMsg && user != null
+                    && user.getNumberOfMessages() > 0) {
+                return false;
+            }
+            // If all the requirements didn't make it fail, this matches
             return true;
         }
         
@@ -495,6 +773,9 @@ public class Highlighter {
         private boolean checkStatus(User user, Set<Status> req) {
             // No requirement, so always matching
             if (req.isEmpty()) {
+                return true;
+            }
+            if (user == null) {
                 return true;
             }
             /**
@@ -535,6 +816,9 @@ public class Highlighter {
             if (req.contains(Status.ANY_MOD) && user.hasModeratorRights()) {
                 return or;
             }
+            if (req.contains(Status.VIP) && user.isVip()) {
+                return or;
+            }
             return !or;
         }
         
@@ -547,6 +831,10 @@ public class Highlighter {
             return color;
         }
         
+        public Color getBackgroundColor() {
+            return backgroundColor;
+        }
+        
         public boolean noNotification() {
             return noNotification;
         }
@@ -556,9 +844,84 @@ public class Highlighter {
         }
         
         public boolean hasError() {
+            return error != null;
+        }
+        
+        public String getError() {
             return error;
         }
         
+        public String getReplacement() {
+            return replacement;
+        }
+        
+    }
+    
+    public static class Blacklist {
+        
+        private final Collection<Match> blacklisted;
+        
+        /**
+         * Creates the blacklist for a specific message, using the stored
+         * blacklist items and the message data to get all relevant matches.
+         * 
+         * @param type The type of the message to create the Blacklist for
+         * @param text
+         * @param channel
+         * @param ab
+         * @param user
+         * @param items The HighlightItem objects that the Blacklist is based on
+         */
+        public Blacklist(HighlightItem.Type type, String text, String channel,
+                Addressbook ab, User user, Collection<HighlightItem> items) {
+            blacklisted = new ArrayList<>();
+            for (HighlightItem item : items) {
+                if (item.matches(type, text, null, channel, ab, user)) {
+                    List<Match> matches = item.getTextMatches(text);
+                    if (matches != null) {
+                        blacklisted.addAll(matches);
+                    } else {
+                        blacklisted.add(null);
+                    }
+                }
+            }
+        }
+        
+        public boolean isBlacklisted(int start, int end) {
+            for (Match section : blacklisted) {
+                if (section == null || section.spans(start, end)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        @Override
+        public String toString() {
+            return blacklisted.toString();
+        }
+
+    }
+    
+    public static class Match {
+
+        public final int start;
+        public final int end;
+
+        private Match(int start, int end) {
+            this.start = start;
+            this.end = end;
+        }
+
+        public boolean spans(int start, int end) {
+            return this.start <= start && this.end >= end;
+        }
+        
+        @Override
+        public String toString() {
+            return start+"-"+end;
+        }
+
     }
     
 }

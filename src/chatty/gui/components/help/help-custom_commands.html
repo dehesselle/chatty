@@ -10,7 +10,14 @@
         customize some Context Menus (and the User Info Dialog) with your own entries.</p>
     
     <ul>
-        <li><a href="#custom-commands">Custom Commands</a></li>
+        <li>
+            <a href="#custom-commands">Custom Commands</a>
+            <ul>
+                <li><a href="#restrict-channel">Restrict to channel</a></li>
+                <li><a href="#anonymous-custom-commands">Anonymous Custom Commands</a></li>
+                <li><a href="#chain-commands">Chaining Commands</a></li>
+            </ul>
+        </li>
         <li>
             <a href="#replacements">Replacements</a>
             <ul>
@@ -56,6 +63,9 @@
         <code>Hello World!</code> to chat, just as if you would have written it
         yourself and pressed Enter.</p>
     
+    <p>See <a href="#replacements">Replacements</a> for more advanced usage.</p>
+    
+    <h3><a name="restrict-channel">Restrict to channel</a></h3>
     <p>Adding a <code>#</code> and a channel name you can restrict the command
         to that channel:</p>
     
@@ -65,6 +75,31 @@
         however if you still have the version without a channel in the Custom
         Commands list as well, it will fallback to that in other channels. This
         way to can add variations of commands for specific channels.</p>
+    
+    <h3><a name="anonymous-custom-commands">Anonymous Custom Commands</a></h3>
+    <p>Custom Commands that aren't defined in the Custom Commands list do not
+        have a name and can thus only be executed from the context they are
+        defined, for example when adding <a href="#inline-commands">Inline-Commands</a>
+        to the User Dialog or Context Menus.</p>
+    
+    <p>You can also execute Anynomous Custom Commands directly from the
+        inputbox, by prepending <code>//</code>, which allows you to use
+        Replacements:</p>
+    
+    <dl class="defList">
+        <dt><code>/echo Open Channels: $(chans)</code></dt>
+        <dd>Executes as a normal command (nothing replaced)</dd>
+        <dd>Outputs <code>Open Channels: $(chans)</code></dd>
+        
+        <dt><code>//echo Open Channels: $(chans)</code></dt>
+        <dd>Executes as an Anonymous Custom Command</dd>
+        <dd>Outputs <code>Open Channels: joshimuz lotsofs cirno_tv</code></dd>
+    </dl>
+    
+    <h3><a name="chain-commands">Chaining Commands</a></h3>
+    <p>Executing several commands in a row is not a feature of Custom Commands,
+        although the <a href="help.html#commands-chain">/chain command</a> can
+        be used to achieve something like that.</p>
     
     <h2><a name="replacements">Replacements</a></h2>
     <ul>
@@ -117,7 +152,7 @@
     <p><code>/me slaps <strong>moobot</strong> around a bit with a large trout</code></p>
     
     <p>This is the syntax for specifying parameters (word in this context means
-    anything seperated by a space):</p>
+    anything separated by a space):</p>
     <dl>
         <dt><code>$1, $2, $3</code></dt>
         <dd>First word, second word, third word etc.</dd>
@@ -137,7 +172,7 @@
     
     <p>The short notation ( <code>$1</code> ) only works for the numbers 1 to 9,
         which usually should be enough. For other kinds of replacements you must
-        use the regular notation including parentheses: <code>$(1)</code> .</p>
+        use the regular notation including parentheses: <code>$(10)</code> .</p>
     
     <h3><a name="parameters-context">Pre-defined Parameters</a></h3>
     <p>Custom Commands can be used in a number of different places. Depending on
@@ -153,9 +188,19 @@
             <th>Description</th>
         </tr>
         <tr>
-            <td rowspan="7"><em>All</em></td>
+            <td rowspan="9"><em>All</em></td>
             <td><code>chan</code></td>
             <td>The current channel context (without leading #)</td>
+        </tr>
+        <tr>
+            <td><code>stream</code></td>
+            <td>The stream name of the current channel context (different from
+                <code>chan</code> for Chatrooms)</td>
+        </tr>
+        <tr>
+            <td><code>chans</code></td>
+            <td>All currently open regular channels (separated by spaces,
+                without leading #)</td>
         </tr>
         <tr>
             <td><code>streamstatus</code></td>
@@ -180,13 +225,26 @@
         <tr>
             <td colspan="2">The stream info is of the current channel context</td>
         </tr>
+        <!-- User Context Menu -->
         <tr>
-            <td>User Context Menu</td>
+            <td rowspan="3">User Context Menu</td>
             <td><code>1</code></td>
             <td>Name of the user</td>
         </tr>
         <tr>
-            <td rowspan="2">User Dialog</td>
+            <td><code>msg-id</code></td>
+            <td>Message id of the selected message (depending on the line in
+                chat you opened the User Contex Menu from)</td>
+        </tr>
+        <tr>
+            <td><code>automod-msg-id</code></td>
+            <td>Message id of the selected message filtered by AutoMod, for
+                approving or denying the message (when opened by clicking on
+                an appropriate message in chat)</td>
+        </tr>
+        <!-- User Dialog -->
+        <tr>
+            <td rowspan="7">User Dialog</td>
             <td><code>1</code></td>
             <td>Name of the user</td>
         </tr>
@@ -195,10 +253,38 @@
             <td>Ban reason (if selected)</td>
         </tr>
         <tr>
+            <td><code>msg-id</code></td>
+            <td>Message id of the selected message (<code>&gt;</code> in front
+                of message, depending on the line in chat you opened it from)</td>
+        </tr>
+        <tr>
+            <td><code>automod-msg-id</code></td>
+            <td>Message id of the selected message filtered by AutoMod, for
+                approving or denying the message (when opened by clicking on
+                an appropriate message in chat)</td>
+        </tr>
+        <tr>
+            <td><code>user-id</code></td>
+            <td>The Twitch ID of the user</td>
+        </tr>
+        <tr>
+            <td><code>followage</code> /
+                <code>accountage</code></td>
+            <td>How long ago (e.g. <code>3.2 years</code>) the user has followed
+                / has created the Twitch account (only if available)</td>
+        </tr>
+        <tr>
+            <td><code>followdate</code> / <code>acccountdate</code></td>
+            <td>The date (e.g. <code>2012-09-15 17:19:29 +0200</code>) the user
+                has followed / has created the Twitch account (only if available)</td>
+        </tr>
+        <!-- Channel Context Menu -->
+        <tr>
             <td>Channel Context menu</td>
             <td><code>1</code></td>
             <td>Name of the currently active channel (without leading #)</td>
         </tr>
+        <!-- Streams Context Menu -->
         <tr>
             <td>Streams Context menu</td>
             <td><code>1-</code></td>
@@ -256,7 +342,82 @@
         <dd>Makes the given input lowercase.</dd>
         <dd><em>Example:</em> <code>$lower(1)</code> with <code>1</code>
             referring to <code>Fremily</code> turns into <code>fremily</code>.</dd>
+        
+        <dt><code>$rand(&lt;output1&gt;,&lt;output2&gt;,&lt;output3&gt,..)</code></dt>
+        <dd>Randomly chooses one of the outputs.</dd>
+        <dd><em>Example:</em> <code>$rand(cheesecake,strawberry cake,$1-)</code>
+            with <code>1-</code> referring to <code>apple pie</code> turns into
+            either <code>cheesecake</code>, <code>strawberry cake</code> or
+            <code>apple pie</code>.</dd>
+        
+        <dt><code>$randnum(&lt;from&gt;,&lt;to&gt;)</code> or <code>$randnum(&lt;to&gt;)</code></dt>
+        <dd>Randomly chooses a number in the given range (inclusive). If only
+            one number is given, it the range is 0 to the given number. If the
+            "from" is not a number, it defaults to 0, if the "to" is not a
+            number it defaults to a really big number.</dd>
+        <dd><em>Example:</em> <code>$randnum(600,800)</code> chooses a random
+            number between 600 and 800.</dd>
+        <dd><em>Example:</em> <code>$randum($$1)</code> chooses a random number
+            between 0 and what is the first parameter.</dd>
+        
+        <dt><code>$datetime([format],[timezone],[locale])</code></dt>
+        <dd>Outputs the current date/time. You can optionally give a format
+            pattern (based on <a href="https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html#patterns">DateTimeFormatter</a>),
+            a timezone (based on <a href="https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html">ZoneId</a>,
+            although something like "New York" should also work) and a locale
+            (a language tag such as "en").</dd>
+        <dd>Predefined formats:
+            <ul style="margin-top:0">
+                <li>Short: <code>date</code>, <code>time</code>, <code>datetime</code></li>
+                <li>With timezone: <code>date2</code>, <code>time2</code>, <code>datetime2</code></li>
+                <li>Locale-specific: Append <code>_short</code>, <code>_medium</code>,
+            <code>_long</code> or <code>_full</code>, e.g. <code>datetime_full</code></li>
+            </ul>
+        </dd>
+        <dd>
+            <em>Examples:</em>
+            <dl style="margin-top:0">
+                <dt><code>$datetime()</code></dt>
+                <dd><code>Wednesday, March 13, 2019 3:11:48 PM CET</code></dd>
+                <dd>(Default format depends on the locale, in this case using the system default.)</dd>
+                
+                <dt><code>$datetime(,,de)</code></dt>
+                <dd><code>Mittwoch, 13. März 2019 15:12 Uhr MEZ</code></dd>
+                <dd>(Default format depends on the locale, in this case explicitly specified.)</dd>
+                
+                <dt><code>$datetime(time)</code></dt>
+                <dd><code>23:31:27</code></dd>
+                <dd>(Using one of the pre-defined formats "<code>time</code>".)</dd>
+                
+                <dt><code>$datetime(datetime2,Vancouver)</code></dt>
+                <dd><code>2019-03-12 15:31:45 PDT GMT-0700</code></dd>
+                <dd>(Using the more verbose "<code>datetime2</code>" pre-defined format, with a timezone specified.)</dd>
+                
+                <dt><code>$datetime(datetime_full,Rome,it)</code></dt>
+                <dd><code>mercoledì 13 marzo 2019 15.32.03 CET</code></dd>
+                <dd>(Using one of the locale-specific pre-defined formats, with timezone and locale specified.)</dd>
+                
+                <dt><code>$datetime(,london)</code></dt>
+                <dd><code>Wednesday, March 13, 2019 2:16:36 PM GMT</code></dd>
+                <dd>(Empty format to be able to specify timezone.)</dd>
+                
+                <dt><code>$datetime(HH:mm:ss zzzz,Tokyo,en)</code></dt>
+                <dd><code>07:50:20 Japan Standard Time</code></dd>
+                <dd>(Output is usually based on your system language, but you
+                    can also explicitely specify it.)</dd>
+                
+                <dt><code>$datetime(eeee\, dd. MMMM yyyy,,de)</code></dt>
+                <dd><code>Dienstag, 12. März 2019</code></dd>
+                <dd>(Custom format, <code>,</code> escaped since it normally
+                    separates function parameters, empty timezone in order to be
+                    able to specify locale.)</dd>
+            </dl>
     </dl>
+    
+    <p class="note"><em>Tip:</em> Enter e.g. <code>//echo $datetime()</code>
+        into the chat inputbox to test a function directly, use arrow up/down
+        keys to cycle through previous inputs. Of course you won't be able to
+        use some context dependant parameters this way.</p>
     
     <p class="note"><em>Note:</em> The <code>&lt;identifier&gt;</code> parameter means <em>only</em>
         the identifier, without any <code>$</code>, while the other parameters
@@ -494,7 +655,11 @@ Spoiler[S]=/timeout $$1 600 No spoilers
         dialog is open and focused. They are interpreted by
         <a href="https://docs.oracle.com/javase/7/docs/api/javax/swing/KeyStroke.html#getKeyStroke%28java.lang.String%29">getKeyStroke()</a>
         which means anything that function understands can be used. However
-        spaces are not allowed, so a plus sign <code>+</code> can be used instead.</p>
+        spaces are not allowed, so a plus sign <code>+</code> can be used instead.
+        Examples: <code>alt+Q</code>, <code>shift+1</code>, <code>INSERT</code></p>
+    
+    <p><em>Note:</em> The lowercase/uppercase matters for it to be parsed
+        correctly.</p>
     
     <p>Adding a vertical bar <code>|</code> after the shortcut will use the text
         after it as label for the shortcut on the button (no spaces allowed). If

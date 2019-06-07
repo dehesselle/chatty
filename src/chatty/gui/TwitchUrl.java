@@ -19,7 +19,7 @@ public class TwitchUrl {
     public static void removeInvalidStreams(Collection<String> streams) {
         Iterator<String> it = streams.iterator();
         while (it.hasNext()) {
-            if (!Helper.validateChannel(it.next())) {
+            if (!Helper.isValidChannel(it.next())) {
                 it.remove();
             }
         }
@@ -50,11 +50,11 @@ public class TwitchUrl {
     }
     
     public static String makeTwitchProfileUrl(String channel) {
-        return "http://twitch.tv/" + channel.toLowerCase() + "/profile";
+        return "https://twitch.tv/" + StringUtil.toLowerCase(channel) + "/profile";
     }
     
     public static String makeTwitchStreamUrl(String channel, boolean popout) {
-        String url = "http://twitch.tv/" + channel.toLowerCase() + "";
+        String url = "https://twitch.tv/" + StringUtil.toLowerCase(channel) + "";
         if (popout) {
             url += "/popout";
         }
@@ -62,27 +62,27 @@ public class TwitchUrl {
     }
     
     public static String makeTwitchPlayerUrl(String channel) {
-        return "http://player.twitch.tv/?channel="+channel.toLowerCase();
+        return "https://player.twitch.tv/?channel="+StringUtil.toLowerCase(channel);
     }
     
     public static String makeTwitchTurboUrl() {
-        return "http://twitch.tv/turbo";
+        return "https://twitch.tv/turbo";
     }
     
     public static String makeFFZUrl() {
-        return "http://frankerfacez.com";
+        return "https://frankerfacez.com";
     }
     
     public static String makeFFZUrl(int id) {
-        return "http://www.frankerfacez.com/emoticons/"+id;
+        return "https://www.frankerfacez.com/emoticons/"+id;
     }
     
     public static String makeFFZUrl(String user) {
-        return "http://www.frankerfacez.com/emoticons/user/"+user.toLowerCase();
+        return "https://www.frankerfacez.com/emoticons/user/"+StringUtil.toLowerCase(user);
     }
     
     public static String makeBttvUrl() {
-        return "http://www.nightdev.com/betterttv/";
+        return "https://www.nightdev.com/betterttv/";
     }
     
     public static String makeTwitchemotesUrl(int id) {

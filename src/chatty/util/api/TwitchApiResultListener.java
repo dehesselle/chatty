@@ -1,6 +1,7 @@
 
 package chatty.util.api;
 
+import chatty.Room;
 import chatty.util.api.usericons.Usericon;
 import chatty.util.api.TwitchApi.RequestResultCode;
 import java.util.List;
@@ -16,6 +17,7 @@ public interface TwitchApiResultListener {
     void receivedCheerEmoticons(Set<CheerEmoticon> emoticons);
     void receivedUsericons(List<Usericon> icons);
     void tokenVerified(String token, TokenInfo tokenInfo);
+    void tokenRevoked(String error);
     void runCommercialResult(String stream, String text, RequestResultCode result);
     void putChannelInfoResult(RequestResultCode result);
     void receivedChannelInfo(String channel, ChannelInfo info, RequestResultCode result);
@@ -23,7 +25,7 @@ public interface TwitchApiResultListener {
     void receivedFollowers(FollowerInfo followerInfo);
     void newFollowers(FollowerInfo followerInfo);
     void receivedSubscribers(FollowerInfo info);
-    
+    void receivedFollower(String stream, String username, RequestResultCode result, Follower follower);
     /**
      * The correctly capitalized name for a user.
      * 
@@ -49,4 +51,6 @@ public interface TwitchApiResultListener {
     void followResult(String message);
     
     void autoModResult(String result, String msgId);
+    
+    void roomsInfo(RoomsInfo info);
 }

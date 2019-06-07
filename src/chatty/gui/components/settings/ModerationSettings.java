@@ -1,7 +1,11 @@
 
 package chatty.gui.components.settings;
 
+import chatty.lang.Language;
 import java.awt.GridBagConstraints;
+import java.util.HashMap;
+import java.util.Map;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
@@ -12,12 +16,21 @@ import javax.swing.JPanel;
 public class ModerationSettings extends SettingsPanel {
     
     public ModerationSettings(final SettingsDialog d) {
-        JPanel blah = addTitledPanel("Messages (can only be received as a mod)", 0);
         
-        blah.add(d.addSimpleBooleanSetting(
-                "showModActions",
-                "<html><body>Show moderator actions in chat (similiar to <code>Extra - Moderation Log</code>)",
-                "Show what commands mods perform, except your own (you can also open Extra - Moderation Log)"),
+        JPanel blah = addTitledPanel(Language.getString("settings.section.modInfos"), 0);
+        
+        JCheckBox showModActions = d.addSimpleBooleanSetting("showModActions");
+        JCheckBox showModActionsRestrict = d.addSimpleBooleanSetting("showModActionsRestrict");
+        
+        SettingsUtil.addSubsettings(showModActions, showModActionsRestrict);
+        
+        blah.add(showModActions,
+                d.makeGbc(0, 0, 3, 1, GridBagConstraints.WEST));
+        
+        blah.add(showModActionsRestrict,
+                d.makeGbcSub(0, 1, 3, 1, GridBagConstraints.WEST));
+        
+        blah.add(d.addSimpleBooleanSetting("showActionBy"),
                 d.makeGbc(0, 4, 3, 1, GridBagConstraints.WEST));
         
         blah.add(d.addSimpleBooleanSetting("showAutoMod", "Show messages rejected by AutoMod", ""),
@@ -30,13 +43,25 @@ public class ModerationSettings extends SettingsPanel {
                 + "<code>Dialog: AutoMod Dialog</code> as action)."),
                 d.makeGbc(1, 6, 2, 1, GridBagConstraints.EAST));
         
-        JPanel bleh = addTitledPanel("Other Settings", 1);
         
-        bleh.add(d.addSimpleBooleanSetting(
-                "closeUserDialogOnAction",
-                "Close User Info Dialog when performing action (Button)",
-                "After clicking on a button, the User Info Dialog will automatically close."),
-                d.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST));
+        JPanel userInfo = addTitledPanel(Language.getString("settings.section.userDialog"), 1);
+        
+        userInfo.add(d.addSimpleBooleanSetting(
+                "closeUserDialogOnAction"),
+                d.makeGbc(0, 0, 2, 1, GridBagConstraints.WEST));
+        
+        userInfo.add(d.addSimpleBooleanSetting(
+                "openUserDialogByMouse"),
+                d.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST));
+        
+        userInfo.add(d.addSimpleBooleanSetting(
+                "reuseUserDialog"),
+                d.makeGbc(0, 2, 2, 1, GridBagConstraints.WEST));
+
+        userInfo.add(new JLabel(Language.getString("settings.long.clearUserMessages.label")),
+                d.makeGbc(0, 3, 1, 1, GridBagConstraints.EAST));
+        userInfo.add(d.addComboLongSetting("clearUserMessages", new int[]{-1, 3, 6, 12, 24}),
+                d.makeGbc(1, 3, 1, 1, GridBagConstraints.WEST));
     }
     
 }

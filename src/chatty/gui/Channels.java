@@ -3,11 +3,13 @@ package chatty.gui;
 
 import chatty.Helper;
 import chatty.Helper.IntegerPair;
+import chatty.Room;
 import chatty.gui.components.Channel;
 import chatty.gui.components.ChannelDialog;
 import chatty.gui.components.tabs.Tabs;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.TabContextMenu;
+import chatty.util.Debugging;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -37,7 +39,7 @@ public class Channels {
     /**
      * Saves all added channels by name.
      */
-    private final HashMap<String,Channel> channels = new HashMap<>();
+    private final HashMap<String, Channel> channels = new HashMap<>();
     
     /**
      * Saves which channels are in a popout (and which dialog it is).
@@ -109,6 +111,16 @@ public class Channels {
         }
     }
     
+    public void updateRoom(Room room) {
+        Channel channel = channels.get(room.getChannel());
+        if (channel != null) {
+            if (channel.setRoom(room)) {
+                Debugging.printlnf("Update Room: %s", room);
+                updateChannelTabName(channel);
+            }
+        }
+    }
+    
     /**
      * Set channel to show a new highlight messages has arrived, changes color
      * of the tab. ONly if not currently active tab.
@@ -143,7 +155,7 @@ public class Channels {
      */
     public void resetChannelTab(Channel channel) {
         tabs.setForegroundForComponent(channel, null);
-        tabs.setTitleForComponent(channel, channel.getName());
+        tabs.setTitleForComponent(channel, channel.getName(), channel.getToolTipText());
         highlighted.remove(channel);
     }
     
@@ -151,25 +163,42 @@ public class Channels {
      * Set channel to new status available, adds a suffix to indicate that.
      * Only if not currently the active tab.
      * 
-     * @param channel 
+     * @param ownerChannel
      */
-    public void setChannelNewStatus(Channel channel) {
-        if (getActiveTab() != channel) {
-            tabs.setTitleForComponent(channel, channel.getName()+"*");
+    public void setChannelNewStatus(String ownerChannel) {
+        Collection<Channel> chans = getExistingChannelsByOwner(ownerChannel);
+        // If any of the tabs for this channel is active, don't change
+        for (Channel chan : chans) {
+            if (getActiveTab() == chan) {
+                return;
+            }
+        }
+        for (Channel chan : chans) {
+            tabs.setTitleForComponent(chan, chan.getName()+"*", chan.getToolTipText());
         }
     }
     
+    // TODO: Retain new status and stuff, and maybe reset new status when clicked on one of the tabs belong to the stream
+    public void updateChannelTabName(Channel channel) {
+        tabs.setTitleForComponent(channel, channel.getName(), channel.getToolTipText());
+    }
     
     /**
      * This is the channel when no channel has been added yet.
      */
     private void addDefaultChannel() {
-        defaultChannel = createChannel("", Channel.Type.NONE);
+        defaultChannel = createChannel(Room.EMPTY, Channel.Type.NONE);
         tabs.addTab(defaultChannel);
     }
     
-    private Channel createChannel(String name, Channel.Type type) {
-        Channel channel = new Channel(name,type,gui,styleManager, contextMenuListener);
+    /**
+     * 
+     * @param room Must not be null
+     * @param type
+     * @return 
+     */
+    private Channel createChannel(Room room, Channel.Type type) {
+        Channel channel = new Channel(room,type,gui,styleManager, contextMenuListener);
         channel.setUserlistWidth(defaultUserlistWidth, minUserlistWidth);
         channel.setMouseClickedListener(mouseClickedListener);
         channel.setScrollbarAlways(chatScrollbarAlaways);
@@ -178,6 +207,11 @@ public class Channels {
         if (type == Channel.Type.SPECIAL || type == Channel.Type.WHISPER) {
             channel.setUserlistEnabled(false);
         }
+        
+        if (!gui.getSettings().getBoolean("inputEnabled")) {
+            channel.toggleInput();
+        }
+        
         return channel;
     }
     
@@ -185,11 +219,22 @@ public class Channels {
         return tabs;
     }
     
-    public Channel get(String key) {
-        return channels.get(key);
+    public Collection<Channel> channels() {
+        return channels.values();
     }
     
-    public Collection<Channel> channels() {
+    /**
+     * Includes the defaultChannel that is there when no actual channel has been
+     * added yet.
+     * 
+     * @return 
+     */
+    public Collection<Channel> allChannels() {
+        if (channels.isEmpty() && defaultChannel != null) {
+            Collection<Channel> result = new ArrayList<>();
+            result.add(defaultChannel);
+            return result;
+        }
         return channels.values();
     }
     
@@ -210,9 +255,9 @@ public class Channels {
         return channels.get(channel) != null;
     }
     
-    public Channel getChannel(String channel) {
-        return getChannel(channel, getTypeFromChannelName(channel));
-    }
+//    public Channel getChannel(String channel) {
+//        return getChannel(channel, getTypeFromChannelName(channel), null);
+//    }
     
     public Channel.Type getTypeFromChannelName(String name) {
         if (name.startsWith("#")) {
@@ -225,31 +270,42 @@ public class Channels {
         return Channel.Type.NONE;
     }
     
+    public Channel getExistingChannel(String channel) {
+        return channels.get(channel);
+    }
+    
+    public Collection<Channel> getExistingChannelsByOwner(String channel) {
+        List<Channel> result = new ArrayList<>();
+        for (Channel chan : channels.values()) {
+            if (Objects.equals(chan.getOwnerChannel(), channel)) {
+                result.add(chan);
+            }
+        }
+        return result;
+    }
+    
+    public Channel getChannel(Room room) {
+        String channel = room.getChannel();
+        return getChannel(room, getTypeFromChannelName(channel));
+    }
+    
     /**
      * Gets the Channel object for the given channel name. If none exists, the
      * channel is automatically added.
      * 
-     * @param channel
+     * @param room Must not be null, but can be Room.EMPTY
      * @param type
      * @return 
      */
-    public Channel getChannel(String channel, Channel.Type type) {
-        Channel panel = channels.get(channel);
+    public Channel getChannel(Room room, Channel.Type type) {
+        Channel panel = channels.get(room.getChannel());
         if (panel == null) {
-            panel = addChannel(channel, type);
+            panel = addChannel(room, type);
+        } else if (panel.setRoom(room)) {
+            Debugging.println("Updating Channel Name to "+panel.getName());
+            updateChannelTabName(panel);
         }
         return panel;
-    }
-    
-    public Channel getChannelOfType(String channel, Channel.Type type) {
-        Channel panel = channels.get(channel);
-        if (panel != null && panel.getType() == type) {
-            return panel;
-        }
-        if (panel == null) {
-            return addChannel(channel, type);
-        }
-        return null;
     }
     
     public String getChannelNameFromPanel(Channel panel) {
@@ -282,8 +338,8 @@ public class Channels {
      * @param type
      * @return 
      */
-    public Channel addChannel(String channelName, Channel.Type type) {
-        if (channels.get(channelName) != null) {
+    public Channel addChannel(Room room, Channel.Type type) {
+        if (channels.get(room.getChannel()) != null) {
             return null;
         }
         Channel panel;
@@ -291,19 +347,19 @@ public class Channels {
             // Reuse default channel
             panel = defaultChannel;
             defaultChannel = null;
-            panel.setName(channelName);
             panel.setType(type);
+            panel.setRoom(room);
             channelChanged();
         }
         else {
             // No default channel, so create a new one
-            panel = createChannel(channelName, type);
+            panel = createChannel(room, type);
             tabs.addTab(panel);
             if (type != Channel.Type.WHISPER) {
                 tabs.setSelectedComponent(panel);
             }
         }
-        channels.put(channelName, panel);
+        channels.put(room.getChannel(), panel);
         return panel;
     }
     
@@ -356,7 +412,7 @@ public class Channels {
         // Restore attributes if available
         if (!dialogsAttributes.isEmpty()) {
             LocationAndSize attr = dialogsAttributes.remove(0);
-            if (GuiUtil.isPointOnScreen(attr.location, 5)) {
+            if (GuiUtil.isPointOnScreen(attr.location, 5, 5)) {
                 newDialog.setLocation(attr.location);
             }
             newDialog.setSize(attr.size);
@@ -629,7 +685,7 @@ public class Channels {
     
     public void switchToChannel(String channel) {
         if (isChannel(channel)) {
-            tabs.setSelectedComponent(get(channel));
+            tabs.setSelectedComponent(getExistingChannel(channel));
         }
     }
     

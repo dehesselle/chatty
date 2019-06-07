@@ -2,34 +2,47 @@
 package chatty.gui;
 
 import chatty.Helper;
+import chatty.gui.components.textpane.ChannelTextPane;
+import chatty.util.Debugging;
 import chatty.util.MiscUtil;
 import chatty.util.ProcessManager;
+import chatty.util.StringUtil;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Frame;
+import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.KeyboardFocusManager;
+import java.awt.MouseInfo;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyVetoException;
+import java.beans.VetoableChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.InputMap;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRootPane;
@@ -39,10 +52,15 @@ import javax.swing.RowSorter;
 import javax.swing.SortOrder;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
+import javax.swing.text.DocumentFilter;
 import javax.swing.text.Element;
+import javax.swing.text.JTextComponent;
 
 /**
  * Some Utility functions or constants for GUI related stuff
@@ -63,7 +81,7 @@ public class GuiUtil {
     
     
     public static void installEscapeCloseOperation(final JDialog dialog) {
-    Action closingAction = new AbstractAction() {
+        Action closingAction = new AbstractAction() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -72,7 +90,7 @@ public class GuiUtil {
                         ));
             }
         };
-        
+
         JRootPane root = dialog.getRootPane();
         root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
                 ESCAPE_STROKE,
@@ -143,8 +161,8 @@ public class GuiUtil {
      * @param xOffset The horizontal offset in pixels
      * @return {@code true} if the point is on screen, {@code false} otherwise
      */
-    public static boolean isPointOnScreen(Point p, int xOffset) {
-        Point moved = new Point(p.x + xOffset, p.y);
+    public static boolean isPointOnScreen(Point p, int xOffset, int yOffset) {
+        Point moved = new Point(p.x + xOffset, p.y + yOffset);
         return isPointOnScreen(moved);
     }
     
@@ -163,6 +181,94 @@ public class GuiUtil {
             }
         }
         return false;
+    }
+    
+    private static final int MOUSE_LOCATION_HGAP = 60;
+    
+    public static void setLocationToMouse(Component c) {
+        // Check might still be useful, even if this config is not used
+        if (c.getGraphicsConfiguration() == null) {
+            return;
+        }
+        // Use screen the mouse is on
+        Rectangle screen = getEffectiveScreenBounds(MouseInfo.getPointerInfo().getDevice().getDefaultConfiguration());
+        Point mouseLocation = MouseInfo.getPointerInfo().getLocation();
+        int width = c.getWidth();
+        int height = c.getHeight();
+        
+        // Move to left side by default
+        mouseLocation.translate(- width - MOUSE_LOCATION_HGAP, - height/2);
+        
+        // Top boundary
+        if (mouseLocation.y < screen.y) {
+            mouseLocation.y = screen.y;
+        }
+        // Bottom boundary
+        if (mouseLocation.y + height > screen.y + screen.height) {
+            mouseLocation.y = screen.y + screen.height - height;
+        }
+        // Left boundary
+        if (mouseLocation.x < screen.x) {
+            mouseLocation.x += width + MOUSE_LOCATION_HGAP*2;
+        }
+        // Right boundary
+        if (mouseLocation.x + width > screen.x + screen.width) {
+            mouseLocation.x -= width + MOUSE_LOCATION_HGAP*2;
+        }
+        
+        c.setLocation(mouseLocation);
+    }
+    
+    public static Rectangle getEffectiveScreenBounds(GraphicsConfiguration config) {
+        Rectangle bounds = config.getBounds();
+        Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(config);
+        Debugging.println("screenbounds", "%s %s", bounds, insets);
+        bounds.x += insets.left;
+        bounds.y += insets.top;
+        bounds.width -= insets.right + insets.left;
+        bounds.height -= insets.bottom + insets.top;
+        return bounds;
+    }
+    
+    /**
+     * Moves the window very quickly to create a shaking effect, ending on the
+     * original location. Uses Thread.sleep() so length should not be too high.
+     *
+     * @param window The window to shake
+     * @param intensity The distance the window will move
+     * @param length The number of iterations of the shaking effect
+     */
+    public static void shake(Window window, int intensity, int length) {
+        Point original = window.getLocation();
+        for (int i=0;i<length;i++) {
+            try {
+                // Using Thread.sleep() is not ideal because it freezes the GUI,
+                // but it's really short
+                Thread.sleep(50);
+                window.setLocation(original.x+intensity, original.y);
+                Thread.sleep(10);
+                window.setLocation(original.x, original.y-intensity);
+                Thread.sleep(10);
+                window.setLocation(original.x-intensity, original.y+intensity);
+                Thread.sleep(10);
+                window.setLocation(original);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(GuiUtil.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame dialog = new JFrame();
+            dialog.setSize(100, 100);
+            dialog.setLocationRelativeTo(null);
+            dialog.setVisible(true);
+            JButton button = new JButton("Shake");
+            button.addActionListener(e -> shake(dialog, 2, 2));
+            dialog.add(button);
+            dialog.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        });
     }
     
     public static GridBagConstraints makeGbc(int x, int y, int w, int h) {
@@ -185,32 +291,11 @@ public class GuiUtil {
         container.add(panel, BorderLayout.NORTH);
         return container;
     }
-    
-    /**
-     * Output the text of the subelements of the given element.
-     *
-     * @param line
-     */
-    public static void debugLineContents(Element line) {
-        Document doc = line.getDocument();
-        System.out.print("[");
-        for (int i = 0; i < line.getElementCount(); i++) {
-            Element l = line.getElement(i);
-            //System.out.println(l);
-            try {
-                System.out.print("'" + doc.getText(l.getStartOffset(), l.getEndOffset() - l.getStartOffset()) + "'");
 
-            } catch (BadLocationException ex) {
-                System.out.println("Bad location");
-            }
-        }
-        System.out.println("]");
-    }
-    
     /**
      * Detect retina display.
      * 
-     * http://stackoverflow.com/questions/20767708/how-do-you-detect-a-retina-display-in-java
+     * https://stackoverflow.com/questions/20767708/how-do-you-detect-a-retina-display-in-java
      * 
      * @return 
      */
@@ -324,7 +409,7 @@ public class GuiUtil {
     }
     
     /**
-     * Based on: http://stackoverflow.com/a/7253059/2375667
+     * Based on: https://stackoverflow.com/a/7253059/2375667
      */
     private static void addMacKeyboardActionsTo(String key) {
         InputMap im = (InputMap) UIManager.get(key);
@@ -360,6 +445,133 @@ public class GuiUtil {
         param.put("channel", channel);
 
         ProcessManager.execute(command.replace(param), "Notification");
+    }
+    
+    /**
+     * Java 8u161/162 introduced a bug that causes high CPU usage when a
+     * JTextField/JTextArea is focused as first component after the window is
+     * focused.
+     * 
+     * This workaround aims to prevent this by rejecting that focus change if it
+     * occurs and focusing another component first, then focusing the original
+     * text component.
+     * 
+     * This may or may not actually work, but it seemed fine in testing.
+     */
+    public static void installTextComponentFocusWorkaround() {
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addVetoableChangeListener(new VetoableChangeListener() {
+
+            private boolean rejectNext = false;
+            private JComponent target;
+
+            @Override
+            public void vetoableChange(PropertyChangeEvent evt) throws PropertyVetoException {
+                if (evt.getNewValue() != null) {
+                    if (rejectNext && evt.getPropertyName().equals("focusOwner")) {
+                        if (evt.getNewValue() instanceof JTextComponent) {
+                            JComponent component = (JComponent) evt.getNewValue();
+                            // Move focus up, this usually moves it to the
+                            // window itself
+                            KeyboardFocusManager.getCurrentKeyboardFocusManager().upFocusCycle(component);
+                            target = component;
+                            LOGGER.info("[Focus] Rejected JTextComponent focus");
+                            // Reject focus change as well, otherwise this
+                            // didn't seem to work
+                            throw new PropertyVetoException("Rejected JTextComponent focus", evt);
+                        } else {
+                            // If anything else was focused, no need to reject
+                            // anymore, change focus back if necessary
+                            rejectNext = false;
+                            if (target != null) {
+                                LOGGER.info("[Focus] Temp: " + evt.getNewValue());
+                                target.requestFocus();
+                                target = null;
+                            }
+                        }
+                    } else if (evt.getPropertyName().equals("focusedWindow")) {
+                        // Next focus on a text component should be rejected
+                        LOGGER.info("[Focus] Window focused");
+                        rejectNext = true;
+                    }
+                }
+
+                // Debug
+                String oldV = evt.getOldValue() != null ? evt.getOldValue().getClass().toString() : null;
+                String newV = evt.getNewValue() != null ? evt.getNewValue().getClass().toString() : null;
+                //System.out.println(evt.getPropertyName()+": "+oldV+" -> "+newV);
+            }
+        });
+    }
+    
+    public static void focusTest() {
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addVetoableChangeListener(new VetoableChangeListener() {
+
+            @Override
+            public void vetoableChange(PropertyChangeEvent evt) throws PropertyVetoException {
+                if (evt.getOldValue() != null) {
+                    System.out.println("from: "+evt.getOldValue().getClass().getName()+" ("+evt.getPropertyName()+")");
+                }
+                if (evt.getNewValue() != null) {
+                    System.out.println("to: "+evt.getNewValue().getClass().getName()+" ("+evt.getPropertyName()+")");
+                }
+                if (evt.getNewValue() instanceof ChannelTextPane) {
+                    //System.out.println("prevent");
+                    //throw new PropertyVetoException("abc", evt);
+                }
+            }
+        });
+    }
+    
+    /**
+     * Set a DocumentFilter that limits the text length and allows or filters
+     * linebreak characters.
+     * 
+     * Note that this replaces an already set DocumentFilter.
+     * 
+     * @param comp The JTextComponent, using AbstractDocument
+     * @param limit The character limit
+     * @param allowNewlines false to filter linebreak characters
+     */
+    public static void installLengthLimitDocumentFilter(JTextComponent comp, int limit, boolean allowNewlines) {
+        if (limit < 0) {
+            throw new IllegalArgumentException("Invalid limit < 0");
+        }
+        DocumentFilter filter = new DocumentFilter() {
+            
+            @Override
+            public void replace(DocumentFilter.FilterBypass fb, int offset,
+                    int delLength, String text, AttributeSet attrs) throws BadLocationException {
+                if (text == null || text.isEmpty()) {
+                    super.replace(fb, offset, delLength, text, attrs);
+                } else {
+                    int currentLength = fb.getDocument().getLength();
+                    int overLimit = (currentLength + text.length()) - limit - delLength;
+                    if (overLimit > 0) {
+                        /**
+                         * Might be negative otherwise if limit already exceeded
+                         * (e.g. if the filter wasn't always active).
+                         */
+                        int newLength = Math.max(text.length() - overLimit, 0);
+                        text = text.substring(0, newLength);
+                    }
+                    if (!allowNewlines) {
+                        text = StringUtil.removeLinebreakCharacters(text);
+                    }
+                    super.replace(fb, offset, delLength, text, attrs);
+                }
+            }
+            
+        };
+        Document doc = comp.getDocument();
+        if (doc instanceof AbstractDocument) {
+            AbstractDocument ad = (AbstractDocument)doc;
+//            if (ad.getDocumentFilter() != null) {
+//                System.out.println("Filter already installed "+comp);
+//            }
+            ad.setDocumentFilter(filter);
+        } else {
+            throw new IllegalArgumentException("Textcomponent not using AbstractDocument");
+        }
     }
     
 }

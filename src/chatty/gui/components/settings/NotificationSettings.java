@@ -6,6 +6,7 @@ import chatty.gui.GuiUtil;
 import static chatty.gui.GuiUtil.SMALL_BUTTON_INSETS;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.notifications.Notification;
+import chatty.util.Debugging;
 import chatty.util.Sound;
 import chatty.util.settings.Settings;
 import java.awt.Component;
@@ -34,6 +35,7 @@ import javax.swing.*;
  */
 public class NotificationSettings extends SettingsPanel {
     
+    public final static long NOTIFICATION_TYPE_OFF = -1;
     public final static long NOTIFICATION_TYPE_CUSTOM = 0;
     public final static long NOTIFICATION_TYPE_TRAY = 1;
     public final static long NOTIFICATION_TYPE_COMMAND = 2;
@@ -56,6 +58,9 @@ public class NotificationSettings extends SettingsPanel {
     private final NotificationEditor editor;
     
     public NotificationSettings(SettingsDialog d, Settings settings) {
+        // Expand
+        super(true);
+        
         editor = new NotificationEditor(d, settings);
         editor.setLinkLabelListener(d.getSettingsHelpLinkLabelListener());
         
@@ -70,6 +75,7 @@ public class NotificationSettings extends SettingsPanel {
         gbc.insets = new Insets(10,5,4,5);
         
         Map<Long, String> nTypeOptions = new LinkedHashMap<>();
+        nTypeOptions.put(NOTIFICATION_TYPE_OFF, "Off");
         nTypeOptions.put(NOTIFICATION_TYPE_CUSTOM, "Chatty Notifications");
         nTypeOptions.put(NOTIFICATION_TYPE_TRAY, "Tray Notifications (OS dependant)");
         nTypeOptions.put(NOTIFICATION_TYPE_COMMAND, "Run OS Command");
@@ -245,9 +251,17 @@ public class NotificationSettings extends SettingsPanel {
 
         editor.setPreferredSize(new Dimension(10,260));
         tabs.add("Events", editor);
-        tabs.add("Notification Settings", GuiUtil.northWrap(notificationSettings));
+        tabs.add("Notification Settings (Off)", GuiUtil.northWrap(notificationSettings));
         tabs.add("Sound Settings (Muted)", GuiUtil.northWrap(soundSettings));
 
+        nType.addActionListener(e -> {
+            if (nType.getSettingValue() != NOTIFICATION_TYPE_OFF) {
+                tabs.setTitleAt(1, "Notification Settings");
+            } else {
+                tabs.setTitleAt(1, "Notification Settings (Off)");
+            }
+        });
+        
         soundsEnabled.addItemListener(e -> {
             if (soundsEnabled.isSelected()) {
                 tabs.setTitleAt(2, "Sound Settings");
@@ -314,7 +328,7 @@ public class NotificationSettings extends SettingsPanel {
     protected void scanFiles(boolean showMessage) {
         
         Path path = soundsPath.getCurrentPath();
-        System.out.println("scan Files "+path);
+        Debugging.println("scan Files "+path);
         File file = path.toFile();
         File[] files = file.listFiles(new WavFilenameFilter());
         String resultText = "";

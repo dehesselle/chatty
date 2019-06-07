@@ -1,12 +1,15 @@
 
 package chatty;
 
+import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.Replacer;
 import chatty.util.StringUtil;
 import java.awt.Dimension;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
@@ -41,7 +44,7 @@ public class Helper {
         Set<String> result = new LinkedHashSet<>();
         for (String part : parts) {
             String channel = part.trim();
-            if (validateChannel(channel)) {
+            if (isValidChannel(channel)) {
                 if (prepend && !channel.startsWith("#")) {
                     channel = "#"+channel;
                 }
@@ -60,7 +63,7 @@ public class Helper {
     }
     
     /**
-     * Takes a Set of Strings and builds a single comma-seperated String of
+     * Takes a Set of Strings and builds a single comma-separated String of
      * streams out of it.
      * 
      * @param set
@@ -76,53 +79,75 @@ public class Helper {
         return result;
     }
     
-    public static String USERNAME_REGEX = "[a-zA-Z0-9_]+";
-    public static String USERNAME_REGEX_STRICT = "[a-zA-Z0-9][a-zA-Z0-9_]+";
+    public static final String USERNAME_REGEX = "[a-zA-Z0-9][a-zA-Z0-9_]+";
+    public static final Pattern CHANNEL_PATTERN = Pattern.compile("(?i)^#?"+USERNAME_REGEX+"$");
+    public static final Pattern CHATROOM_PATTERN = Pattern.compile("(?i)^#?chatrooms:[0-9a-z-:]+$");
+    public static final Pattern STREAM_PATTERN = Pattern.compile("(?i)^"+USERNAME_REGEX+"$");
     
     /**
      * Kind of relaxed valiadation if a channel, which can have a leading # or
-     * not.
+     * not, can also be a chatroom.
      * 
      * @param channel
      * @return 
      */
-    public static boolean validateChannel(String channel) {
+    public static boolean isValidChannel(String channel) {
         try {
-            return channel.matches("(?i)^#{0,1}"+USERNAME_REGEX+"$");
+            return CHANNEL_PATTERN.matcher(channel).matches()
+                    || CHATROOM_PATTERN.matcher(channel).matches();
         } catch (PatternSyntaxException | NullPointerException ex) {
+            return false;
+        }
+    }
+    
+    public static boolean isValidChannelStrict(String channel) {
+        return isValidChannel(channel) && channel.startsWith("#");
+    }
+    
+    /**
+     * Checks if the given channel is a regular channel, which means it is valid
+     * and is not a chatroom.
+     *
+     * @param channel
+     * @return 
+     */
+    public static boolean isRegularChannel(String channel) {
+        try {
+            return CHANNEL_PATTERN.matcher(channel).matches();
+        } catch (Exception ex) {
             return false;
         }
     }
     
     /**
      * Checks if the given channel is a regular channel, which means it starts
-     * with a # (and is valid otherwise).
+     * with a #, is valid otherwise and is not a chatroom.
      * 
      * @param channel
      * @return 
      */
-    public static boolean isRegularChannel(String channel) {
-        return validateChannel(channel) && channel.startsWith("#");
+    public static boolean isRegularChannelStrict(String channel) {
+        return isRegularChannel(channel) && channel.startsWith("#");
     }
     
     /**
      * Checks if the given name is a valid stream (no leading # and valid
-     * otherwise).
+     * otherwise, basicially just the username).
      * 
      * @param stream
      * @return 
      */
-    public static boolean validateStream(String stream) {
+    public static boolean isValidStream(String stream) {
         try {
-            return stream.matches("(?i)^"+USERNAME_REGEX+"$");
+            return STREAM_PATTERN.matcher(stream).matches();
         } catch (PatternSyntaxException | NullPointerException ex) {
             return false;
         }
     }
     
-    public static boolean validateStreamStrict(String stream) {
+    public static boolean isChatroomChannel(String channel) {
         try {
-            return stream.matches("(?i)^"+USERNAME_REGEX_STRICT+"$");
+            return channel.startsWith("#") && CHATROOM_PATTERN.matcher(channel).matches();
         } catch (Exception ex) {
             return false;
         }
@@ -130,7 +155,7 @@ public class Helper {
     
     /**
      * Checks if the given stream/channel is valid and turns it into a channel
-     * if necessary (leading # and all lowercase).
+     * if necessary (leading # and all lowercase). Can also be a chatroom.
      *
      * @param channel The channel, valid or invalid, leading # or not.
      * @return The channelname with leading #, or null if channel was invalid.
@@ -139,7 +164,7 @@ public class Helper {
         if (channel == null) {
             return null;
         }
-        if (!validateChannel(channel)) {
+        if (!isValidChannel(channel)) {
             return null;
         }
         if (!channel.startsWith("#")) {
@@ -160,11 +185,8 @@ public class Helper {
         if (chan == null) {
             return null;
         }
-        if (!validateChannel(chan)) {
-            return StringUtil.toLowerCase(chan);
-        }
-        if (!chan.startsWith("#")) {
-            chan = "#"+chan;
+        if (isValidChannel(chan) && !chan.startsWith("#")) {
+            return StringUtil.toLowerCase("#"+chan);
         }
         return StringUtil.toLowerCase(chan);
     }
@@ -186,10 +208,11 @@ public class Helper {
     }
     
     public static String toValidStream(String channel) {
-        if (!validateChannel(channel)) {
+        String stream = Helper.toStream(channel);
+        if (!isValidStream(stream)) {
             return null;
         }
-        return toStream(channel);
+        return stream;
     }
     
     public static String[] toStream(String[] channels) {
@@ -212,7 +235,7 @@ public class Helper {
         
         switch (reason) {
             case Irc.ERROR_UNKNOWN_HOST:
-                result = "Unknown host";
+                result = Language.getString("chat.error.unknownHost");
                 break;
             case Irc.REQUESTED_DISCONNECT:
                 result = "Requested";
@@ -221,13 +244,13 @@ public class Helper {
                 result = "";
                 break;
             case Irc.ERROR_REGISTRATION_FAILED:
-                result = "Failed to complete login.";
+                result = Language.getString("chat.error.loginFailed");
                 break;
             case Irc.ERROR_SOCKET_TIMEOUT:
-                result = "Connection timed out.";
+                result = Language.getString("chat.error.connectionTimeout");
                 break;
             case Irc.SSL_ERROR:
-                result = "Could not established secure connection ("+reasonMessage+")";
+                result = "Could not establish secure connection ("+reasonMessage+")";
                 break;
             case Irc.ERROR_SOCKET_ERROR:
                 result = reasonMessage;
@@ -243,7 +266,7 @@ public class Helper {
     
 
     /**
-     * http://stackoverflow.com/questions/5609500/remove-jargon-but-keep-real-characters/5609532#5609532
+     * https://stackoverflow.com/questions/5609500/remove-jargon-but-keep-real-characters/5609532#5609532
      * 
      * Combining characters seem to affect performance sometimes. Opening the
      * User Info Dialog can take a noticeable amount of time to open if the
@@ -354,7 +377,21 @@ public class Helper {
         return HTMLSPECIALCHARS_ENCODE.replace(s);
     }
     
+    private static final Pattern EMOJI_VARIATION_SELECTOR = Pattern.compile("[\uFE0E\uFE0F]");
     
+    /**
+     * Remove both the text style and emoji style variation selector from the
+     * input.
+     * 
+     * @param input
+     * @return 
+     */
+    public static String removeEmojiVariationSelector(String input) {
+        if (input == null) {
+            return null;
+        }
+        return EMOJI_VARIATION_SELECTOR.matcher(input).replaceAll("");
+    }
     
     private static final Pattern UNDERSCORE = Pattern.compile("_");
     
@@ -519,9 +556,10 @@ public class Helper {
     }
     
     public static String systemInfo() {
-        return String.format("Java: %s (%s) OS: %s (%s/%s)",
+        return String.format("Java: %s (%s / %s) OS: %s (%s/%s)",
                 System.getProperty("java.version"),
                 System.getProperty("java.vendor"),
+                System.getProperty("java.home"),
                 System.getProperty("os.name"),
                 System.getProperty("os.version"),
                 System.getProperty("os.arch"));
@@ -530,11 +568,11 @@ public class Helper {
     /**
      * Top Level Domains (only relevant for URLs not starting with http or www).
      */
-    private static final String TLD = "(?:tv|com|org|edu|gov|uk|net|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|me|gl|fm|io|gg)";
+    private static final String TLD = "(?:tv|com|org|edu|gov|uk|net|ca|de|jp|fr|au|us|ru|ch|it|nl|se|no|es|me|gl|fm|io|gg|be)";
     
-    private static final String MID = "[-A-Z0-9+&@#/%=~_|$?!:,;.()]";
+    private static final String MID = "[^\\s]";
     
-    private static final String END = "[A-Z0-9+&@#/%=~_|$)]";
+    private static final String END = "[^:,.\\s]";
     
     /**
      * Start of the URL.
@@ -624,24 +662,35 @@ public class Helper {
         return String.format("%sh", nf.format(Math.round(duration/30.0)*30/60.0));
     }
     
-    
-    
     public static String makeBanInfo(long duration, String reason,
             boolean durationEnabled, boolean reasonEnabled, boolean includeBan) {
         String banInfo = "";
         if (durationEnabled) {
             if (duration > 0) {
                 banInfo = String.format("(%s)", makeBanInfoDuration(duration));
+            } else if (duration == -2) {
+                banInfo = "(deleted)";
             } else if (includeBan) {
                 banInfo = "(banned)";
             }
         }
-        if (reasonEnabled) {
-            if (reason != null && !reason.isEmpty()) {
-                banInfo = StringUtil.append(banInfo, " ", "[" + reason + "]");
-            }
-        }
+        // Reason not via IRC anymore
+//        if (reasonEnabled) {
+//            if (reason != null && !reason.isEmpty()) {
+//                banInfo = StringUtil.append(banInfo, " ", "[" + reason + "]");
+//            }
+//        }
         return banInfo;
+    }
+    
+    public static String makeBanCommand(User user, long duration, String id) {
+        if (duration > 0) {
+            return StringUtil.concats("timeout", user.getName(), duration).trim();
+        }
+        if (duration == -2) {
+            return StringUtil.concats("delete", id).trim();
+        }
+        return StringUtil.concats("ban", user.getName()).trim();
     }
     
     public static Dimension getDimensionFromParameter(String parameter) {
@@ -704,6 +753,47 @@ public class Helper {
             return user.getModeSymbol() + user.getName();
         }
         return user.getFullNick();
+    }
+    
+    public static String encodeFilename(String input) {
+        try {
+            return URLEncoder.encode(input, "UTF-8");
+        } catch (UnsupportedEncodingException ex) {
+            throw new RuntimeException("Unsupported encoding lol");
+        }
+    }
+    
+    public static String encodeFilename2(String input) {
+        return input.replaceAll("[%\\.\"\\*/:<>\\?\\\\\\|\\+,\\.;=\\[\\]]", "_");
+    }
+    
+    /**
+     * Returns commands split up by '|' and trimmed for leading and trailing
+     * whitespace. Only non-empty commands are included.
+     * 
+     * Use '||' to use the '|' character literally.
+     * 
+     * Example: '/chain /echo first | /echo second || third'
+     * Returns: '/echo first' and '/echo second | third'
+     * 
+     * @param input
+     * @return 
+     */
+    public static List<String> getChainedCommands(String input) {
+        if (StringUtil.isNullOrEmpty(input)) {
+            return new ArrayList<>();
+        }
+        List<String> result = new ArrayList<>();
+        // A '|' not preceeded or followed by '|'
+        String[] split = input.split("(?<!\\|)\\|(?!\\|)");
+        for (String part : split) {
+            // Remove first '|' from two or more '|' in a row
+            part = part.trim().replaceAll("\\|(\\|+)", "$1");
+            if (!part.isEmpty()) {
+                result.add(part);
+            }
+        }
+        return result;
     }
     
 }

@@ -20,15 +20,15 @@ public class Speedruncom {
     }
     
     public void openCurrentGame(Channel chan) {
-        if (Helper.isRegularChannel(chan.getName())) {
+        if (Helper.isRegularChannel(chan.getStreamName())) {
             StreamInfo info = twitchApi.getStreamInfo(chan.getStreamName(), null);
             if (info.isValid() && !info.getGame().isEmpty()) {
                 String game = info.getGame();
-                UrlOpener.openUrl("http://speedrun.com/" + replaceForUrl(game));
+                UrlOpener.openUrlPrompt(chan, "https://speedrun.com/" + replaceForUrl(game));
                 return;
             }
         }
-        UrlOpener.openUrl("http://speedrun.com");
+        UrlOpener.openUrlPrompt(chan, "https://speedrun.com");
     }
     
     private static String replaceForUrl(String game) {

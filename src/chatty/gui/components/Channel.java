@@ -1,13 +1,16 @@
 
 package chatty.gui.components;
 
+import chatty.Room;
 import chatty.gui.MouseClickedListener;
 import chatty.gui.StyleManager;
 import chatty.gui.StyleServer;
 import chatty.gui.MainGui;
 import chatty.User;
+import chatty.gui.GuiUtil;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.textpane.ChannelTextPane;
+import chatty.gui.components.textpane.InfoMessage;
 import chatty.gui.components.textpane.Message;
 import chatty.util.StringUtil;
 import chatty.util.api.Emoticon;
@@ -15,7 +18,6 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,12 +26,15 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 import javax.swing.AbstractAction;
 import javax.swing.InputMap;
 import javax.swing.JPanel;
@@ -68,16 +73,17 @@ public class Channel extends JPanel {
     private boolean userlistEnabled = true;
     private int previousUserlistWidth;
     private int userlistMinWidth;
-    
-    private String name;
 
-    public Channel(final String name, Type type, MainGui main, StyleManager styleManager,
+    private Room room;
+
+    public Channel(final Room room, Type type, MainGui main, StyleManager styleManager,
             ContextMenuListener contextMenuListener) {
         this.setLayout(new BorderLayout());
         this.styleManager = styleManager;
-        this.name = name;
         this.main = main;
         this.type = type;
+        this.room = room;
+        setName(room.getDisplayName());
         
         // Text Pane
         text = new ChannelTextPane(main,styleManager);
@@ -94,9 +100,9 @@ public class Channel extends JPanel {
         
         // PageUp/Down hotkeys / Scrolling
         InputMap westScrollInputMap = west.getInputMap(WHEN_IN_FOCUSED_WINDOW);
-        westScrollInputMap.put(KeyStroke.getKeyStroke("PAGE_UP"), "pageUp");
+        westScrollInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP, 0), "pageUp");
         west.getActionMap().put("pageUp", new ScrollAction("pageUp", west.getVerticalScrollBar()));
-        westScrollInputMap.put(KeyStroke.getKeyStroke("PAGE_DOWN"), "pageDown");
+        westScrollInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, 0), "pageDown");
         west.getActionMap().put("pageDown", new ScrollAction("pageDown", west.getVerticalScrollBar()));
         west.getVerticalScrollBar().setUnitIncrement(40);
 
@@ -116,7 +122,10 @@ public class Channel extends JPanel {
         input = new ChannelEditBox(40);
         input.addActionListener(main.getActionListener());
         input.setCompletionServer(new InputCompletionServer());
-        
+        // Remove PAGEUP/DOWN so it can scroll chat (as before JTextArea)
+        input.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP, 0), "-");
+        input.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, 0), "-");
+        GuiUtil.installLengthLimitDocumentFilter(input, 500, false);
 
         // Add components
         add(mainPane, BorderLayout.CENTER);
@@ -129,9 +138,8 @@ public class Channel extends JPanel {
 
             @Override
             public void insertUpdate(DocumentEvent e) {
-                String name = Channel.this.name;
-                if (onceOffEditListener != null && !name.isEmpty()) {
-                    onceOffEditListener.edited(name);
+                if (onceOffEditListener != null && room != Room.EMPTY) {
+                    onceOffEditListener.edited(room.getChannel());
                     onceOffEditListener = null;
                 }
             }
@@ -144,6 +152,20 @@ public class Channel extends JPanel {
             public void changedUpdate(DocumentEvent e) {
             }
         });
+    }
+    
+    public boolean setRoom(Room room) {
+        if (room != null && this.room != room) {
+            this.room = room;
+            refreshBufferSize();
+            setName(room.getDisplayName());
+            return true;
+        }
+        return false;
+    }
+    
+    public Room getRoom() {
+        return room;
     }
     
     public void cleanUp() {
@@ -168,27 +190,39 @@ public class Channel extends JPanel {
         text.setMouseClickedListener(listener);
     }
     
+    public String getChannel() {
+        return room.getChannel();
+    }
+    
+    @Override
+    public String getToolTipText() {
+        if (room.getStreamId() != null) {
+            return room.getChannel()+" ("+room.getStreamId()+")";
+        }
+        return room.getChannel();
+    }
+    
+    public String getFilename() {
+        return room.getFilename();
+    }
+    
     @Override
     public String getName() {
-        return name;
+        return room != null ? room.getDisplayName() : null;
+    }
+    
+    public String getOwnerChannel() {
+        return room.getOwnerChannel();
     }
     
     /**
      * Gets the name of the stream (without leading #) if it is a stream channel
      * (and thus has a leading #) ;)
-     * @return 
+     * 
+     * @return The stream name, may return null
      */
     public String getStreamName() {
-        if (name.startsWith("#")) {
-            return name.substring(1);
-        }
-        return null;
-    }
-    
-    @Override
-    public void setName(String name) {
-        this.name = name;
-        refreshBufferSize();
+        return room.getStream();
     }
     
     public void addUser(User user) {
@@ -226,22 +260,26 @@ public class Channel extends JPanel {
         
         private final Set<String> commands = new TreeSet<>(Arrays.asList(new String[]{
             "subscribers", "subscribersOff", "timeout", "ban", "unban", "host", "unhost", "raid", "unraid", "clear", "mods",
-            "part", "close", "reconnect", "slow", "slowOff", "r9k", "r9koff", "emoteonly", "emoteonlyoff",
-            "connection", "uptime", "dir", "wdir", "openDir", "openWdir", "releaseInfo", "openBackupDir",
-            "clearChat", "refresh", "changetoken", "testNotification", "server",
+            "part", "close", "reconnect", "slow", "slowOff", "r9k", "r9koff", "emoteOnly", "emoteOnlyOff",
+            "connection", "uptime", "appInfo", "releaseInfo",
+            "dir", "wdir", "openDir", "openWdir",
+            "showBackupDir", "openBackupDir", "showDebugDir", "openDebugDir",
+            "showTempDir", "openTempDir", "showJavaDir", "openJavaDir",
+            "showFallbackFontDir", "openFallbackFontDir",
+            "clearChat", "refresh", "changeToken", "testNotification", "server",
             "set", "add", "clearSetting", "remove", "customCompletion",
             "clearStreamChat", "getStreamChatSize", "setStreamChatSize", "streamChatTest", "openStreamChat",
             "customEmotes", "reloadCustomEmotes", "addStreamHighlight", "openStreamHighlights",
             "ignore", "unignore", "ignoreWhisper", "unignoreWhisper", "ignoreChat", "unignoreChat",
             "follow", "unfollow", "ffzws", "followers", "followersoff",
-            "setcolor", "untimeout", "userinfo"
+            "setcolor", "untimeout", "userinfo", "joinHosted", "favorite", "unfavorite"
         }));
         
         private final Set<String> prefixesPreferUsernames = new HashSet<>(Arrays.asList(new String[]{
             "/ban ", "/to ", "/setname ", "/resetname ", "/timeout ", "/host ",
             "/unban ", "/ignore ", "/unignore ", "/ignoreChat ", "/unignoreChat ",
             "/ignoreWhisper ", "/unignoreWhisper ", "/follow ", "/unfollow ",
-            "/untimeout "
+            "/untimeout ", "/favorite ", "/unfavorite "
         }));
         
         private void updateSettings() {
@@ -253,7 +291,7 @@ public class Channel extends JPanel {
         @Override
         public CompletionItems getCompletionItems(String type, String prefix, String search) {
             updateSettings();
-            search = search.toLowerCase(Locale.ENGLISH);
+            search = StringUtil.toLowerCase(search);
             if (type == null) {
                 return getRegularCompletionItems(prefix, search);
             } else if (type.equals("special")) {
@@ -279,8 +317,8 @@ public class Channel extends JPanel {
                 //--------------
                 // Setting Names
                 //--------------
-                items = filterCompletionItems(main.getSettingNames(), search);
                 input.setCompleteToCommonPrefix(true);
+                items = filterCompletionItems(main.getSettingNames(), search);
             } else if (prefix.equals("/")) {
                 //--------------
                 // Command Names
@@ -378,34 +416,66 @@ public class Channel extends JPanel {
             Map<String, String> info = new HashMap<>();
             // Get font height for correct display size of Emoji
             int height = input.getFontMetrics(input.getFont()).getHeight();
-            for (Emoticon emote : main.emoticons.getEmoji()) {
-                if (emote.stringId != null
-                        && (emote.stringId.startsWith(":"+search)
-                            || (search.length() > 3 && emote.stringId.contains(search)))) {
-                    if (main.getSettings().getBoolean("emojiReplace")) {
-                        result.add(emote.stringId);
-                        info.put(emote.stringId, "<img width='"+height+"' height='"+height+"' src='"+emote.url+"'/>");
-                    } else {
-                        result.add(emote.code);
-                        info.put(emote.code, emote.stringId+" <img width='"+height+"' height='"+height+"' src='"+emote.url+"'/>");
-                    }
+            Collection<Emoticon> searchResult = new LinkedHashSet<>();
+            findEmoji(searchResult, code -> code.startsWith(":"+search));
+            if (searchResult.size() < 20) {
+                findEmoji(searchResult, code -> code.contains("_"+search));
+            }
+            for (Emoticon emote : searchResult) {
+                if (main.getSettings().getBoolean("emojiReplace")) {
+                    result.add(emote.stringId);
+                    info.put(emote.stringId, "<img width='" + height + "' height='" + height + "' src='" + emote.url + "'/>");
+                } else {
+                    result.add(emote.code);
+                    info.put(emote.code, emote.stringId + " <img width='" + height + "' height='" + height + "' src='" + emote.url + "'/>");
                 }
             }
             return new CompletionItems(result, info, ":");
         }
         
-        private List<String> filterCompletionItems(Collection<String> data,
-                String search) {
-            List<String> matched = new ArrayList<>();
-            for (String name : data) {
-                if (name.toLowerCase().startsWith(search)) {
-                    matched.add(name);
+        private void findEmoji(Collection<Emoticon> result, Function<String, Boolean> matcher) {
+            for (Emoticon emote : main.emoticons.getEmoji()) {
+                if (emote.stringId != null && matcher.apply(emote.stringId)) {
+                    result.add(emote);
                 }
             }
-            Collections.sort(matched);
+        }
+        
+        /**
+         * Filter list of ready-to-use items based on the given search.
+         * 
+         * @param data
+         * @param search Should be all-lowercase
+         * @return 
+         */
+        private List<String> filterCompletionItems(Collection<String> data,
+                String search) {
+            List<String> containing = new ArrayList<>();
+            List<String> matched = new ArrayList<>();
+            Pattern cSearch = Pattern.compile(
+                    Pattern.quote(search.substring(0, 1).toUpperCase(Locale.ENGLISH))
+                    + "(?i)" + Pattern.quote(search.substring(1))
+            );
+            String searchMode = main.getSettings().getString("completionSearch");
+            for (String item : data) {
+                String lc = StringUtil.toLowerCase(item);
+                if (lc.startsWith(search)) {
+                    matched.add(item);
+                } else if (searchMode.equals("words") &&
+                        !input.getCompleteToCommonPrefix()
+                        && cSearch.matcher(item).find()) {
+                    containing.add(item);
+                } else if (searchMode.equals("anywhere")
+                        && lc.contains(search)) {
+                    containing.add(item);
+                }
+            }
+            Collections.sort(matched, String.CASE_INSENSITIVE_ORDER);
+            Collections.sort(containing, String.CASE_INSENSITIVE_ORDER);
+            matched.addAll(containing);
             return matched;
         }
-            
+        
         private CompletionItems getCompletionItemsNames(String search, boolean preferUsernames) {
             List<User> matchedUsers = new ArrayList<>();
             Set<User> regularMatched = new HashSet<>();
@@ -417,11 +487,11 @@ public class Channel extends JPanel {
                     matched = true;
                     regularMatched.add(user);
                 }
-                if (!user.hasRegularDisplayNick() && user.getDisplayNick().toLowerCase(Locale.ROOT).startsWith(search)) {
+                if (!user.hasRegularDisplayNick() && StringUtil.toLowerCase(user.getDisplayNick()).startsWith(search)) {
                     matched = true;
                     localizedMatched.add(user);
                 }
-                if (user.hasCustomNickSet() && user.getCustomNick().toLowerCase(Locale.ROOT).startsWith(search)) {
+                if (user.hasCustomNickSet() && StringUtil.toLowerCase(user.getCustomNick()).startsWith(search)) {
                     matched = true;
                     customMatched.add(user);
                 }
@@ -537,13 +607,8 @@ public class Channel extends JPanel {
     public boolean requestFocusInWindow() {
         // Invoke later, because otherwise it wouldn't get focus for some
         // reason.
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                //System.out.println("requesting focus for " + name);
-                input.requestFocusInWindow();
-            }
+        SwingUtilities.invokeLater(() -> {
+            input.requestFocusInWindow();
         });
         return input.requestFocusInWindow();
         
@@ -562,6 +627,10 @@ public class Channel extends JPanel {
     
     public void printLine(String line) {
         text.printLine(line);
+    }
+    
+    public void printInfoMessage(InfoMessage message) {
+        text.printInfoMessage(message);
     }
     
     public void userBanned(User user, long duration, String reason, String id) {
@@ -589,6 +658,7 @@ public class Channel extends JPanel {
         input.setBackground(styleManager.getColor("inputBackground"));
         input.setCaretColor(styleManager.getColor("inputForeground"));
         input.setForeground(styleManager.getColor("inputForeground"));
+        input.setHistoryRequireCtrlMultirow(main.getSettings().getBoolean("inputHistoryMultirowRequireCtrl"));
         users.setFont(styleManager.getFont("userlist"));
         users.setBackground(styleManager.getColor("background"));
         users.setForeground(styleManager.getColor("foreground"));
@@ -596,7 +666,7 @@ public class Channel extends JPanel {
     }
     
     private void refreshBufferSize() {
-        Long bufferSize = (Long)main.getSettings().mapGet("bufferSizes", StringUtil.toLowerCase(name));
+        Long bufferSize = (Long)main.getSettings().mapGet("bufferSizes", StringUtil.toLowerCase(getChannel()));
         text.setBufferSize(bufferSize != null ? bufferSize.intValue() : -1);
     }
     
@@ -731,7 +801,7 @@ public class Channel extends JPanel {
         
     @Override
     public String toString() {
-        return String.format("%s '%s'", type, name);
+        return String.format("%s '%s'", type, room);
     }
     
     private OnceOffEditListener onceOffEditListener;

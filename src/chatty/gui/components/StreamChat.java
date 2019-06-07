@@ -1,6 +1,7 @@
 
 package chatty.gui.components;
 
+import chatty.Room;
 import chatty.User;
 import chatty.gui.MainGui;
 import chatty.gui.StyleManager;
@@ -43,11 +44,10 @@ public class StreamChat extends JDialog {
         JScrollPane scroll = new JScrollPane(textPane);
         scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         textPane.setScrollPane(scroll);
-        textPane.setPreferredSize(new Dimension(200,100));
         
         add(scroll, BorderLayout.CENTER);
         
-        pack();
+        setSize(400, 200);
     }
     
     public void printMessage(Message message) {
@@ -99,8 +99,8 @@ public class StreamChat extends JDialog {
         }
 
         @Override
-        public void userMenuItemClicked(ActionEvent e, User user, String msgId) {
-            contextMenuListener.userMenuItemClicked(e, user, msgId);
+        public void userMenuItemClicked(ActionEvent e, User user, String msgId, String autoModMsgId) {
+            contextMenuListener.userMenuItemClicked(e, user, msgId, autoModMsgId);
         }
 
         @Override
@@ -126,6 +126,11 @@ public class StreamChat extends JDialog {
         @Override
         public void usericonMenuItemClicked(ActionEvent e, Usericon usericon) {
             contextMenuListener.usericonMenuItemClicked(e, usericon);
+        }
+
+        @Override
+        public void roomsMenuItemClicked(ActionEvent e, Collection<Room> rooms) {
+            contextMenuListener.roomsMenuItemClicked(e, rooms);
         }
     }
     

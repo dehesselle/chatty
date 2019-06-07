@@ -1,11 +1,16 @@
 
 package chatty;
 
+import chatty.util.commands.CustomCommand;
+import chatty.util.commands.Parameters;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,38 +20,34 @@ import java.util.logging.Logger;
  */
 public class TestTimer implements Runnable {
 
-    TwitchClient client;
-    int max;
-    public TestTimer(TwitchClient client, int max) {
-        this.client = client;
+    private final int max;
+    private final Consumer<Integer> action;
+    private final int delay;
+    
+    public TestTimer(Consumer<Integer> action, int max, int delay) {
         this.max = max;
+        this.action = action;
+        this.delay = delay;
     }
     
     @Override
     public void run() {
-
-        SecureRandom random = new SecureRandom();
-        long start = System.currentTimeMillis();
-        User user = new User("tduvatest", "");
         for (int i=0;i<max;i++) {
+            action.accept(i);
             
-//            user.setUsercolorManager(client.usercolorManager);
-            String line = "Line: "+i+" Kappa FrankerZ abc mah a b c d ef gh ij klm nop qrstu vw";
-            client.g.printMessage("test", user, line, false, "", 0);
-            //client.userJoined("#test","user"+ new BigInteger(20,random).toString());
-//            for (int y=0;y<10;y++) {
-//                client.g.printMessage("test"+y, user, line, false);
-//            }
-            //client.g.printDebug(line);
-            //client.api.requestFollowers("whatever");
             try {
-                Thread.sleep(50);
+                Thread.sleep(delay);
             } catch (InterruptedException ex) {
                 Logger.getLogger(TestTimer.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-        System.out.println("Total: "+((System.currentTimeMillis() - start) / 1000));
-        
+    }
+    
+    public static void testTimer(TwitchClient client, Room room, String command, int repeats, int delay) {
+        CustomCommand cc = CustomCommand.parse(command);
+        new Thread(new TestTimer(i -> {
+            client.anonCustomCommand(room, cc, Parameters.create(String.valueOf(i)));
+        }, repeats, delay)).start();
     }
     
 }

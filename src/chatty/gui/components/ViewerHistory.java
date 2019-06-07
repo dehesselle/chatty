@@ -3,11 +3,13 @@ package chatty.gui.components;
 
 import chatty.Chatty;
 import chatty.Helper;
+import chatty.gui.LaF;
 import chatty.gui.components.menus.ContextMenu;
 import chatty.gui.components.menus.ContextMenuAdapter;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.HistoryContextMenu;
-import chatty.util.api.CommunitiesManager.Community;
+import chatty.lang.Language;
+import chatty.util.api.StreamTagManager.StreamTag;
 import chatty.util.api.StreamInfo;
 import chatty.util.api.StreamInfo.StreamType;
 import chatty.util.api.StreamInfoHistoryItem;
@@ -42,6 +44,8 @@ public class ViewerHistory extends JComponent {
     
     private static final Color SECOND_COLOR = new Color(0,0,220);
     
+    private static final Color SECOND_COLOR_DARK = new Color(160,160,255);
+    
     private static final Color OFFLINE_COLOR = new Color(255,140,140);
     
     
@@ -61,7 +65,7 @@ public class ViewerHistory extends JComponent {
     /**
      * The font to use for text.
      */
-    private Font font = new Font("Consolas", Font.PLAIN, 12);
+    private Font font = new Font(Font.DIALOG, Font.PLAIN, 12);
     /**
      * The margin all around the graph area.
      */
@@ -122,7 +126,7 @@ public class ViewerHistory extends JComponent {
      */
     private LinkedHashMap<Long, Color> colors = new LinkedHashMap<>();
     
-    private final ContextMenu contextMenu = new HistoryContextMenu();
+    private final HistoryContextMenu contextMenu = new HistoryContextMenu();
     
     /*
      * Values that affect what is rendered.
@@ -131,7 +135,7 @@ public class ViewerHistory extends JComponent {
     private boolean showInfo = true;
     private long hoverEntry = -1;
     private boolean fixedHoverEntry = false;
-    private boolean showFullRange = false;
+    private boolean verticalZoom = false;
     
     private ViewerHistoryListener listener;
 
@@ -144,8 +148,8 @@ public class ViewerHistory extends JComponent {
         public long startTime;
         public long picnicStartTime;
         
-        public void add(String title, String game, int viewers, StreamType streamType, Community... communities) {
-            java.util.List<Community> c;
+        public void add(String title, String game, int viewers, StreamType streamType, StreamTag... communities) {
+            java.util.List<StreamTag> c;
             if (communities == null) {
                 c = null;
             } else {
@@ -167,9 +171,9 @@ public class ViewerHistory extends JComponent {
             
             
             history = new LinkedHashMap<>();
-            Community c1 = new Community("abc", "VarietyStreaming");
-            Community c2 = new Community("abc", "Speedrunning");
-            Community c3 = new Community("abc", "Pro-Audio");
+            StreamTag c1 = new StreamTag("abc", "VarietyStreaming");
+            StreamTag c2 = new StreamTag("abc", "Speedrunning");
+            StreamTag c3 = new StreamTag("abc", "Pro-Audio");
             
             test.startTime = -5*60*1000;
             test.picnicStartTime = -10*60*1000;
@@ -189,7 +193,7 @@ public class ViewerHistory extends JComponent {
             test.add("Diebesgilde", "The Elder Scrolls V: Skyrim", 14, StreamType.WATCH_PARTY, c1);
             test.add("Diebesgilde", "The Elder Scrolls V: Skyrim", 12, StreamType.WATCH_PARTY, c1);
             test.add("Diebesgilde", "The Elder Scrolls V: Skyrim", 18, StreamType.WATCH_PARTY, c1);
-            test.add("any% attempts", "Tomb Raider III: Adventures of Lara Croft", 20, StreamType.LIVE, (Community) null);
+            test.add("any% attempts", "Tomb Raider III: Adventures of Lara Croft", 20, StreamType.LIVE, (StreamTag) null);
             test.add("any% attempts", "Tomb Raider III: Adventures of Lara Croft", 34, StreamType.LIVE, c2);
             test.add("any% attempts", "Tomb Raider III: Adventures of Lara Croft", 40, StreamType.LIVE, c2);
             test.add("any% attempts", "Tomb Raider III: Adventures of Lara Croft", 45, StreamType.LIVE, c2);
@@ -231,7 +235,6 @@ public class ViewerHistory extends JComponent {
         MyMouseListener mouseListener = new MyMouseListener();
         addMouseListener(mouseListener);
         addMouseMotionListener(mouseListener);
-        contextMenu.addContextMenuListener(new MyContextMenuListener());
     }
     
     public void setListener(ViewerHistoryListener listener) {
@@ -299,12 +302,14 @@ public class ViewerHistory extends JComponent {
             long ago = System.currentTimeMillis() - endTime;
             String text;
             if (ago > CONSIDERED_AS_NOW) {
-                text = "latest: " + Helper.formatViewerCount(viewers);
+                text = Language.getString("channelInfo.viewers.latest",
+                        Helper.formatViewerCount(viewers));
             } else {
-                text = "now: " + Helper.formatViewerCount(viewers);
+                text = Language.getString("channelInfo.viewers.now",
+                        Helper.formatViewerCount(viewers));
             }
             if (viewers == -1) {
-                text = "Stream offline";
+                text = Language.getString("channelInfo.streamOffline");
             }
             nowTextX = getWidth() - fontMetrics.stringWidth(text);
             g.drawString(text, nowTextX, topTextY);
@@ -312,7 +317,7 @@ public class ViewerHistory extends JComponent {
         
         // Default text when no data is present
         if (history == null || history.size() < 2) {
-            String text = "No viewer history yet";
+            String text = Language.getString("channelInfo.viewers.noHistory");
             int textWidth = fontMetrics.stringWidth(text);
             int y = getHeight() / 2 + fontMetrics.getDescent();
             int x = (getWidth() - textWidth) / 2;
@@ -343,16 +348,17 @@ public class ViewerHistory extends JComponent {
         
         
         // Show info on hovered entry
-        String maxValueText = "max: "+Helper.formatViewerCount(maxValue);
+        String maxValueText = Language.getString("channelInfo.viewers.max",
+                Helper.formatViewerCount(maxValue));
         int maxValueEnd = fontMetrics.stringWidth(maxValueText);
         boolean displayMaxValue = true;
         
         if (hoverEntry != -1) {
             Integer viewers = history.get(hoverEntry).getViewers();
             Date d = new Date(hoverEntry);
-            String text = "Viewers: "+Helper.formatViewerCount(viewers)+" ("+sdf.format(d)+")";
+            String text = Language.getString("channelInfo.viewers.hover", Helper.formatViewerCount(viewers))+" ("+sdf.format(d)+")";
             if (viewers == -1) {
-                text = "Stream offline ("+sdf.format(d)+")";
+                text = Language.getString("channelInfo.streamOffline")+" ("+sdf.format(d)+")";
             }
             int x = getWidth() - fontMetrics.stringWidth(text);
             if (maxValueEnd > x) {
@@ -361,7 +367,8 @@ public class ViewerHistory extends JComponent {
             g.drawString(text, x, topTextY);
         }
         
-        String minText = "min: "+Helper.formatViewerCount(minValue);
+        String minText = Language.getString("channelInfo.viewers.min",
+                Helper.formatViewerCount(minValue));
         int minTextWidth = fontMetrics.stringWidth(minText);
         
         // Draw Times
@@ -372,7 +379,8 @@ public class ViewerHistory extends JComponent {
             g.drawString(timeText, textX, getHeight() - 1);
 
             if (minValue >= 1000 && timeTextWidth + minTextWidth > width) {
-                minText = "min: " + minValue / 1000 + "k";
+                minText = Language.getString("channelInfo.viewers.min",
+                        minValue / 1000)+"k";
             }
         }
         
@@ -395,7 +403,7 @@ public class ViewerHistory extends JComponent {
 
         // Calculation factors for calculating the points location
         int range = maxValue - minValue;
-        if (showFullRange) {
+        if (!verticalZoom) {
             range = maxValue;
         }
         if (range == 0) {
@@ -429,7 +437,7 @@ public class ViewerHistory extends JComponent {
             // Calculate point location
             int x = (int)(hMargin + offsetTime * pixelPerTime);
             int y;
-            if (showFullRange) {
+            if (!verticalZoom) {
                 y = (int)(-vMargin + getHeight() - (viewers) * pixelPerViewer);
             }
             else {
@@ -438,8 +446,8 @@ public class ViewerHistory extends JComponent {
             
             // Draw connecting line
             if (prevX != -1) {
-                if (entry.getValue().getStreamType() == StreamType.WATCH_PARTY &&
-                        prevItem != null && prevItem.getStreamType() == StreamType.WATCH_PARTY) {
+                if (entry.getValue().getStreamType() != StreamType.LIVE &&
+                        prevItem != null && prevItem.getStreamType() != StreamType.LIVE) {
                     g.setColor(Color.LIGHT_GRAY);
                 } else {
                     g.setColor(foreground_color);
@@ -626,7 +634,7 @@ public class ViewerHistory extends JComponent {
                     && !prevStatus.equals(newStatus)) {
                 // Change color
                 if (currentColor == FIRST_COLOR) {
-                    currentColor = SECOND_COLOR;
+                    currentColor = !LaF.isDarkTheme() ? SECOND_COLOR : SECOND_COLOR_DARK;
                 } else {
                     currentColor = FIRST_COLOR;
                 }
@@ -722,23 +730,30 @@ public class ViewerHistory extends JComponent {
         repaint();
     }
     
-    public void setFontSize(int size) {
-        font = new Font("Consolas", Font.PLAIN, size);
+    public void setBaseFont(Font newFont) {
+        font = newFont.deriveFont(Font.PLAIN);
         repaint();
     }
     
     /**
-     * Sets the time range to this numbre of milliseconds.
+     * Sets the time range to this number of minutes.
      * 
-     * @param range 
+     * @param minutes 
      */
-    public void setRange(long range) {
-        this.currentRange = range;
+    public void setRange(int minutes) {
+        contextMenu.setRange(minutes);
+        this.currentRange = minutes*60*1000;
         fixedStartTime = -1;
         fixedEndTime = -1;
         if (history != null) {
             updateVars();
         }
+        repaint();
+    }
+    
+    public void setVerticalZoom(boolean zoom) {
+        contextMenu.setZoom(zoom);
+        verticalZoom = zoom;
         repaint();
     }
 
@@ -775,18 +790,6 @@ public class ViewerHistory extends JComponent {
         if (e.isPopupTrigger()) {
             contextMenu.show(this, e.getX(), e.getY());
         }
-    }
-    
-    private class MyContextMenuListener extends ContextMenuAdapter {
-
-        @Override
-        public void menuItemClicked(ActionEvent e) {
-            if (e.getActionCommand().equals("toggleShowFullVerticalRange")) {
-                showFullRange = !showFullRange;
-                repaint();
-            }
-        }
-        
     }
     
     private class MyMouseListener extends MouseAdapter {

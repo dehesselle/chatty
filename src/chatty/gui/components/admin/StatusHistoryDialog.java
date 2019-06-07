@@ -3,6 +3,7 @@ package chatty.gui.components.admin;
 
 import chatty.gui.GuiUtil;
 import chatty.gui.components.menus.ContextMenu;
+import chatty.lang.Language;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -33,21 +34,20 @@ import javax.swing.event.ListSelectionListener;
 public class StatusHistoryDialog extends JDialog {
     
     private enum CloseAction {
-        CANCEL, USE_TITLE, USE_ALL
+        CANCEL, USE_ALL, USE_TITLE, USE_GAME, USE_TAGS
     }
     
-    private static final String INFO_TEXT = "<html><body style='width: 170px;'>"
-            + "Select and press <kbd>F</kbd> to toggle favorite, <kbd>Del</kbd> "
-            + "to delete, or right-click to open context menu.";
+    private static final String INFO_TEXT = "<html><body style='width: 240px;text-align:center;'>"
+            + Language.getString("admin.presets.info");
     
     private final StatusHistory history;
     
-    private final JButton useTitleButton = new JButton("Use title only");
-    private final JButton useAllButton = new JButton("Use status (title/game/communities)");
-    private final JButton cancelButton = new JButton("Close");
+    private final JButton useTitleButton = new JButton(Language.getString("admin.presets.button.useTitleOnly"));
+    private final JButton useAllButton = new JButton(Language.getString("admin.presets.button.useStatus"));
+    private final JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
     private final StatusHistoryTable table;
-    private final JCheckBox filterCurrentGame = new JCheckBox("Current game");
-    private final JCheckBox filterFavorites = new JCheckBox("Favorites");
+    private final JCheckBox filterCurrentGame = new JCheckBox(Language.getString("admin.presets.setting.currentGame"));
+    private final JCheckBox filterFavorites = new JCheckBox(Language.getString("admin.presets.setting.favorites"));
     
     private String currentGame;
     private CloseAction closeAction;
@@ -99,7 +99,7 @@ public class StatusHistoryDialog extends JDialog {
         add(new JScrollPane(table), gbc);
         
         JPanel filterSelectionButtons = new JPanel();
-        filterSelectionButtons.setBorder(BorderFactory.createTitledBorder("Show only.."));
+        filterSelectionButtons.setBorder(BorderFactory.createTitledBorder(Language.getString("admin.presets.showOnly")));
 
         ActionListener filterListener = new FilterAction();
         filterCurrentGame.addActionListener(filterListener);
@@ -185,13 +185,13 @@ public class StatusHistoryDialog extends JDialog {
      * 
      * @param currentGame The game to be set as current game
      * @return The selected {@code StatusHistoryEntry} (containing {@code null}
-     * for the game if only the title is to be used) or {@code null} if none was
-     * selected or the dialog was cancelled.
+     * for values that should not be used) or {@code null} if none was selected
+     * or the dialog was cancelled.
      */
     public StatusHistoryEntry showDialog(String currentGame) {
         this.currentGame = currentGame;
         table.requestFocusInWindow();
-        setTitle("Status Presets (Current game: "+currentGame+")");
+        setTitle(Language.getString("admin.presets.title", currentGame));
         updateFilter();
         setLocationRelativeTo(parentComponent);
         table.setData(history.getEntries());
@@ -202,6 +202,10 @@ public class StatusHistoryDialog extends JDialog {
         if (selected != null) {
             if (closeAction == CloseAction.USE_TITLE) {
                 return new StatusHistoryEntry(selected.title, null, null, -1, -1, false);
+            } else if (closeAction == CloseAction.USE_GAME) {
+                return new StatusHistoryEntry(null, selected.game, null, -1, -1, false);
+            } else if (closeAction == CloseAction.USE_TAGS) {
+                return new StatusHistoryEntry(null, null, selected.tags, -1, -1, false);
             } else if (closeAction == CloseAction.USE_ALL) {
                 return selected;
             }
@@ -293,6 +297,16 @@ public class StatusHistoryDialog extends JDialog {
         setVisible(false);
     }
     
+    private void useGame() {
+        closeAction = CloseAction.USE_GAME;
+        setVisible(false);
+    }
+    
+    private void useTags() {
+        closeAction = CloseAction.USE_TAGS;
+        setVisible(false);
+    }
+    
     /**
      * Action listener for normal buttons.
      */
@@ -328,11 +342,14 @@ public class StatusHistoryDialog extends JDialog {
     private class TableContextMenu extends ContextMenu {
         
         TableContextMenu() {
-            addItem("toggleFavorite", "Toggle favorite");
-            addItem("remove", "Remove");
+            addItem("toggleFavorite", Language.getString("admin.presets.cm.toggleFavorite"));
+            addItem("remove", Language.getString("admin.presets.cm.remove"));
             addSeparator();
-            addItem("useAll", "Use status");
-            addItem("useTitle", "Use title only");
+            addItem("useAll", Language.getString("admin.presets.cm.useStatus"));
+            addSeparator();
+            addItem("useTitle", Language.getString("admin.presets.cm.useTitleOnly"));
+            addItem("useGame", Language.getString("admin.presets.cm.useGameOnly"));
+            addItem("useTags", Language.getString("admin.presets.cm.useTagsOnly"));
         }
 
         @Override
@@ -345,6 +362,10 @@ public class StatusHistoryDialog extends JDialog {
                 useStatus();
             } else if (e.getActionCommand().equals("useTitle")) {
                 useTitle();
+            } else if (e.getActionCommand().equals("useGame")) {
+                useGame();
+            } else if (e.getActionCommand().equals("useTags")) {
+                useTags();
             }
         }
         

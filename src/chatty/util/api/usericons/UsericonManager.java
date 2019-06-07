@@ -36,13 +36,14 @@ public class UsericonManager {
      * by the user and are also loaded/saved from/to the settings.
      */
     private final List<Usericon> customIcons = new ArrayList<>();
+    
+    private final List<Usericon> thirdParty = new ArrayList<>();
 
     private final Settings settings;
     
     public UsericonManager(Settings settings) {
-        init();
         this.settings = settings;
-        loadFromSettings();
+        init();
     }
     
     public synchronized void addDefaultIcons(List<Usericon> icons) {
@@ -59,6 +60,12 @@ public class UsericonManager {
 //        debug();
     }
     
+    public synchronized void setThirdPartyIcons(List<Usericon> icons) {
+        LOGGER.info(String.format("Added %d third-party badges", icons.size()));
+        this.thirdParty.clear();
+        this.thirdParty.addAll(icons);
+    }
+    
     /**
      * Run in EDT to avoid very obscure bug where all window contents would be
      * white and/or unresponsive, when using addColor() when creating fallback
@@ -73,6 +80,7 @@ public class UsericonManager {
             @Override
             public void run() {
                 addFallbackIcons();
+                loadFromSettings();
             }
         });
     }
@@ -106,11 +114,11 @@ public class UsericonManager {
                 MainGui.class.getResource(fileName)));
     }
     
-    public synchronized List<Usericon> getData() {
+    public synchronized List<Usericon> getCustomData() {
         return new ArrayList<>(customIcons);
     }
     
-    public synchronized void setData(List<Usericon> data) {
+    public synchronized void setCustomData(List<Usericon> data) {
         customIcons.clear();
         customIcons.addAll(data);
         saveToSettings();
@@ -127,16 +135,22 @@ public class UsericonManager {
         return result;
     }
     
-    /**
-     * Get Twitch Badges.
-     * 
-     * @param badgesDef
-     * @param user
-     * @return 
-     */
-    public synchronized List<Usericon> getTwitchBadges(Map<String, String> badgesDef, User user) {
+    public synchronized List<Usericon> getBadges(Map<String, String> badgesDef, User user, boolean botBadgeEnabled) {
+        List<Usericon> icons = getTwitchBadges(badgesDef, user);
+        if (user.isBot() && botBadgeEnabled) {
+            Usericon icon = getIcon(Usericon.Type.BOT, null, null, user);
+            if (icon != null) {
+                icons.add(icon);
+            }
+        }
+        addThirdPartyIcons(icons, user);
+        addAddonIcons(icons, user);
+        return icons;
+    }
+
+    private List<Usericon> getTwitchBadges(Map<String, String> badgesDef, User user) {
         if (badgesDef == null || badgesDef.isEmpty()) {
-            return null;
+            return new ArrayList<>();
         }
         List<Usericon> result = new ArrayList<>();
         for (String id : badgesDef.keySet()) {
@@ -172,7 +186,9 @@ public class UsericonManager {
             for (Usericon icon : customIcons) {
                 //System.out.println("A:"+" "+type+" "+icon.type+" "+iconsMatchesAdvancedType(icon, type, id, version)+" "+icon);
                 if (iconsMatchesAdvancedType(icon, type, id, version) && iconMatchesUser(icon, user)) {
-                    if (icon.image != null || icon.removeBadge) {
+                    if (icon.removeBadge) {
+                        return null;
+                    } else if (icon.image != null) {
                         return icon;
                     } else if (icon.fileName.equalsIgnoreCase("$ffz")) {
                         // If fileName is a reference, then check if an icon
@@ -213,14 +229,28 @@ public class UsericonManager {
      */
     private Usericon getDefaultIcon(Usericon.Type type, String id, String version, User user, int source) {
         for (Usericon icon : defaultIcons) {
-            if (iconsMatchesAdvancedType(icon, type, id, version) && iconMatchesUser(icon, user)
-                    && (source == Usericon.SOURCE_ANY || icon.source == source)) {
-                // Skip FFZ if disabled
-                if (icon.source == Usericon.SOURCE_FFZ && !settings.getBoolean("ffzModIcon")) {
-                    continue;
-                }
-                return icon;
+            Usericon checked = checkIcon(icon, type, id, version, user, source);
+            if (checked != null) {
+                return checked;
             }
+        }
+        for (Usericon icon : thirdParty) {
+            Usericon checked = checkIcon(icon, type, id, version, user, source);
+            if (checked != null) {
+                return checked;
+            }
+        }
+        return null;
+    }
+    
+    private Usericon checkIcon(Usericon icon, Usericon.Type type, String id, String version, User user, int source) {
+        if (iconsMatchesAdvancedType(icon, type, id, version) && iconMatchesUser(icon, user)
+                && (source == Usericon.SOURCE_ANY || icon.source == source)) {
+            // Skip FFZ if disabled
+            if (icon.source == Usericon.SOURCE_FFZ && !settings.getBoolean("ffzModIcon")) {
+                return null;
+            }
+            return icon;
         }
         return null;
     }
@@ -229,28 +259,64 @@ public class UsericonManager {
         return settings.getBoolean("customUsericonsEnabled");
     }
     
-    /**
-     * Gets all icons with the given type that match the given {@code User}.
-     * 
-     * @param user The user the returned icons have to match
-     * @param first
-     * @return A {@code List} of {@code Usericon} objects, can be empty if no
-     * icon matched or custom icons are disabled
-     */
-    public synchronized List<Usericon> getAddonIcons(User user, boolean first) {
-        List<Usericon> result = new ArrayList<>();
+    private void addAddonIcons(List<Usericon> icons, User user) {
         if (customUsericonsEnabled()) {
             for (Usericon icon : customIcons) {
                 if (icon.type == Type.ADDON && iconMatchesUser(icon, user)
-                        && first == icon.first && icon.image != null) {
-                    result.add(icon);
+                        && icon.image != null) {
+                    insert(icons, icon);
                     if (icon.stop) {
                         break;
                     }
                 }
             }
         }
-        return result;
+    }
+    
+    private void addThirdPartyIcons(List<Usericon> icons, User user) {
+        for (Usericon icon : thirdParty) {
+            /**
+             * Need to check eligibility here first, since a Custom Icon
+             * matching this icon's type wouldn't have the same restrictions
+             * (normal Twitch badges are requested via getIcon() based on which
+             * types the user actually has access to, so that's already a
+             * different starting position).
+             */
+            if (iconMatchesUser(icon, user)) {
+                // This may or may not return the same icon, depending on
+                // whether Custom Usericons replace it
+                Usericon transformed = getIcon(Type.OTHER, icon.badgeType.id, icon.badgeType.version, user);
+                if (transformed != null) {
+                    insert(icons, transformed);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Insert icon according to it's position value, if present, otherwise
+     * simply at the end.
+     * 
+     * @param icons
+     * @param icon 
+     */
+    private void insert(List<Usericon> icons, Usericon icon) {
+        if (icon.position == null) {
+            icons.add(icon);
+        } else {
+            int insertIndex = -1;
+            for (int i=0;i<icons.size();i++) {
+                if (icon.position.insertHere(icons.get(i))) {
+                    insertIndex = i;
+                    break;
+                }
+            }
+            if (insertIndex != -1) {
+                icons.add(insertIndex, icon);
+            } else {
+                icons.add(icon);
+            }
+        }
     }
     
     /**
@@ -281,7 +347,7 @@ public class UsericonManager {
         
         // If channelRestriction doesn't match, don't have to continue
         if (!icon.channel.isEmpty()) {
-            if (icon.channel.equalsIgnoreCase(user.getChannel())) {
+            if (icon.channel.equalsIgnoreCase(user.getOwnerChannel())) {
                 if (icon.channelInverse) {
                     return false;
                 }
@@ -289,6 +355,12 @@ public class UsericonManager {
                 if (!icon.channelInverse) {
                     return false;
                 }
+            }
+        }
+        // Only check if restriction to usernames is set
+        if (icon.usernames != null) {
+            if (!icon.usernames.contains(user.getName())) {
+                return false;
             }
         }
         // Now check for the other restriction
@@ -371,6 +443,7 @@ public class UsericonManager {
         list.add(icon.fileName);
         list.add(icon.channelRestriction);
         list.add(icon.getIdAndVersion());
+        list.add(icon.positionValue);
         return list;
     }
     
@@ -384,7 +457,11 @@ public class UsericonManager {
             if (list.size() > 4) {
                 idVersion = (String)list.get(4);
             }
-            return UsericonFactory.createCustomIcon(type, idVersion, restriction, fileName, channel);
+            String position = null;
+            if (list.size() > 5) {
+                position = (String)list.get(5);
+            }
+            return UsericonFactory.createCustomIcon(type, idVersion, restriction, fileName, channel, position);
         } catch (ClassCastException | IndexOutOfBoundsException ex) {
             return null;
         }

@@ -1,13 +1,14 @@
 import java.util.regex.Matcher
 
 plugins {
-    id "com.github.johnrengelman.shadow" version "1.2.3"
+    id "com.github.johnrengelman.shadow" version "2.0.4"
 }
 
 apply plugin: 'java'
 
 // This seems to fix non-ASCII characters in the code not appearing correctly after compiling
 compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
 
 sourceCompatibility = 1.8
 
@@ -44,7 +45,7 @@ def extractVersion = { ->
     File chattyClassFile = new File((File) sourceSets.main.java.srcDirs.first(), 'chatty/Chatty.java');
 
     // Use this regex to extract the version from the file
-    Matcher matcher = chattyClassFile.text =~ /(?m)^\s*public static final String VERSION = "(.*)";\s*$/
+    Matcher matcher = chattyClassFile.text =~ /(?m)^\s*public static final String VERSION = "(.*?)";/
 
     // From the first matching line, return the first capture (the version)
     return matcher[0][1]
@@ -71,6 +72,7 @@ jar {
     manifest {
         attributes(
                 'Main-Class': mainClass,
+		//'SplashScreen-Image': 'chatty/splash/splash.png'
         )
     }
 }
@@ -184,9 +186,93 @@ task windowsZip(type: Zip, group: 'build') {
     from 'assets-bundle/readme-bundle.txt'
 
     destinationDir = releasesDir
-    archiveName = "${archivesBaseName}_${version}_windows_standalone.zip"
+    archiveName = "${archivesBaseName}_${version}_win_standalone.zip"
 }
 
 task releaseWindows(group: 'build') {
     dependsOn release, windowsZip
+}
+
+//----------
+// Innosetup
+//----------
+
+def innosetupDir = new File(buildDir, 'innosetup')
+def innosetupDir2 = new File(buildDir, 'innosetup2')
+
+def prepareSetupFile(file, to) {
+    copy {
+            from("setup/"+file) {
+                rename(file, "setup.iss")
+                expand([
+                    applicationVersion: version,
+                    code: new File('setup/_functions.iss-part').getText('UTF-8'),
+                    setup: new File('setup/_common.iss-part').getText('UTF-8')
+                ])
+            }
+            into(to)
+        }
+}
+
+task innosetup(type: Exec, group: 'build') {
+    dependsOn shadowJar
+
+    doFirst {
+        if (!project.hasProperty('innosetupPath')) {
+            throw new GradleException('Path to iscc.exe must be defined with -PinnosetupPath=<path>')
+        }
+	delete innosetupDir
+        innosetupDir.mkdir();
+
+        prepareSetupFile("setup.iss-template", innosetupDir)
+        copy {
+            from(tasks.shadowJar.archivePath)
+            from ('assets') {
+                exclude 'lib'
+    	    }
+            from('assets/lib/dlls/JIntellitype32.dll')
+            from('assets/lib/dlls/JIntellitype64.dll')
+            from('assets-bundle/Chatty.ico')
+            into("${innosetupDir}/pack")
+        }
+        def command = [innosetupPath, "/Q", "${innosetupDir}\\setup.iss"]
+        commandLine command
+    }
+}
+
+task innosetupStandalone(type: Exec, group: 'build') {
+    dependsOn javapackager
+
+    doFirst {
+        if (!project.hasProperty('innosetupPath')) {
+            throw new GradleException('Path to iscc.exe must be defined with -PinnosetupPath=<path>')
+        }
+	delete innosetupDir2
+        innosetupDir2.mkdir();
+
+        prepareSetupFile("setup_standalone.iss-template", innosetupDir2)
+        copy {
+            from new File(javapackagerBuildDir, 'bundles/Chatty')
+            from ('assets') {
+                exclude 'lib'
+	        into 'app'
+            }
+            from ('assets/lib/dlls/JIntellitype32.dll') {
+                into 'app'
+            }
+            rename { filename -> filename.replaceAll('JIntellitype\\d{2}', 'JIntellitype') };
+            from ('assets-bundle/fallback-fonts') {
+                into 'runtime/lib/fonts/fallback'
+            }
+            from 'assets-bundle/readme-bundle.txt'
+            from('assets-bundle/Chatty.ico')
+            into("${innosetupDir2}/pack")
+        }
+        def command = [innosetupPath, "/Q", "${innosetupDir2}\\setup.iss"]
+        commandLine command
+    }
+}
+
+task releaseWinSetups(group: 'build') {
+    dependsOn releaseWindows, innosetup, innosetupStandalone, build
 }

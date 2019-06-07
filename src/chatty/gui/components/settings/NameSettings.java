@@ -3,8 +3,10 @@ package chatty.gui.components.settings;
 
 import chatty.SettingsManager;
 import java.awt.GridBagConstraints;
+import java.awt.Insets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
@@ -55,8 +57,37 @@ public class NameSettings extends SettingsPanel {
                 "Requires a restart of Chatty to have any effect."),
                 d.makeGbc(0, 3, 3, 1, GridBagConstraints.WEST));
 
+        JPanel other = addTitledPanel("Other", 1);
         
-        JPanel custom = addTitledPanel("Custom Names", 1, true);
+        SimpleBooleanSetting mentions = d.makeSimpleBooleanSetting("mentions");
+        // Smaller border to align with setting below (not completely empty to
+        // accomodate focus rectangle)
+        mentions.setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));
+        SimpleBooleanSetting mentionsBold = d.makeSimpleBooleanSetting("mentionsBold");
+        SimpleBooleanSetting mentionsUnderline = d.makeSimpleBooleanSetting("mentionsUnderline");
+        SimpleBooleanSetting mentionsColored = d.makeSimpleBooleanSetting("mentionsColored");
+        
+        other.add(mentions,
+                d.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST));
+        other.add(mentionsBold,
+                d.makeGbc(1, 0, 1, 1, GridBagConstraints.WEST));
+        other.add(mentionsUnderline,
+                d.makeGbc(2, 0, 1, 1, GridBagConstraints.WEST));
+        other.add(mentionsColored,
+                d.makeGbc(3, 0, 1, 1, GridBagConstraints.WEST));
+        
+        d.addLongSetting("mentions", new CompoundBooleanSetting(mentions, mentionsBold, mentionsUnderline, mentionsColored));
+        SettingsUtil.addSubsettings(mentions, mentionsBold, mentionsUnderline, mentionsColored);
+
+        gbc = d.makeGbc(0, 1, 1, 1, GridBagConstraints.EAST);
+        // +1 on the right to align properly
+        gbc.insets = new Insets(5, 5, 5, 6);
+        other.add(d.createLabel("markHoveredUser"),
+                gbc);
+        other.add(d.addComboLongSetting("markHoveredUser", new int[]{0,1,2,3,4}),
+                d.makeGbc(1, 1, 3, 1, GridBagConstraints.WEST));
+        
+        JPanel custom = addTitledPanel("Custom Names", 2, true);
         customNamesEditor = d.addStringMapSetting("customNames", 270, 200);
         customNamesEditor.setKeyFilter("[^\\w]");
         

@@ -2,12 +2,17 @@
 package chatty.util;
 
 import java.text.SimpleDateFormat;
+import java.time.Month;
+import java.time.MonthDay;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -20,6 +25,7 @@ public class DateTime {
     private static final SimpleDateFormat FULL_DATETIME = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss ZZ");
     private static final SimpleDateFormat SDF = new SimpleDateFormat("HH:mm:ss");
     private static final SimpleDateFormat SDF2 = new SimpleDateFormat("HH:mm");
+    private static final SimpleDateFormat SDF3 = new SimpleDateFormat("HH:mm:ss/SSS");
     public static final long MINUTE = 60;
     public static final long HOUR = MINUTE * 60;
     public static final long DAY = HOUR * 24;
@@ -43,6 +49,14 @@ public class DateTime {
     
     public static String currentTime() {
         return currentTime(SDF);
+    }
+    
+    public static String currentTimeExact() {
+        return currentTime(SDF3);
+    }
+    
+    public static String formatExact(long time) {
+        return format(time, SDF3);
     }
     
     public static String currentTime(String format) {
@@ -72,6 +86,20 @@ public class DateTime {
             return ago(time, 0, 2, DateTime.H, options);
         }
         return ago(time, 0, 1, 0, options);
+    }
+    
+    public static String formatAccountAgeCompact(long time) {
+        if (System.currentTimeMillis() - time >= YEAR*1000) {
+            return ago(time, 0, 1, 0, Formatting.LAST_ONE_EXACT, Formatting.VERBOSE);
+        }
+        return ago(time, 0, 1, 0, Formatting.VERBOSE);
+    }
+    
+    public static String formatAccountAgeVerbose(long time) {
+        if (System.currentTimeMillis() - time > DAY*1000) {
+            return ago(time, 0, 2, DateTime.H, Formatting.VERBOSE);
+        }
+        return ago(time, 0, 1, 0, Formatting.VERBOSE);
     }
 
     public static String agoText(long time) {
@@ -232,7 +260,7 @@ public class DateTime {
             boolean lastOne = shown >= max && max > 0
                     || left-1 <= lowerLimit && shown > 0;
             String timeName = timeNames[i+timeNames.length-times.length];
-            if (time == 1 && verbose) {
+            if (time == 1 && verbose && !(lastOne && lastOneExact)) {
                 timeName = timeName.substring(0, timeName.length() - 1);
             }
             if (lastOne && lastOneExact) {
@@ -271,16 +299,25 @@ public class DateTime {
         return result;
     }
     
+    private static final MonthDay APRIL_FIRST = MonthDay.of(Month.APRIL, 1);
+    private static final ElapsedTime isAprilFirstET = new ElapsedTime();
+    private static boolean isAprilFirst;
+    
     public static boolean isAprilFirst() {
-        Calendar cal = Calendar.getInstance();
-        return cal.get(Calendar.MONTH) == Calendar.APRIL
-                && cal.get(Calendar.DAY_OF_MONTH) == 1;
+        if (Debugging.isEnabled("f2")) {
+            return true;
+        }
+        if (isAprilFirstET.secondsElapsed(600)) {
+            isAprilFirstET.set();
+            isAprilFirst = MonthDay.now().equals(APRIL_FIRST);
+        }
+        return isAprilFirst;
     }
     
     /**
      * Parses the time returned from the Twitch API.
      * 
-     * http://stackoverflow.com/a/2202300/2375667
+     * https://stackoverflow.com/a/2202300/2375667
      * 
      * Switched to java.time now because DatatypeConverter isn't visible by
      * default in Java 9 anymore.
@@ -321,6 +358,11 @@ public class DateTime {
 //        }
         System.out.println(TimeUnit.HOURS.toMillis(1));
         
-        System.out.println(formatAccountAge(System.currentTimeMillis() - 2500*1000));
+        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - 2500*1000));
+        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - DAY*3*1000));
+        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - YEAR*1*1000));
+        System.out.println(formatAccountAgeCompact(System.currentTimeMillis() - 12500*1000));
+        System.out.println(formatAccountAgeVerbose(System.currentTimeMillis() - 300*DAY*1000));
     }
+    
 }

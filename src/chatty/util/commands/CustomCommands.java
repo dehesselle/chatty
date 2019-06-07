@@ -2,6 +2,8 @@
 package chatty.util.commands;
 
 import chatty.Helper;
+import chatty.Room;
+import chatty.TwitchClient;
 import chatty.util.DateTime;
 import chatty.util.StringUtil;
 import chatty.util.api.StreamInfo;
@@ -31,10 +33,12 @@ public class CustomCommands {
     
     private final Settings settings;
     private final TwitchApi api;
+    private final TwitchClient client;
     
-    public CustomCommands(Settings settings, TwitchApi api) {
+    public CustomCommands(Settings settings, TwitchApi api, TwitchClient client) {
         this.settings = settings;
         this.api = api;
+        this.client = client;
     }
     
     /**
@@ -42,25 +46,29 @@ public class CustomCommands {
      * parameters as defined.
      * 
      * @param commandName The command
-     * @param parameters The parameters, each seperated by a space from eachother
+     * @param parameters The parameters, each separated by a space from eachother
      * @param channel
      * @return A {@code String} as result of the command, or {@code null} if the
      * command doesn't exist or the number of parameters were invalid
      */
-    public synchronized String command(String commandName, Parameters parameters, String channel) {
-        CustomCommand command = getCommand(commands, commandName, channel);
+    public synchronized String command(String commandName, Parameters parameters, Room room) {
+        CustomCommand command = getCommand(commands, commandName, room.getOwnerChannel());
         if (command != null) {
-            return command(command, parameters, channel);
+            return command(command, parameters, room);
         }
         return null;
     }
     
-    public synchronized String command(CustomCommand command, Parameters parameters, String channel) {
+    public synchronized String command(CustomCommand command, Parameters parameters, Room room) {
         // Add some more parameters
-        parameters.put("chan", Helper.toStream(channel));
+        parameters.put("chan", Helper.toStream(room.getChannel()));
+        parameters.put("stream", room.getStream());
+        Set<String> chans = new HashSet<>();
+        client.getOpenChannels().forEach(chan -> { if (Helper.isRegularChannelStrict(chan)) chans.add(Helper.toStream(chan));});
+        parameters.put("chans", StringUtil.join(chans, " "));
         if (!command.getIdentifiersWithPrefix("stream").isEmpty()) {
             System.out.println("request");
-            String stream = Helper.toValidStream(channel);
+            String stream = Helper.toValidStream(room.getStream());
             StreamInfo streamInfo = api.getStreamInfo(stream, null);
             if (streamInfo.isValid()) {
                 parameters.put("streamstatus", streamInfo.getFullStatus());
@@ -76,7 +84,7 @@ public class CustomCommands {
         // Add parameters for custom replacements
         Set<String> customIdentifiers = command.getIdentifiersWithPrefix("_");
         for (String identifier : customIdentifiers) {
-            CustomCommand replacement = getCommand(replacements, identifier, channel);
+            CustomCommand replacement = getCommand(replacements, identifier, room.getOwnerChannel());
             if (replacement != null) {
                 parameters.put(identifier, replacement.replace(parameters));
             }
@@ -91,8 +99,8 @@ public class CustomCommands {
      * @param command The command
      * @return {@code true} if the command exists, {@code false} otherwise
      */
-    public synchronized boolean containsCommand(String command, String chan) {
-        return getCommand(commands, command, chan) != null;
+    public synchronized boolean containsCommand(String command, Room room) {
+        return getCommand(commands, command, room.getOwnerChannel()) != null;
     }
     
     /**

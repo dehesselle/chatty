@@ -2,6 +2,8 @@
 package chatty.gui;
 
 import chatty.Chatty;
+import chatty.Room;
+import chatty.lang.Language;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.components.LinkLabelListener;
 import java.awt.Color;
@@ -12,10 +14,13 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import javax.swing.Action;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
@@ -23,6 +28,8 @@ import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import javax.swing.Timer;
 import javax.swing.event.MenuListener;
@@ -34,13 +41,13 @@ import javax.swing.event.MenuListener;
  */
 public class MainMenu extends JMenuBar {
     
-    private final JMenu main = new JMenu("Main");
-    protected final JMenu view = new JMenu("View");
-    private final JMenu channels = new JMenu("Channels");
-    private final JMenu srl = new JMenu("SRL");
+    private final JMenu main = new JMenu(Language.getString("menubar.menu.main"));
+    protected final JMenu view = new JMenu(Language.getString("menubar.menu.view"));
+    protected final JMenu channels = new JMenu(Language.getString("menubar.menu.channels"));
+    private final JMenu srl = new JMenu(Language.getString("menubar.menu.srl"));
     protected final JMenu srlStreams = new JMenu("Races with..");
-    private final JMenu extra = new JMenu("Extra");
-    private final JMenu help = new JMenu("Help");
+    private final JMenu extra = new JMenu(Language.getString("menubar.menu.extra"));
+    private final JMenu help = new JMenu(Language.getString("menubar.menu.help"));
     
     private final JMenuItem highlights;
     private final JMenuItem ignored;
@@ -50,8 +57,8 @@ public class MainMenu extends JMenuBar {
     private final LinkLabelListener linkLabelListener;
     
     // Set here because it is used more than once
-    private final String IGNORED_LABEL = "Ignored";
-    private final String HIGHLIGHTS_LABEL = "Highlights";
+    private final String IGNORED_LABEL = Language.getString("menubar.dialog.ignoredMessages");
+    private final String HIGHLIGHTS_LABEL = Language.getString("menubar.dialog.highlightedMessages");
     
     private final Notification notification = new Notification();
     
@@ -72,6 +79,7 @@ public class MainMenu extends JMenuBar {
         main.addActionListener(actionListener);
         view.addActionListener(actionListener);
         channels.addActionListener(actionListener);
+        channels.addMenuListener((MenuListener)itemListener);
         srl.addActionListener(actionListener);
         extra.addActionListener(actionListener);
         help.addActionListener(actionListener);
@@ -85,79 +93,92 @@ public class MainMenu extends JMenuBar {
         extra.setMnemonic(KeyEvent.VK_E);
         help.setMnemonic(KeyEvent.VK_H);
         
+        //------
         // Main
-        addItem(main,"connect","Connect");
-        addItem(main,"disconnect","Disconnect").setEnabled(false);
+        //------
+        addItem(main, "connect", Language.getString("menubar.dialog.connect"));
+        addItem(main, "disconnect", Language.getString("menubar.action.disconnect")).setEnabled(false);
         main.addSeparator();
-        setIcon(addItem(main,"settings","Settings", KeyEvent.VK_S), "preferences-system.png");
-        addItem(main,"configureLogin","Login..");
+        setIcon(addItem(main,"settings", Language.getString("menubar.dialog.settings"),
+                KeyEvent.VK_S), "preferences-system.png");
+        addItem(main,"configureLogin", Language.getString("menubar.dialog.login"));
         main.addSeparator();
-        addItem(main,"saveSettings","Save..");
+        addItem(main,"saveSettings", Language.getString("menubar.dialog.save"));
         main.addSeparator();
-        addItem(main,"application.exit","Exit");
+        addItem(main,"application.exit");
         
+        //------
         // View
-        addCheckboxItem(view,"ontop","Always on top");
+        //------
+        addCheckboxItemSetting(view, "ontop");
+
+        JMenu viewOptions = new JMenu(Language.getString("menubar.menu.options"));
         
-        
-        JMenu viewOptions = new JMenu("Options");
-        
-        JMenu titleOptions = new JMenu("Titlebar");
-        addCheckboxItem(titleOptions, "titleShowUptime", "Stream Uptime");
-        addCheckboxItem(titleOptions, "titleLongerUptime", "More Detailed Uptime");
-        addCheckboxItem(titleOptions, "titleShowChannelState", "Channel State");
-        addCheckboxItem(titleOptions, "titleShowViewerCount", "Viewer/Chatter Count");
+        JMenu titleOptions = new JMenu(Language.getString("menubar.menu.titlebar"));
+        addCheckboxItemSetting(titleOptions, "titleShowUptime");
+        addCheckboxItemSetting(titleOptions, "titleLongerUptime");
+        addCheckboxItemSetting(titleOptions, "titleShowChannelState");
+        addCheckboxItemSetting(titleOptions, "titleShowViewerCount");
         titleOptions.addSeparator();
-        addCheckboxItem(titleOptions, "simpleTitle", "Simple Title");
+        addCheckboxItemSetting(titleOptions, "simpleTitle");
         
         viewOptions.add(titleOptions);
         
-        addCheckboxItem(viewOptions,"showJoinsParts","Show joins/parts");
-        addCheckboxItem(viewOptions, "showModMessages", "Show mod/unmod");
-        addCheckboxItem(viewOptions, "attachedWindows", "Attached dialogs");
-        addCheckboxItem(viewOptions, "mainResizable", "Window resizable");
+        addCheckboxItemSetting(viewOptions, "showJoinsParts");
+        addCheckboxItemSetting(viewOptions, "showModMessages");
+        addCheckboxItemSetting(viewOptions, "attachedWindows");
+        addCheckboxItemSetting(viewOptions, "mainResizable");
 
         view.add(viewOptions);
         view.addSeparator();
-        addItem(view,"dialog.channelInfo","Channel Info");
-        addItem(view,"dialog.channelAdmin","Channel Admin");
+        addItem(view, "dialog.channelInfo");
+        addItem(view, "dialog.channelAdmin");
         view.addSeparator();
         highlights = addItem(view,"dialog.highlightedMessages",HIGHLIGHTS_LABEL);
         ignored = addItem(view,"dialog.ignoredMessages",IGNORED_LABEL);
         view.addSeparator();
-        addItem(view,"dialog.search","Find text..");
+        addItem(view, "dialog.search");
         
+        //----------
         // Channels
-        addItem(channels, "favoritesDialog", "Favorites/History", KeyEvent.VK_F);
-        addItem(channels, "dialog.streams", "Live Channels");
-        addItem(channels, "dialog.addressbook", "Addressbook");
+        //----------
+        addItem(channels, "dialog.favorites");
+        addItem(channels, "dialog.streams");
+        addItem(channels, "dialog.addressbook");
         channels.addSeparator();
-        addItem(channels, "dialog.joinChannel", "Join Channel");
+        addItem(channels, "dialog.joinChannel");
+        channels.addSeparator();
+        setRooms(null);
         
+        //-----
         // SRL
+        //-----
         addItem(srl, "srlRaces", "Race List");
         srl.addSeparator();
         srl.add(srlStreams);
         srlStreams.addMenuListener((MenuListener)itemListener);
 
+        //-------
         // Extra
-        addItem(extra,"livestreamer","Livestreamer", KeyEvent.VK_L);
-        addItem(extra,"dialog.toggleEmotes","Emoticons");
+        //-------
+        addItem(extra,"livestreamer",Language.getString("menubar.dialog.livestreamer"), KeyEvent.VK_L);
+        addItem(extra,"dialog.toggleEmotes");
         extra.addSeparator();
-        addItem(extra,"dialog.followers","Followers");
-        addItem(extra,"dialog.subscribers","Subscribers");
+        addItem(extra,"dialog.followers");
+        addItem(extra,"dialog.subscribers");
         extra.addSeparator();
-        addItem(extra,"dialog.moderationLog", "Moderation Log");
-        addItem(extra,"dialog.autoModDialog", "AutoMod");
-        addItem(extra,"dialog.chatRules", "Chat Rules");
+        addItem(extra,"dialog.moderationLog");
+        addItem(extra,"dialog.autoModDialog");
+        addItem(extra,"dialog.chatRules");
         extra.addSeparator();
         JMenu streamChat = new JMenu("Stream Chat");
-        addItem(streamChat,"dialog.streamchat", "Open");
+        addItem(streamChat,"dialog.streamchat");
         addCheckboxItem(streamChat, "streamChatResizable", "Resizable");
         extra.add(streamChat);
         
         JMenu streamHighlights = new JMenu("Stream Highlights");
-        addItem(streamHighlights, "addStreamHighlight", "Add Stream Highlight");
+        streamHighlights.setMnemonic(KeyEvent.VK_H);
+        addItem(streamHighlights, "stream.addhighlight", "Add Stream Highlight");
         addItem(streamHighlights, "openStreamHighlights", "Open Stream Highlights");
         extra.add(streamHighlights);
         
@@ -176,11 +197,15 @@ public class MainMenu extends JMenuBar {
 //        addItem(speedruncom, "srcOpen", "Open Game Website");
 //        extra.add(speedruncom);
 
+        //------
         // Help
-        addItem(help,"website","Website");
+        //------
+        addItem(help,"website",Language.getString("menubar.action.openWebsite"));
         JMenuItem helpItem = addItem(help,"about","About/Help", KeyEvent.VK_H);
         helpItem.setAccelerator(KeyStroke.getKeyStroke("F1"));
         setIcon(helpItem, "help-browser.png");
+        help.addSeparator();
+        addItem(help,"dialog.updates");
         help.addSeparator();
         addItem(help,"news","Announcements");
         
@@ -214,6 +239,10 @@ public class MainMenu extends JMenuBar {
         return item;
     }
     
+    public final JMenuItem addItem(JMenu menu, String key) {
+        return addItem(menu, key, Language.getString("menubar."+key));
+    }
+    
     public final JMenuItem addItem(JMenu menu, String key, String label) {
         return addItem(menu, key, label, -1);
     }
@@ -241,6 +270,18 @@ public class MainMenu extends JMenuBar {
         menu.add(item);
         item.addItemListener(itemListener);
         return item;
+    }
+    
+    /**
+     * Same as addCheckboxItem, but automatically sets the label based on the
+     * setting name.
+     * 
+     * @param menu
+     * @param key
+     * @return 
+     */
+    public final JMenuItem addCheckboxItemSetting(JMenu menu, String key) {
+        return addCheckboxItem(menu, key, Language.getString("menubar.setting."+key));
     }
     
     /**
@@ -339,6 +380,27 @@ public class MainMenu extends JMenuBar {
                 addItem(srlStreams, "srlRace4"+chan, chan);
             }
         }
+    }
+    
+    private final Set<JMenuItem> roomItems = new HashSet<>();
+    
+    public void setRooms(Collection<Room> rooms) {
+        for (JMenuItem item : roomItems) {
+            channels.remove(item);
+        }
+        roomItems.clear();
+        if (rooms == null || rooms.isEmpty()) {
+            JMenuItem item = addItem(channels, "", Language.getString("menubar.rooms.none"));
+            item.setEnabled(false);
+            roomItems.add(item);
+        } else {
+            for (Room room : rooms) {
+                roomItems.add(addItem(channels, "room:" + room.getChannel(), room.getDisplayName()));
+            }
+        }
+        roomItems.add(addItem(channels, "refreshRooms", Language.getString("menubar.rooms.reload")));
+        revalidate();
+        repaint();
     }
     
     public void setUpdateNotification(boolean enabled) {

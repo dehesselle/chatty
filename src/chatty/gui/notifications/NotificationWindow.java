@@ -141,6 +141,7 @@ public class NotificationWindow {
         panel.add(timeLabel, gbc);
         
         // Content Label
+        title = Helper.htmlspecialchars_encode(title);
         message = Helper.htmlspecialchars_encode(message);
         if (message.length() > MAX_MESSAGE_LENGTH) {
             message = message.substring(0, MAX_MESSAGE_LENGTH)+"[..]";
@@ -166,12 +167,12 @@ public class NotificationWindow {
         window.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                close();
                 if (SwingUtilities.isRightMouseButton(e)) {
                     if (listener != null) {
                         listener.notificationAction(NotificationWindow.this);
                     }
                 }
+                close();
             }
             @Override
             public void mouseEntered(MouseEvent e) {

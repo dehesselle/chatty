@@ -1,7 +1,9 @@
 
 package chatty.gui.components;
 
+import chatty.Room;
 import chatty.User;
+import chatty.gui.Highlighter.Match;
 import chatty.gui.MainGui;
 import chatty.gui.components.textpane.UserMessage;
 import chatty.gui.StyleServer;
@@ -16,7 +18,9 @@ import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.text.MessageFormat;
 import java.util.Collection;
+import java.util.List;
 import javax.swing.JDialog;
 import javax.swing.JScrollPane;
 import javax.swing.text.MutableAttributeSet;
@@ -82,9 +86,9 @@ public class HighlightedMessages extends JDialog {
     }
     
     public void addMessage(String channel, User user, String text, boolean action,
-            TagEmotes emotes, int bits, boolean whisper) {
+            TagEmotes emotes, int bits, boolean whisper, List<Match> highlightMatches) {
         messageAdded(channel);
-        UserMessage message = new UserMessage(user, text, emotes, null, bits);
+        UserMessage message = new UserMessage(user, text, emotes, null, bits, highlightMatches, null, null);
         message.whisper = whisper;
         messages.printMessage(message);
     }
@@ -97,7 +101,7 @@ public class HighlightedMessages extends JDialog {
     private void messageAdded(String channel) {
         if (currentChannel == null || !currentChannel.equals(channel)
                 || currentChannelMessageCount > 12) {
-            messages.printLine(label+" in " + channel + ":");
+            messages.printLine(MessageFormat.format(label, channel));
             currentChannel = channel;
             currentChannelMessageCount = 0;
         }
@@ -177,8 +181,8 @@ public class HighlightedMessages extends JDialog {
         }
 
         @Override
-        public void userMenuItemClicked(ActionEvent e, User user, String msgId) {
-            contextMenuListener.userMenuItemClicked(e, user, msgId);
+        public void userMenuItemClicked(ActionEvent e, User user, String msgId, String autoModMsgId) {
+            contextMenuListener.userMenuItemClicked(e, user, msgId, autoModMsgId);
         }
 
         @Override
@@ -204,6 +208,11 @@ public class HighlightedMessages extends JDialog {
         @Override
         public void usericonMenuItemClicked(ActionEvent e, Usericon usericon) {
             contextMenuListener.usericonMenuItemClicked(e, usericon);
+        }
+
+        @Override
+        public void roomsMenuItemClicked(ActionEvent e, Collection<Room> rooms) {
+            contextMenuListener.roomsMenuItemClicked(e, rooms);
         }
     }
     

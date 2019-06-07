@@ -3,11 +3,11 @@ package chatty.util.api;
 
 import chatty.Helper;
 import chatty.util.DateTime;
+import chatty.util.ElapsedTime;
 import chatty.util.StringUtil;
-import chatty.util.api.CommunitiesManager.Community;
+import chatty.util.api.StreamTagManager.StreamTag;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.logging.Logger;
 
 /**
@@ -26,7 +26,7 @@ public class StreamInfo {
     private static final Logger LOGGER = Logger.getLogger(StreamInfo.class.getName());
     
     private enum UpdateResult { UPDATED, CHANGED, SET_OFFLINE };
-    public enum StreamType { LIVE, WATCH_PARTY };
+    public enum StreamType { LIVE, WATCH_PARTY, RERUN, PREMIERE };
     
     /**
      * All lowercase name of the stream
@@ -45,15 +45,15 @@ public class StreamInfo {
      */
     private String capitalizedName;
     
-    private long lastUpdated = 0;
-    private long lastStatusChange = 0;
-    private long lastUpdateSucceded = 0;
+    private final ElapsedTime lastUpdatedET = new ElapsedTime();
+    private final ElapsedTime lastStatusChangeET = new ElapsedTime();
+    private final ElapsedTime lastUpdateSuccededET = new ElapsedTime();
     private String status = null;
     private String game = "";
     private int viewers = 0;
-    private List<Community> communities;
+    private List<StreamTag> communities;
     private long startedAt = -1;
-    private long lastOnline = -1;
+    private final ElapsedTime lastOnlineET = new ElapsedTime();
     private long startedAtWithPicnic = -1;
     private boolean online = false;
     private StreamType streamType;
@@ -107,7 +107,7 @@ public class StreamInfo {
 
     public StreamInfo(String stream, StreamInfoListener listener) {
         this.listener = listener;
-        this.stream = stream.toLowerCase(Locale.ENGLISH);
+        this.stream = StringUtil.toLowerCase(stream);
     }
     
     private void streamInfoUpdated(UpdateResult r) {
@@ -127,7 +127,7 @@ public class StreamInfo {
     }
     
     private void streamInfoStatusChanged() {
-        lastStatusChange = System.currentTimeMillis();
+        lastStatusChangeET.set();
         if (listener != null) {
             listener.streamInfoStatusChanged(this, getFullStatus());
         }
@@ -221,7 +221,7 @@ public class StreamInfo {
                 this.startedAtWithPicnic = startedAt;
             }
             this.startedAt = startedAt;
-            this.lastOnline = System.currentTimeMillis();
+            this.lastOnlineET.set();
             this.online = true;
 
             if (saveToHistory) {
@@ -294,7 +294,7 @@ public class StreamInfo {
         setUpdated();
         if (succeeded) {
             updateFailedCounter = 0;
-            lastUpdateSucceded = System.currentTimeMillis();
+            lastUpdateSuccededET.set();
         } else {
             updateFailedCounter++;
             if (recheckOffline != -1) {
@@ -322,7 +322,7 @@ public class StreamInfo {
     }
     
     private void setUpdated() {
-        lastUpdated = System.currentTimeMillis() / 1000;
+        lastUpdatedET.set();
         requested = false;
     }
     
@@ -397,7 +397,7 @@ public class StreamInfo {
      */
     public void setDisplayName(String name) {
         this.display_name = name;
-        if (name != null && name.toLowerCase().equals(stream)) {
+        if (name != null && StringUtil.toLowerCase(name).equals(stream)) {
             capitalizedName = name;
         }
     }
@@ -432,11 +432,11 @@ public class StreamInfo {
         return false;
     }
     
-    public synchronized void setCommunities(List<Community> communities) {
+    public synchronized void setCommunities(List<StreamTag> communities) {
         this.communities = communities;
     }
     
-    public synchronized List<Community> getCommunities() {
+    public synchronized List<StreamTag> getCommunities() {
         return communities;
     }
     
@@ -445,7 +445,7 @@ public class StreamInfo {
     }
     
     public synchronized String getStreamTypeString() {
-        if (streamType == StreamType.WATCH_PARTY) {
+        if (streamType != StreamType.LIVE) {
             return "[VOD] ";
         }
         return "";
@@ -519,11 +519,14 @@ public class StreamInfo {
      * seen as online
      */
     public synchronized long lastOnlineAgo() {
-        return (System.currentTimeMillis() - lastOnline) / 1000;
+        return lastOnlineET.secondsElapsed();
     }
     
     public synchronized long getLastOnlineTime() {
-        return lastOnline;
+        if (!lastOnlineET.isSet()) {
+            return -1;
+        }
+        return System.currentTimeMillis() - lastOnlineET.millisElapsed();
     }
     
     
@@ -575,12 +578,12 @@ public class StreamInfo {
     }
     
     /**
-     * Calculates the number of seconds that passed after the last update
+     * Calculates the number of seconds that passed since the last update.
      * 
      * @return Number of seconds that have passed after the last update
      */
     public synchronized long getUpdatedDelay() {
-        return (System.currentTimeMillis() / 1000) - lastUpdated;
+        return lastUpdatedET.secondsElapsed();
     }
     
     /**
@@ -608,7 +611,7 @@ public class StreamInfo {
     }
     
     public synchronized boolean isValidEnough() {
-        return isValid() || (System.currentTimeMillis() - lastUpdateSucceded)/1000 < expiresAfter*3;
+        return isValid() || !lastUpdateSuccededET.secondsElapsed(expiresAfter*3);
     }
     
     public synchronized boolean lastUpdateLongAgo() {
@@ -624,11 +627,7 @@ public class StreamInfo {
      * @return 
      */
     public synchronized long getStatusChangeTimeAgo() {
-        return (System.currentTimeMillis() - lastStatusChange) / 1000;
-    }
-    
-    public synchronized long getStatusChangeTime() {
-        return lastStatusChange;
+        return lastStatusChangeET.secondsElapsed();
     }
     
     @Override

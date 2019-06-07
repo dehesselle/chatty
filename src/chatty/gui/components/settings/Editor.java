@@ -4,6 +4,7 @@ package chatty.gui.components.settings;
 import chatty.gui.GuiUtil;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.components.LinkLabelListener;
+import chatty.lang.Language;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -38,15 +39,17 @@ import javax.swing.event.DocumentListener;
  * 
  * @author tduva
  */
-public class Editor {
+public class Editor implements StringEditor {
+    
+    private static final int INPUT_LENGTH_LIMIT = 100*1000;
 
     private final JDialog dialog;
     private final JLabel label;
     private final JTextArea input;
-    private final JButton okButton = new JButton("Save");
-    private final JButton cancelButton = new JButton("Cancel");
-    private final JButton testButton = new JButton("Test");
-    private final JToggleButton toggleInfoButton = new JToggleButton("Help");
+    private final JButton okButton = new JButton(Language.getString("dialog.button.save"));
+    private final JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
+    private final JButton testButton = new JButton(Language.getString("dialog.button.test"));
+    private final JToggleButton toggleInfoButton = new JToggleButton(Language.getString("dialog.button.help"));
     private final Window parent;
     private final LinkLabel info;
     
@@ -86,12 +89,12 @@ public class Editor {
         input = new JTextArea();
         input.getDocument().addDocumentListener(new ChangeListener());
         input.setMargin(new Insets(2, 2, 2, 2));
-        setAllowLinebreaks(false);
         input.setLineWrap(true);
         input.setWrapStyleWord(true);
         input.setText("test");
         // Use monospaced font for easier editing of some kinds of text
         input.setFont(Font.decode(Font.MONOSPACED));
+        GuiUtil.installLengthLimitDocumentFilter(input, INPUT_LENGTH_LIMIT, false);
         dialog.add(new JScrollPane(input), gbc);
         
         gbc = GuiUtil.makeGbc(0, 4, 3, 1);
@@ -151,7 +154,7 @@ public class Editor {
      */
     public String showDialog(String title, String preset, String info) {
         input.setText(preset);
-        label.setText(title);
+        label.setText(title+":");
         this.info.setText(info);
         if (info == null) {
             this.info.setVisible(false);
@@ -213,7 +216,7 @@ public class Editor {
      * @param allow true to allow linebreaks
      */
     public final void setAllowLinebreaks(boolean allow) {
-        input.getDocument().putProperty("filterNewlines", !allow);
+        GuiUtil.installLengthLimitDocumentFilter(input, INPUT_LENGTH_LIMIT, allow);
     }
     
     private String format(String input) {

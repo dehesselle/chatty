@@ -50,7 +50,8 @@ public class LivestreamerDialog extends JDialog {
     
     private final JCheckBox enableContextMenu = new JCheckBox("Enable context menu entry");
     private final JCheckBox openDialog = new JCheckBox("Show dialog when opening stream");
-    private final JTextField qualities = new JTextField(20);
+    private final JCheckBox autoCloseDialog = new JCheckBox("Auto close dialog when starting player");
+    private final EditorStringSetting qualities;
     
     private final EditorStringSetting commandDef;
     private final JCheckBox useAuth = new JCheckBox("Use Authorization (Twitch Oauth Token)");
@@ -58,8 +59,8 @@ public class LivestreamerDialog extends JDialog {
     private final JTextField streamInput = new JTextField(30);
     private final JButton openStreamButton = new JButton("Open Stream");
     
-    private static final String INFO = "Livestreamer (or the compatible fork Streamlink) is an external program "
-            + "you have to install seperately that allows you to watch "
+    private static final String INFO = "Livestreamer (or the newer Streamlink) is an external program "
+            + "you have to install separately that allows you to watch "
             + "streams of many websites in a player like VLC. "
             + "[help-livestreamer:top More information..]";
     
@@ -81,7 +82,7 @@ public class LivestreamerDialog extends JDialog {
             final Settings settings) {
         super(parent);
         this.settings = settings;
-        setTitle("Livestreamer");
+        setTitle("Livestreamer / Streamlink");
         
         this.parent = parent;
         
@@ -111,23 +112,29 @@ public class LivestreamerDialog extends JDialog {
         infoPanel.add(enableContextMenu, gbc);
         
         gbc = GuiUtil.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST);
-        gbc.insets = new Insets(0, 15, 5, 5);
+        gbc.insets = new Insets(0, 15, 0, 5);
         infoPanel.add(openDialog, gbc);
         
         gbc = GuiUtil.makeGbc(0, 3, 1, 1, GridBagConstraints.WEST);
+        gbc.insets = new Insets(0, 15, 5, 5);
+        infoPanel.add(autoCloseDialog, gbc);
+        
+        gbc = GuiUtil.makeGbc(0, 4, 1, 1, GridBagConstraints.WEST);
         gbc.insets = new Insets(5, 5, 0, 5);
         infoPanel.add(new JLabel("Context menu qualities (\"Select\" to select quality):"), gbc);
         
-        gbc = GuiUtil.makeGbc(0, 4, 1, 1, GridBagConstraints.WEST);
+        gbc = GuiUtil.makeGbc(0, 5, 1, 1, GridBagConstraints.WEST);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(4, 5, 5, 30);
+        qualities = new EditorStringSetting(this,
+                "Context Menu Qualities", 24, false, false, null);
         infoPanel.add(qualities, gbc);
         
-        gbc = GuiUtil.makeGbc(0, 5, 1, 1, GridBagConstraints.WEST);
+        gbc = GuiUtil.makeGbc(0, 6, 1, 1, GridBagConstraints.WEST);
         gbc.insets = new Insets(5, 5, 0, 5);
         infoPanel.add(new JLabel("Base command (Livestreamer path and parameters):"), gbc);
 
-        gbc = GuiUtil.makeGbc(0, 6, 1, 1, GridBagConstraints.WEST);
+        gbc = GuiUtil.makeGbc(0, 7, 1, 1, GridBagConstraints.WEST);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
         gbc.insets = new Insets(4, 5, 4, 30);
@@ -136,23 +143,23 @@ public class LivestreamerDialog extends JDialog {
                 24, false, false, BASE_COMMAND_INFO);
         infoPanel.add(commandDef, gbc);
         
-        gbc = GuiUtil.makeGbc(0, 7, 1, 1, GridBagConstraints.WEST);
+        gbc = GuiUtil.makeGbc(0, 8, 1, 1, GridBagConstraints.WEST);
         gbc.insets = new Insets(0, 5, 5, 5);
         useAuth.setToolTipText("Supply the Oauth token Chatty uses to authorize for the stream (e.g. to watch sub-only Twitch streams)");
         infoPanel.add(useAuth, gbc);
         
-        gbc = GuiUtil.makeGbc(0, 8, 2, 1, GridBagConstraints.WEST);
+        gbc = GuiUtil.makeGbc(0, 9, 2, 1, GridBagConstraints.WEST);
         gbc.insets = new Insets(5, 5, 0, 5);
         JLabel streamLabel = new JLabel("Enter stream name or URL (or commandline options):");
         streamLabel.setLabelFor(streamInput);
         infoPanel.add(streamLabel, gbc);
         
-        gbc = GuiUtil.makeGbc(0, 9, 1, 1);
+        gbc = GuiUtil.makeGbc(0, 10, 1, 1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
         infoPanel.add(streamInput, gbc);
         
-        gbc = GuiUtil.makeGbc(1, 9, 1, 1);
+        gbc = GuiUtil.makeGbc(1, 10, 1, 1);
         openStreamButton.setMargin(GuiUtil.SMALL_BUTTON_INSETS);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         infoPanel.add(openStreamButton, gbc);
@@ -165,7 +172,7 @@ public class LivestreamerDialog extends JDialog {
             public void actionPerformed(ActionEvent e) {
                 if (e.getSource() == closeButton) {
                     setVisible(false);
-                    settings.setString("livestreamerQualities", qualities.getText());
+                    settings.setString("livestreamerQualities", qualities.getSettingValue());
                 } else if (e.getSource() == openStreamButton
                         || e.getSource() == streamInput) {
                     String stream = streamInput.getText();
@@ -179,6 +186,8 @@ public class LivestreamerDialog extends JDialog {
                     settings.setBoolean("livestreamerUseAuth", useAuth.isSelected());
                 } else if (e.getSource() == openDialog) {
                     settings.setBoolean("livestreamerShowDialog", openDialog.isSelected());
+                } else if (e.getSource() == autoCloseDialog) {
+                    settings.setBoolean("livestreamerAutoCloseDialog", autoCloseDialog.isSelected());
                 }
             }
         };
@@ -189,6 +198,7 @@ public class LivestreamerDialog extends JDialog {
         enableContextMenu.addActionListener(buttonAction);
         useAuth.addActionListener(buttonAction);
         openDialog.addActionListener(buttonAction);
+        autoCloseDialog.addActionListener(buttonAction);
         
         commandDef.setChangeListener(new ChangeListener() {
 
@@ -213,7 +223,7 @@ public class LivestreamerDialog extends JDialog {
     public void open(String stream, String quality) {
         if (stream != null) {
             String url = "twitch.tv/" + stream;
-            if (!Helper.validateChannel(stream)) {
+            if (!Helper.isValidChannel(stream)) {
                 url = stream;
             }
             Item existingItem = getExisitingItem(url, quality);
@@ -226,12 +236,16 @@ public class LivestreamerDialog extends JDialog {
                 tabs.setSelectedComponent(newItem);
                 tabs.setToolTipTextAt(tabs.getSelectedIndex(), stream);
                 newItem.start();
-                pack();
+                if (getWidth() < getPreferredSize().width) {
+                    setSize(getPreferredSize().width, getHeight());
+                }
             }
         }
         loadSettings();
         if (stream == null || quality == null || openDialog.isSelected()) {
-            setLocationRelativeTo(parent);
+            if (!isVisible()) {
+                setLocationRelativeTo(parent);
+            }
             setVisible(true);
         }
     }
@@ -260,10 +274,11 @@ public class LivestreamerDialog extends JDialog {
     
     private void loadSettings() {
         enableContextMenu.setSelected(settings.getBoolean("livestreamer"));
-        this.qualities.setText(settings.getString("livestreamerQualities"));
+        this.qualities.setSettingValue(settings.getString("livestreamerQualities"));
         commandDef.setSettingValue(settings.getString("livestreamerCommand"));
         useAuth.setSelected(settings.getBoolean("livestreamerUseAuth"));
         openDialog.setSelected(settings.getBoolean("livestreamerShowDialog"));
+        autoCloseDialog.setSelected(settings.getBoolean("livestreamerAutoCloseDialog"));
     }
     
     /**
@@ -362,6 +377,9 @@ public class LivestreamerDialog extends JDialog {
         private void addMessage(String message) {
             if (quality == null && message.trim().startsWith("Available streams:")) {
                 parseQualities(message);
+            }
+            if (message.trim().startsWith("Starting player") && autoCloseDialog.isSelected()) {
+                LivestreamerDialog.this.setVisible(false);
             }
             
             Document doc = messages.getDocument();

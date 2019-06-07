@@ -17,6 +17,12 @@
     <h1><a name="top">Release Information</a></h1>
     
     <p>
+        <a href="#0.9.6">0.9.6</a> |
+        <a href="#0.9.5">0.9.5</a> |
+        <a href="#0.9.4">0.9.4</a> |
+        <a href="#0.9.3">0.9.3</a> |
+        <a href="#0.9.2">0.9.2</a> |
+        <a href="#0.9.1">0.9.1</a> |
         <a href="#0.9">0.9</a> |
         <a href="#0.8.7">0.8.7</a> |
         <a href="#0.8.6">0.8.6</a> |
@@ -50,7 +56,334 @@
     full list of changes.</p>
     
     <h2>
-        <a name="0.9">Version 0.9</a> <a name="latest">(This one!)</a> (2017-12-26)
+        <a name="0.9.6">Version 0.9.6</a> <a name="latest">(This one!)</a> (2019-03-27)
+        <a href="#top" class="top">[back to top]</a>
+    </h2>
+    <p>The new clickable mentions feature allows you to open the User Dialog by
+        clicking not only on the usernames in front of the messages, but also on
+        names that are mentioned within the messages themselves (as long as the
+        mentioned user has recently chatted). In addition, hovering your mouse
+        over a mention marks the username in chat temporarily.</p>
+    
+    <pre>
+### Chat
+- Added clickable mentions for users who have recently chatted (configurable in
+  "Names" settings with different styling options)
+- Hovering mention in chat with the mouse now temporarily marks that user
+  (configurable in "Names" settings with different options on what triggers it)
+- Mark Highlight/Ignore matches in more places, such as links or mentions
+  (toggle in "Highlight" settings)
+- Improved support for some new Twitch Chat messages
+- Switched GIF decoder (which should fix some previously broken Animated GIFs)
+
+### Custom Commands / Customization
+- Added Custom Command functions `$datetime()` and `$randnum()`
+- Added "vip" to `$mod` Custom Usericon position
+- Added general "Info Message" Notification type
+- Added hotkey actions for 120s and 180s commericals
+- Added hotkey action to toggle Channel Favorites dialog
+
+### Other
+- Changed image cache structure to improve startup time
+- Made some timing methods independent of system clock
+- Added default fallback font (Unifont) to Windows Standalone
+- Added commands for fallback font directory
+- Increased/added character limit for some input fields
+- Livestreamer Dialog: Don't reset size/position as often
+- Updated localization strings
+- Updated help
+
+### Bugfixes
+- Fixed bug that would cause the wrong element to be clicked sometimes
+- Fixed error when trying to insert Emote from Emote Dialog into full inputbox
+- Fixed loading of English (UK) strings
+- Fixed User Dialog opening position being wrong with some taskbar locations
+- Fixed custom emotes not showing in Emote Dialog favorites tab
+- Fixed marked word (rectangle) style on some backgrounds
+- Fixed some Emoji having an unrendered character behind them
+    </pre>
+    
+    <h2>
+        <a name="0.9.5">Version 0.9.5</a> (2019-02-14)
+        <a href="#top" class="top">[back to top]</a>
+    </h2>
+    <p>Twitch released the Stream Tags API for third-party developers, so Chatty
+        now supports setting Stream Tags in the Admin Dialog, including the
+        ability to add Favorites and set them via Presets.</p>
+    
+    <p>There have also been improvements on base memory usage and memory usage
+        for long running instances, which may improve overall performance as
+        well.</p>
+    
+    <pre>
+### Chat
+- Added symbol `!` for VIPs and sort in userlist
+- Improved support for some new chat messages
+- Changed Cheeremote default setting to animated
+- Limited inputbox to 500 characters (Twitch Chat cuts off messages longer than
+  500 characters, so this probably makes sense in most cases)
+- Disabled gift sub combining since it didn't work well enough
+
+### Moderation
+- Append approved/denied behind AutoMod messages
+- Don't hide indirect ModLog actions (e.g. "add blocked terms" when denying
+  AutoMod message)
+- Treat AutoMod messages like regular messages concerning bans (so e.g. they get
+  deleted when the user is timed out)
+- Shorten and filter linebreaks from AutoMod messages (normal chat messages
+  cannot contain linebreaks, but AutoMod messages apparently do sometimes)
+- Added setting to remove User Dialog messages of inactive users to reduce
+  memory usage (defaults to 12 hours, changeable in Moderation Settings)
+
+### Other
+- Added Stream Tags support to Admin Dialog
+- Added setting to automatically close Livestreamer/Streamlink Dialog when
+  player is started
+- Replace Emoji codes in Custom Commands as well
+- Added setting to Stream Highlights to select which user types can trigger chat
+  command (e.g. Moderators and VIPs)
+- Added setting to always show tray icon
+- Changed tray icon action to switch between show/minimize to tray
+- Added setting to automatically hide Live Streams window when minimizing Main
+  window
+- Added splash screen window icon
+- Changed image file cache duration in an attempt to improve startup time
+- Improved memory usage
+- Improved debug output
+- Updated help
+
+### Bugfixes
+- Added handling for possible regex error
+- Added limit to some input fields to prevent hanging when inadvertently pasting
+  very long text
+- Removed confusing Program Group page from installer
+- Fixed AutoMod message timestamp custom color
+- Fixed loading FFZ Emotes for namechanged channels
+- Fixed User Dialog ban info being overwritten sometimes
+    </pre>
+    
+    <h2>
+        <a name="0.9.4">Version 0.9.4</a> (2019-01-08)
+        <a href="#top" class="top">[back to top]</a>
+    </h2>
+    <pre>
+### User Dialog
+- Improved info shown in User Dialog: Added follow age, reorganized, added
+  context menus and improved tooltips
+- Changed User Dialog to not close while pinned, even when clicking on button
+  (except the Close-button of course)
+- Added Custom Command parameters related to shown information
+- Added setting to reuse User Dialog of same user, instead of opening/switching
+  another one
+- Changed shake effect when opening User Dialog of same user depending on which
+  message it was opened from
+
+### Misc
+- Added status symbol "!" for VIPs, added prefix value for message matching,
+  unified Staff/Admin to "&"
+- Improved Live Streams List sorting context menu
+- Made URL parsing a bit more lenient
+- Updated help
+
+### Bugfixes
+- Fixed error related to Moderation Log
+- Fixed User Dialog opening in the wrong location sometimes
+- Handle error related to Live Streams List
+- Fixed minor bug of User Dialog buttons state not being set properly sometimes
+    </pre>
+    
+    <h2>
+        <a name="0.9.3">Version 0.9.3</a> (2018-12-31)
+        <a href="#top" class="top">[back to top]</a>
+    </h2>
+    <p>Custom Message Colors and Highlights can now also apply to Info Messages
+        and allow you to set the background color, so it's possible to customize
+        the foreground/background of almost any message in the chat window.</p>
+    
+    <p>Moderators can now delete individual messages and get who performed a
+        moderation action directly appended to the associated message.</p>
+    
+    <pre>
+### Chat
+- Added ability to customize message background color (through Message Colors
+  settings and the "bgcolor:" prefix for Highlights)
+- Added prefix "config:info" to Message Colors settings and Highlights as well,
+  allowing you to customize the foreground/background color for more messages
+  (e.g. `config:info [Notification]` in Msg. Colors to customize the color of
+  subscriber notifications)
+- Added prefix "config:any" to match both Regular Messages and Info Messages
+- Added prefix "config:firstmsg" to only match the first message of a user in
+  a channel during the current session
+- Added "replacement:none" prefix to Filter list to have no replacement at all
+
+### Moderation
+- Added support for deletion of single messages (Delete button automatically
+  added to the User Dialog)
+- Append which mod performed an action (e.g. ban/timeout), and only show
+  separate ModAction message if no associated message is present in chat
+- Output ban/timeout reason from Modlogs, since Twitch removed it from chat
+
+### Custom Commands
+- Added "/chain" command to perform several commands at once
+- Added $(chans) parameter containing all open regular channels
+- Added $(msg-id) and $(automod-msg-id) parameters to User Context Menu
+- Added $rand() function, to choose one random entry from the parameter list
+- Extended Click-On-User-Holding-Ctrl command to allow anonymous commands
+- Added "//" prefix to inputbox to directly run anonymous command
+  (e.g. `//echo $(chans)`)
+
+### TAB Completion
+- Changed TAB Completion for Emoji to search within codes without min. character
+  limit, but only search at the beginning of words (separated by underscores)
+  and only at the very beginning if already too many matches
+- Changed TAB Completion for Emotes/Commands to search at the beginning of words
+  as well (capitalized), so e.g. "chair"+TAB will find both "joshChair" and
+  "broughyChair" (setting options for previous behaviour or to search anywhere)
+
+### Misc
+- Added Splash Screen that shows while Chatty is starting
+- Added /marker support to add Stream Markers (also extended Stream Highlights
+  feature to add Stream Marker at the same time, added to Settings Dialog)
+- Added ability to revoke (not just remove) Login token directly out of Chatty
+- Improved debug output
+- Improved performance
+- Made links in info messages clickable
+- Improved Username Color Correction, added several modes to choose from
+- Changed "/join" command to allow joining several space-seperated channels
+- Some other improvements
+- Updated help
+
+### Bugfixes
+- Fixed Custom Usericons matching a 3rd Party badge type inadvertently applying
+  to every user
+- Fixed colors in Viewer History graph for dark Look&amp;Feel
+    </pre>
+    
+    <h2>
+        <a name="0.9.2">Version 0.9.2</a> (2018-10-26)
+        <a href="#top" class="top">[back to top]</a>
+    </h2>
+    <p>Highlights of this update include the changed Color Settings &amp; Chat
+        Layout (with various options for message background colors and more),
+        performance improvements (especially for animated GIFs) and the new
+        Update Dialog.</p>
+    
+    <pre>
+### Chat Layout/Colors
+- Improved Badge/Emote positioning and chat margins
+- Added support for alternating message backgrounds and message separators
+- Updated Chat Color settings, added more presets
+
+### More Chat
+- Improved chat scrolling performance
+- Improved Animated GIF performance
+- Emphasize Highlight/Ignore matches
+- Added tooltips to Emotes/Badges in chat
+- Added support for FrankerFaceZ Supporter badge
+- Improved output of Usernotice messages (Emote support for message part, output
+  unknown message types better)
+- Combine gifted subs messages to improve performance
+- Added chat filter to filter out parts of messages (as opposed to ignoring the
+  while messages)
+
+### Installing/Updating
+- Added new Update Dialog, easier updating process on Windows
+- Added option to include Betas in update notifications
+- Added Windows installers for more comfortable installation
+
+### Other
+- Removed Communities (Twitch hasn't released an API for Tags yet)
+- Added User Dialog pinning (if pinned the dialog stays open on the same user,
+  clicking on another user opens a new one)
+- Changed default User Dialog opening location
+- Added position value for Custom Usericons
+- Remember scroll position when navigating through help
+- Changed default window position and how dialogs move with main window
+- Added some more debug and system commands
+- Updated translations
+- Updated help
+
+### Bugfixes
+- Fixed scrolling chat with PageUp/Down while focus is on inputbox
+- Fixed exception occuring on some systems
+- Fixed Stream Chat scrolling
+- Fixed Stream Chat message timeout when timestamp is disabled
+- Fixed Desktop Notifications memory leak
+- Fixed Animated GIFs using resources even when not visible
+- Fixed Emoji TAB Completion eating following word sometimes
+- Fixed Twitch Emotes not appearing sometimes (same as Emotefix version)
+- Fixed error occuring due to some rare incompatible images
+- Fixed Highlight configuration (e.g. no notification) not carrying over to
+  follow-up Highlights
+    </pre>
+    
+    <h2>
+        <a name="0.9.1">Version 0.9.1</a> (2018-04-02)
+        <a href="#top" class="top">[back to top]</a>
+    </h2>
+    <p>This version has a lot of under-the-hood changes to allow for the new
+        Rooms feature that Twitch added. The implementation in Chatty is rather
+        basic: You can join rooms available for the current channel through the
+        "Channels" menu and you can favorite rooms, however for example there is
+        not yet an implementation for viewing the Room chat history.</p>
+    
+    <p>If you're a heavy user of the Highlight system you may appreciate the
+        addition of the Highlight Blacklist as well as improvements to the
+        dialog used for editing the text matching pattern. Also note that there
+        have been slight changes to some prefixes (see below).</p>
+    
+    <pre>
+### Main Features
+- Added basic support for Rooms (join via Channels-menu and Favorites/History)
+- Added initial support for translating the Chatty GUI to other languages,
+  added some partial translations (thanks to volunteers translating)
+
+### Highlighting/Ignore
+- Added Highlight Blacklist, to prevent some matches from triggering Highlights
+- Improved Highlight pattern tester (used in other places as well), now with
+  match color highlighting, and open directly instead of hiding behind "Test"
+- Some text matching prefixes changes (Highlighting/Ignore/..):
+  - Changed `w:`/`wcs:` to not take Regex anymore
+  - Added `reg:` prefix and variations for using Regex with more consistent and
+    predictable naming scheme (`re:` and `re*:` still work as before)
+  - Invalid regex now won't match any text, instead of just disregarding the
+    pattern and matching all text
+
+### Settings
+- Setting files `favoritesAndHistory` and `statusPresets` now both merged into
+  `settings` file, unused files are removed
+- Possibly made saving settings more reliable in some circumstances
+- Reorganized Settings Dialog, added new menu for navgiation
+- Added setting for vertical zoom in Channel Info Dialog, improved context menu
+- Added setting for logging regular chat messages (and thus a way to disable it)
+- Added setting whether to show chat inputbox by default (and thus a way to hide
+  it by default)
+- Added "Off" option for notification type setting
+- Updated Livestreamer context menu qualities setting format to allow specifying
+  display names for groups of qualities
+- Changed TAB Completion default to complete both usernames and emotes with TAB
+
+### Other Changes
+- Changed chat inputbox to automatically grow when entering long lines
+  (you need to hold Ctrl to navigate input history, changeable in Chat Settings)
+- Added /favorite and /unfavorite commands (Channel Favorites)
+- Added /joinhosted command to join currently hosted channel
+- Changed /appinfo command to contain more information
+- Don't add space anymore when chat timestamp is empty
+- Show more stream types as "[VOD]" (Premiere, Vodcast, Rerun..)
+- Updated help
+
+### Bugfixes
+- Fixed bug loading emotes.txt
+- Fixed possible Community search issue
+- Fixed username capitalization locale bug (e.g. Turkish locale)
+- Fixed bug where "Cancel" in the Open URL dialog would sometimes copy the URL
+- Fixed possible bug with tray icon
+- Fixed some FFZ API/other URLs not using https
+</pre>
+    
+    <h2>
+        <a name="0.9">Version 0.9</a> (2017-12-26)
         <a href="#top" class="top">[back to top]</a>
     </h2>
     <p>This version includes more Look and Feels which you can select in the
@@ -89,7 +422,7 @@
 - Fixed some BTTV emotes (like D:) appearing when they shouldn't
 - Added Emoji TAB Completion (anything starting with ":")
 - Added conversion of Emoji short code to Emoji character when entered into the
-  inputbox (e.g. :thinking: -> 🤔 when being sent)
+  inputbox (e.g. :thinking: -> &lt;unicode_character&gt; when being sent)
 
 ### Settings
 - Added -d launch argument to directly specify settings directory
@@ -108,7 +441,7 @@
 - Fixed some emote code conversions
 - Fixed error on "Use title only" in Admin Dialog
 - Possibly fixed rare error with parsing livestreamer menu options
-    </pre>
+</pre>
     
     <h2>
         <a name="0.8.7">Version 0.8.7</a> (2017-09-12)
@@ -1066,7 +1399,7 @@ New features:
 Changes:
 - Changed message parsing to support "&lt;name&gt; is now hosting you" notification
   (only works on Twitch Client Version 3 though, see Settings - Advanced)
-- Added setting to specify the timezone of the timestamp seperately from the
+- Added setting to specify the timezone of the timestamp separately from the
   system timezone setting
 - Added kadgar.net to open live streams from the context menu
 - Added optional filter to remove combining characters used in some languages
@@ -1125,7 +1458,7 @@ Changes:
 - Added Ctrl+J shortcut for opening Join Dialog
 - Save Channel Favorites sort order between sessions
 - Increased number of saved lines per user from 20 to 100
-- Reorganized Settings Dialog a bit (Usericons/Emoticons on seperate pages)
+- Reorganized Settings Dialog a bit (Usericons/Emoticons on separate pages)
 - Added context menu to Race Id (blue link) in Race Viewer
 - Possibly improved debugging of emoticon loading errors a bit
 - Updated help
@@ -1148,7 +1481,7 @@ Bugfixes:
             username, addressbook category and channel, then choose whether to
             completely hide them, show how many were ignored every 30s (if any)
             or show which users where ignored. Ignored messages also get added
-            to a seperate window so you can check them if you want to.</li>
+            to a separate window so you can check them if you want to.</li>
         <li>Improved Update Notification.</li>
         <li><a href="help-livestreamer.html">Livestreamer</a> context menu
             quality selection customizable.</li>
@@ -1477,7 +1810,7 @@ Changes:
 <h3>Full Changelog</h3>
 <pre>Changes:
 - FrankerFaceZ: Show custom mod icons (available in some channels)
-- FrankerFaceZ settings, Emoticons/Icon settings seperate
+- FrankerFaceZ settings, Emoticons/Icon settings separate
 - Prevent dialogs that can open automatically (error messages) from
   stealing focus
 - Added chat buffer size setting
@@ -1560,7 +1893,7 @@ New features:
 
 Changes:
 - Nicks in JOIN/PART/MOD/UNMOD lines now clickable
-- Settings now saved in seperate files for general settings, login data and
+- Settings now saved in separate files for general settings, login data and
   history/favorites
 - Fixed tab colors, added indicator for new stream status
 - Added delay for global hotkey so it doesn't repeat as much if kept pressed

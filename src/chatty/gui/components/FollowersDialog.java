@@ -6,6 +6,7 @@ import chatty.Helper;
 import chatty.gui.GuiUtil;
 import chatty.gui.components.menus.ContextMenu;
 import chatty.gui.components.menus.ContextMenuListener;
+import chatty.gui.components.menus.RoomsContextMenu;
 import chatty.gui.components.menus.StreamsContextMenu;
 import chatty.gui.components.settings.ListTableModel;
 import chatty.util.DateTime;
@@ -229,7 +230,7 @@ public class FollowersDialog extends JDialog {
                 streams.add(StringUtil.toLowerCase(selected.name));
             }
             if (!streams.isEmpty()) {
-                StreamsContextMenu m = new StreamsContextMenu(streams, contextMenuListener);
+                ContextMenu m = new StreamsContextMenu(streams, contextMenuListener);
                 m.show(table, e.getX(), e.getY());
             }
         }
@@ -427,8 +428,8 @@ public class FollowersDialog extends JDialog {
                     for (Follower f : lastValidInfo.followers) {
                         writer.write(f.name);
                         if (!onlyName) {
-                            writer.write("\t" + DateTime.formatFullDatetime(f.time));
-                            writer.write(" (" + DateTime.agoSingleVerbose(f.time) + ")");
+                            writer.write("\t" + DateTime.formatFullDatetime(f.follow_time));
+                            writer.write(" (" + DateTime.agoSingleVerbose(f.follow_time) + ")");
                         }
                         writer.newLine();
                     }
@@ -493,8 +494,8 @@ public class FollowersDialog extends JDialog {
                     setToolTipText(f.display_name+" ("+f.name+")");
                 }
             } else {
-                setText(DateTime.agoSingleVerbose(f.time));
-                setToolTipText(DateTime.formatFullDatetime(f.time));
+                setText(DateTime.agoSingleVerbose(f.follow_time));
+                setToolTipText(DateTime.formatFullDatetime(f.follow_time));
             }
 
             // Colors
@@ -505,7 +506,7 @@ public class FollowersDialog extends JDialog {
                 setForeground(table.getForeground());
 
                 // Set background for both name and time
-                long ago = (System.currentTimeMillis() - f.time) / 1000;
+                long ago = (System.currentTimeMillis() - f.follow_time) / 1000;
                 if (f.newFollower) {
                     setBackground(BG_COLOR_NEW);
                 } else if (ago < 15 * 60) {
@@ -593,7 +594,7 @@ public class FollowersDialog extends JDialog {
             boolean ok = false;
             for (int i = followers.size() - 1; i >= 0; i--) {
                 Follower f = followers.get(i);
-                if ((System.currentTimeMillis() - f.time) / 1000 > seconds) {
+                if ((System.currentTimeMillis() - f.follow_time) / 1000 > seconds) {
                     ok = true;
                 } else if (ok) {
                     return label + ": " + (i + 1);
@@ -613,7 +614,7 @@ public class FollowersDialog extends JDialog {
                 boolean ok = false;
                 for (int i = followers.size()-1; i > 0; i--) {
                     Follower f = followers.get(i);
-                    if ((System.currentTimeMillis() - f.time)/1000 > time) {
+                    if ((System.currentTimeMillis() - f.follow_time)/1000 > time) {
                         ok = true;
                     } else if (ok) {
                         return TIMES.get(time)+": "+(i+1);

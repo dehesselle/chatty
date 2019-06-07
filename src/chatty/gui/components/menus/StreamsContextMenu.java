@@ -13,11 +13,11 @@ import java.util.Collection;
 public class StreamsContextMenu extends ContextMenu {
     
     private final ContextMenuListener listener;
-    private final Collection<String> nicks;
+    private final Collection<String> streams;
     
     public StreamsContextMenu(Collection<String> streams, ContextMenuListener listener) {
         this.listener = listener;
-        this.nicks = streams;
+        this.streams = streams;
         
         ContextMenuHelper.addStreamsOptions(this, streams.size());
     }
@@ -25,7 +25,7 @@ public class StreamsContextMenu extends ContextMenu {
     @Override
     public void actionPerformed(ActionEvent e) {
         if (listener != null) {
-            listener.streamsMenuItemClicked(e, nicks);
+            listener.streamsMenuItemClicked(e, streams);
         }
     }
     

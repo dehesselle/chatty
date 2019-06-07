@@ -1,6 +1,8 @@
 
 package chatty;
 
+import static chatty.Logging.USERINFO;
+import chatty.lang.Language;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -24,8 +26,7 @@ public class JoinChecker {
      * How long to wait before trying to join again in seconds (based on the
      * number of attempts per channel).
      */
-    private static final int[] DELAY = new int[]{4, 4, 7, 15, 30, 30, 30, 120,
-                                120, 120, 120, 300};
+    private static final int[] DELAY = new int[]{4, 30, 30, 30, 120, 120, 300};
     
     private final Irc irc;
     
@@ -60,6 +61,7 @@ public class JoinChecker {
             @Override
             public void run() {
                 LOGGER.warning("Join may have failed ("+channel+")");
+                LOGGER.log(USERINFO, Language.getString("chat.error.joinFailed", channel));
                 irc.joinChannel(channel);
             }
         }, delay*1000);

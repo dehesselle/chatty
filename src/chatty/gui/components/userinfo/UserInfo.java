@@ -4,17 +4,24 @@ package chatty.gui.components.userinfo;
 import chatty.User;
 import chatty.gui.GuiUtil;
 import chatty.gui.MainGui;
+import chatty.gui.components.menus.ContextMenuAdapter;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.UserContextMenu;
 import static chatty.gui.components.userinfo.Util.makeGbc;
+import chatty.lang.Language;
+import chatty.util.MiscUtil;
 import chatty.util.api.ChannelInfo;
+import chatty.util.api.Follower;
+import chatty.util.api.TwitchApi;
 import chatty.util.commands.CustomCommand;
+import chatty.util.commands.Parameters;
 import chatty.util.settings.Settings;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Objects;
 import java.util.Set;
 import javax.swing.*;
 
@@ -30,10 +37,11 @@ public class UserInfo extends JDialog {
         NONE, TIMEOUT, MOD, UNMOD, COMMAND
     }
     
-    private final InfoPanel infoPanel = new InfoPanel(this);
+    private final InfoPanel infoPanel;
     private final PastMessages pastMessages = new PastMessages();
 
-    private final JButton closeButton = new JButton("Close");
+    private final JButton closeButton = new JButton(Language.getString("dialog.button.close"));
+    private final JCheckBox pinnedDialog = new JCheckBox(Language.getString("userDialog.setting.pin"));
     private final JCheckBox singleMessage = new JCheckBox(SINGLE_MESSAGE_CHECK);
     private final BanReasons banReasons;
     private final Buttons buttons;
@@ -62,6 +70,7 @@ public class UserInfo extends JDialog {
     public UserInfo(final MainGui owner, Settings settings,
             final ContextMenuListener contextMenuListener) {
         super(owner);
+        GuiUtil.installEscapeCloseOperation(this);
         this.owner = owner;
         banReasons = new BanReasons(this, settings);
         
@@ -69,9 +78,16 @@ public class UserInfo extends JDialog {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (settings.getBoolean("closeUserDialogOnAction")) {
+                if (settings.getBoolean("closeUserDialogOnAction")
+                        && !isPinned()) {
                     setVisible(false);
                 }
+                CustomCommand command = getCommand(e.getSource());
+                if (command == null) {
+                    return;
+                }
+                
+                owner.anonCustomCommand(getUser().getRoom(), command, makeParameters());
                 owner.getActionListener().actionPerformed(e);
             }
         });
@@ -84,29 +100,42 @@ public class UserInfo extends JDialog {
             }
         };
         closeButton.addActionListener(actionListener);
-
+        
         setLayout(new GridBagLayout());
         
         GridBagConstraints gbc;
+        
+        JPanel topPanel = new JPanel(new GridBagLayout());
 
         gbc = makeGbc(0,0,3,1);
         gbc.insets = new Insets(2, 2, 0, 2);
-        add(buttons.getPrimary(), gbc);
+        topPanel.add(buttons.getPrimary(), gbc);
         
         gbc = makeGbc(0,3,3,1);
         gbc.insets = new Insets(0, 6, 2, 2);
         gbc.anchor = GridBagConstraints.CENTER;
         singleMessage.setToolTipText("When doing a ban/timeout only remove a single message of that user [S to toggle]");
         //add(singleMessage, gbc);
+
+        gbc = makeGbc(2,1,1,1);
+        gbc.insets = new Insets(2, 8, 2, 8);
+        gbc.anchor = GridBagConstraints.EAST;
+        pinnedDialog.setToolTipText(Language.getString("userDialog.setting.pin.tip"));
+        topPanel.add(pinnedDialog, gbc);
         
         JComboBox<String> reasons = new JComboBox<>();
         reasons.addItem("-- Select Ban/Timeout Reason --");
         reasons.addItem("No CatBag posted");
         reasons.addItem("Custom Ban/Timeout Reason:");
-        gbc = makeGbc(0,1,3,1);
-        gbc.insets = new Insets(2, 10, 5, 10);
-        //gbc.fill = GridBagConstraints.HORIZONTAL;
-        add(banReasons, gbc);
+        gbc = makeGbc(0, 1, 1, 1);
+        // left = 2 (buttons gbc insets) + 5 (buttons layout hgap) + 1 indent
+        gbc.insets = new Insets(2, 8, 5, 7);
+        gbc.anchor = GridBagConstraints.WEST;
+        topPanel.add(banReasons, gbc);
+        
+        gbc = makeGbc(0, 0, 3, 1);
+        gbc.insets = new Insets(0, 0, 0, 0);
+        add(topPanel, gbc);
         
         JScrollPane scrollPane = new JScrollPane(pastMessages);
         scrollPane.setPreferredSize(new Dimension(300,200));
@@ -120,13 +149,43 @@ public class UserInfo extends JDialog {
         gbc.insets = new Insets(0,0,0,0);
         add(buttons.getSecondary(), gbc);
 
+        infoPanel = new InfoPanel(this, new ContextMenuAdapter() {
+            
+            public void menuItemClicked(ActionEvent e) {
+                switch (e.getActionCommand()) {
+                    case "copyUserId":
+                        MiscUtil.copyToClipboard(currentUser.getId());
+                        break;
+                    case "sendFollowAge":
+                        owner.anonCustomCommand(getUser().getRoom(), InfoPanel.COMMAND_FOLLOW_AGE, makeParameters());
+                        break;
+                    case "copyFollowAge":
+                        MiscUtil.copyToClipboard(InfoPanel.COMMAND_FOLLOW_AGE.replace(makeParameters()));
+                        break;
+                    case "sendAccountAge":
+                        owner.anonCustomCommand(getUser().getRoom(), InfoPanel.COMMAND_ACCOUNT_AGE, makeParameters());
+                        break;
+                    case "copyAccountAge":
+                        MiscUtil.copyToClipboard(InfoPanel.COMMAND_ACCOUNT_AGE.replace(makeParameters()));
+                        break;
+                    case "refresh":
+                        infoPanel.setRefreshingFollowAge();
+                        getFollowInfo(true);
+                        break;
+                    case "copyChannelInfo":
+                        MiscUtil.copyToClipboard(infoPanel.getChannelInfoTooltipText());
+                        break;
+                }
+            }
+            
+        });
         gbc = makeGbc(0,6,3,1);
-        gbc.insets = new Insets(0, 0, 0, 0);
+        gbc.insets = new Insets(2, 0, 0, 0);
         add(infoPanel,gbc);
-
+        
         gbc = makeGbc(0,8,3,1);
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(10,5,3,5);
+        gbc.insets = new Insets(8,5,3,5);
         add(closeButton,gbc);
 
         buttons.set("30,120,600,1800");
@@ -152,7 +211,7 @@ public class UserInfo extends JDialog {
             }
             
             private void showPopupMenu(MouseEvent e) {
-                JPopupMenu menu = new UserContextMenu(currentUser, currentAutoModMsgId, contextMenuListener);
+                JPopupMenu menu = new UserContextMenu(currentUser, currentMsgId, currentAutoModMsgId, contextMenuListener);
                 menu.show(e.getComponent(), e.getX(), e.getY());
             }
         });
@@ -179,6 +238,58 @@ public class UserInfo extends JDialog {
         return null;
     }
     
+    private Parameters makeParameters() {
+        User user = getUser();
+        String nick = user.getName();
+        String reason = getBanReason();
+        if (!reason.isEmpty()) {
+            reason = " " + reason;
+        }
+        Parameters parameters = Parameters.create(nick + reason);
+        parameters.put("msg-id", getMsgId());
+        parameters.put("target-msg-id", getTargetMsgId());
+        parameters.put("automod-msg-id", getAutoModMsgId());
+        parameters.put("followage", infoPanel.getFollowAge());
+        parameters.put("followdate", infoPanel.getFollowDate());
+        parameters.put("accountage", infoPanel.getAccountAge());
+        parameters.put("accountdate", infoPanel.getAccountDate());
+        parameters.put("user-id", user.getId());
+        return parameters;
+    }
+    
+    /**
+     * This has to be called after any updates to the active User, button
+     * settings or other dialog parameters that could affect buttons, in order
+     * to hide/show/activate/deactive buttons.
+     */
+    protected void updateButtons() {
+        if (currentUser == null) {
+            return;
+        }
+        
+        //------------
+        // Parameters
+        //------------
+        buttons.updateButtonForParameters(makeParameters());
+        
+        //------------------
+        // Mod/Unmod Button
+        //------------------
+        boolean localIsStreamer = currentUser.getStream() != null
+                && currentUser.getStream().equalsIgnoreCase(currentLocalUsername);
+        buttons.updateModButtons(localIsStreamer, currentUser.isModerator());
+        
+        //---------
+        // AutoMod
+        //---------
+        buttons.updateAutoModButtons(currentAutoModMsgId);
+        
+        //--------
+        // Finish
+        //--------
+        buttons.updateButtonRows();
+    }
+    
     public void setFontSize(float size) {
         if (size != fontSize) {
             GuiUtil.setFontSize(size, this);
@@ -197,7 +308,7 @@ public class UserInfo extends JDialog {
      */
     public void setUserDefinedButtonsDef(String def) {
         buttons.set(def);
-        updateModButtons();
+        updateButtons();
         GuiUtil.setFontSize(fontSize, this);
         // Pack because otherwise the dialog won't be sized correctly when
         // displaying it for the first time (not sure why)
@@ -229,29 +340,27 @@ public class UserInfo extends JDialog {
             categoriesString = categories.toString();
         }
         String displayNickInfo = user.hasDisplayNickSet() ? "" : "*";
-        this.setTitle("User: "+user.toString()
+        this.setTitle(Language.getString("userDialog.title")+" "+user.toString()
                 +(user.hasCustomNickSet() ? " ("+user.getDisplayNick()+")" : "")
                 +(!user.hasRegularDisplayNick() ? " ("+user.getName()+")" : "")
                 +displayNickInfo
-                +" / "+user.getChannel()
+                +" / "+user.getRoom().getDisplayName()
                 +" "+categoriesString);
         pastMessages.update(user, currentMsgId != null ? currentMsgId : currentAutoModMsgId);
         infoPanel.update(user);
         singleMessage.setEnabled(currentMsgId != null);
-        updateModButtons();
-        buttons.updateAutoModButtons(autoModMsgId);
+        updateButtons();
         finishDialog();
-    }
-    
-    public void updateModButtons() {
-        if (currentUser == null) {
-            return;
-        }
-        boolean localIsStreamer = currentUser.getStream().equalsIgnoreCase(currentLocalUsername);
-        buttons.updateModButtons(localIsStreamer, currentUser.isModerator());
     }
 
     public void show(Component owner, User user, String msgId, String autoModMsgId, String localUsername) {
+        if (user == currentUser && isVisible()) {
+            if (Objects.equals(currentMsgId, msgId)) {
+                GuiUtil.shake(this, 2, 2);
+            } else {
+                GuiUtil.shake(this, 1, 1);
+            }
+        }
         banReasons.updateReasonsFromSettings();
         banReasons.reset();
         singleMessage.setSelected(false);
@@ -300,9 +409,17 @@ public class UserInfo extends JDialog {
     public String getBanReason() {
         return banReasons.getSelectedReason();
     }
+    
+    public boolean isPinned() {
+        return pinnedDialog.isSelected();
+    }
+    
+    public void setPinned(boolean isPinned) {
+        pinnedDialog.setSelected(isPinned);
+    }
 
-    public void setChannelInfo(ChannelInfo info) {
-        if (info == null || currentUser == null || !currentUser.getName().equals(info.name)) {
+    public void setChannelInfo(String stream, ChannelInfo info) {
+        if (currentUser == null || !currentUser.getName().equals(stream)) {
             return;
         }
         infoPanel.setChannelInfo(info);
@@ -312,4 +429,19 @@ public class UserInfo extends JDialog {
         return owner.getCachedChannelInfo(currentUser.getName(), currentUser.getId());
     }
 
+    public void setFollowInfo(String stream, String user, Follower follow, TwitchApi.RequestResultCode result) {
+        if (currentUser == null || !currentUser.getName().equals(user)
+                || !Objects.equals(currentUser.getStream(), stream)) {
+            return;
+        }
+        infoPanel.setFollowInfo(follow, result);
+    }
+
+    protected Follower getFollowInfo(boolean refresh) {
+        return owner.getSingleFollower(currentUser.getStream(),
+                currentUser.getRoom().getStreamId(),
+                currentUser.getName(),
+                currentUser.getId(),
+                refresh);
+    }
 }

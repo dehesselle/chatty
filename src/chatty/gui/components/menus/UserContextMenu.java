@@ -2,7 +2,9 @@
 package chatty.gui.components.menus;
 
 import chatty.User;
+import chatty.lang.Language;
 import chatty.util.commands.CustomCommand;
+import chatty.util.commands.Parameters;
 import java.awt.event.ActionEvent;
 import java.util.List;
 import java.util.Set;
@@ -17,21 +19,23 @@ public class UserContextMenu extends ContextMenu {
     
     private final ContextMenuListener listener;
     private final User user;
+    private final String msgId;
     private final String autoModMsgId;
     
-    private static final String MISC_MENU = "Miscellaneous";
+    private static final String MISC_MENU = Language.getString("userCm.menu.misc");
     
-    public UserContextMenu(User user, String autoModMsgId,
+    public UserContextMenu(User user, String msgId, String autoModMsgId,
             ContextMenuListener listener) {
         this.listener = listener;
         this.user = user;
+        this.msgId = msgId;
         this.autoModMsgId = autoModMsgId;
         
-        addItem("userinfo", "User: "+user.getDisplayNick());
+        addItem("userinfo", Language.getString("userCm.user", user.getDisplayNick()));
         addSeparator();
         ContextMenuHelper.addStreamsOptions(this, 1, false);
         addSeparator();
-        addItem("join","Join #"+user.getName());
+        addItem("join", Language.getString("userCm.join", user.getName()));
         addSeparator();
         if (autoModMsgId != null) {
             addItem("autoModApprove", "Approve");
@@ -40,17 +44,17 @@ public class UserContextMenu extends ContextMenu {
         }
         
         // Misc Submenu
-        addItem("copyNick", "Copy Name", MISC_MENU);
-        addItem("copyDisplayNick", "Copy Display Name", MISC_MENU);
+        addItem("copyNick", Language.getString("userCm.copyName"), MISC_MENU);
+        addItem("copyDisplayNick", Language.getString("userCm.copyDisplayName"), MISC_MENU);
         addSeparator(MISC_MENU);
         ContextMenuHelper.addIgnore(this, user.getName(), MISC_MENU, false);
         ContextMenuHelper.addIgnore(this, user.getName(), MISC_MENU, true);
         addSeparator(MISC_MENU);
-        addItem("follow", "Follow", MISC_MENU);
-        addItem("unfollow", "Unfollow", MISC_MENU);
+        addItem("follow", Language.getString("userCm.follow"), MISC_MENU);
+        addItem("unfollow", Language.getString("userCm.unfollow"), MISC_MENU);
         addSeparator(MISC_MENU);
-        addItem("setcolor", "Set color", MISC_MENU);
-        addItem("setname", "Set name", MISC_MENU);
+        addItem("setcolor", Language.getString("userCm.setColor"), MISC_MENU);
+        addItem("setname", Language.getString("userCm.setName"), MISC_MENU);
         
         // Get the preset categories from the addressbook, which may be empty
         // if not addressbook is set to this user
@@ -91,7 +95,7 @@ public class UserContextMenu extends ContextMenu {
     @Override
     public void actionPerformed(ActionEvent e) {
         if (listener != null) {
-            listener.userMenuItemClicked(e, user, autoModMsgId);
+            listener.userMenuItemClicked(e, user, msgId, autoModMsgId);
         }
     }
 }

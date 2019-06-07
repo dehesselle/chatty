@@ -2,6 +2,7 @@
 package chatty.gui.components.admin;
 
 import chatty.gui.components.settings.ListTableModel;
+import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.StringUtil;
 import java.awt.Color;
@@ -32,7 +33,14 @@ import javax.swing.table.TableRowSorter;
  */
 public class StatusHistoryTable extends JTable {
     
-    private final Model data = new Model(new String[]{"Fav","Title","Game","Communities","Last Activity","Usage"});
+    private final Model data = new Model(new String[]{
+        Language.getString("admin.presets.column.fav"),
+        Language.getString("admin.presets.column.title"),
+        Language.getString("admin.presets.column.game"),
+        Language.getString("admin.presets.column.tags"),
+        Language.getString("admin.presets.column.lastActivity"),
+        Language.getString("admin.presets.column.usage")
+    });
     private final TableRowSorter sorter;
     private final JPopupMenu contextMenu;
     
@@ -47,7 +55,7 @@ public class StatusHistoryTable extends JTable {
         setRowSorter(sorter);
         TableColumn tc = getColumnModel().getColumn(1); // Title
         tc.setCellRenderer(new LineWrapCellRenderer(true));
-        TableColumn tc2 = getColumnModel().getColumn(3); // Communities
+        TableColumn tc2 = getColumnModel().getColumn(3); // Tags
         tc2.setCellRenderer(new LineWrapCellRenderer(true));
         setGridColor(new Color(200,200,200));
         
@@ -57,7 +65,7 @@ public class StatusHistoryTable extends JTable {
         setColumnWidth(0, 30, 30, 30);  // Fav
         setColumnWidth(1, 200, 0, 0);   // Title
         setColumnWidth(2, 120, 0, 0);   // Game
-        setColumnWidth(3, 140, 0, 0);   // Communities
+        setColumnWidth(3, 140, 0, 0);   // Tags
         setColumnWidth(4, 100, 100, 100); // Last Activity
         setColumnWidth(5, 50, 50, 50);  // Usage
         
@@ -308,7 +316,7 @@ public class StatusHistoryTable extends JTable {
             } else if (columnIndex == 2) {
                 return entry.game;
             } else if (columnIndex == 3) {
-                return StringUtil.join(entry.communities, ", ");
+                return StringUtil.join(entry.tags, ", ");
             } else if (columnIndex == 4) {
                 return entry.lastActivity;
             } else if (columnIndex == 5) {
@@ -325,13 +333,13 @@ public class StatusHistoryTable extends JTable {
          */
         @Override
         public Class getColumnClass(int columnIndex) {
-            if (columnIndex == 0) {
+            if (columnIndex == 0) { // Fav
                 return Boolean.class;
             }
-            if (columnIndex == 4) {
+            if (columnIndex == 4) { // Last Activity
                 return Long.class;
             }
-            if (columnIndex == 5) {
+            if (columnIndex == 5) { // Usage
                 return Integer.class;
             }
             return String.class;

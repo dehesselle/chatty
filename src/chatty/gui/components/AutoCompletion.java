@@ -1,8 +1,10 @@
 
 package chatty.gui.components;
 
-import chatty.gui.HtmlColors;
+import chatty.Helper;
+import chatty.util.colors.HtmlColors;
 import chatty.gui.components.AutoCompletionServer.CompletionItems;
+import chatty.util.StringUtil;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -23,6 +25,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
+import javax.swing.text.JTextComponent;
 
 /**
  * Provides the feature to complete text when the user performs a certain action
@@ -43,12 +46,12 @@ public class AutoCompletion {
      * Word pattern to be used to find the start/end of the word to be
      * completed.
      */
-    private static final Pattern WORD = Pattern.compile("[^\\s,.:-@#+~!\"'$§%&\\/]+");
+    private static final Pattern WORD = Pattern.compile("[^\\s,.:\\-@#+~!\"'$§%&\\/]+");
 
     /**
      * The JTextField the completion is performed in.
      */
-    private final JTextField textField;
+    private final JTextComponent textField;
 
     // Settings
     private int maxResultsShown = 5;
@@ -62,6 +65,7 @@ public class AutoCompletion {
     private String prevCompletion = null;
     private int prevCompletionIndex = 0;
     private int prevStart = 0;
+    private int prevEnd = 0;
     private String prevCompletionText = null;
     private int prevCaretPos;
     private AutoCompletionServer.CompletionItems prevCompletionItems;
@@ -81,7 +85,7 @@ public class AutoCompletion {
      *
      * @param textField The JTextField to perform the completion on
      */
-    public AutoCompletion(JTextField textField) {
+    public AutoCompletion(JTextComponent textField) {
         this.textField = textField;
         textField.addCaretListener(new CaretListener() {
 
@@ -193,6 +197,10 @@ public class AutoCompletion {
     public void setCompleteToCommonPrefix(boolean common) {
         this.completeToCommonPrefix = common;
     }
+    
+    public boolean getCompleteToCommonPrefix() {
+        return completeToCommonPrefix;
+    }
 
     /**
      * Sets the {@link AudoCompletionServer}, which provides the actual
@@ -278,7 +286,8 @@ public class AutoCompletion {
         // If text was manually edited after the previous completion, start
         // fresh, which means it counts as a new completion
         boolean newCompletion = false;
-        if (!text.equals(prevCompletionText) || !inCompletion
+        if (!text.equals(prevCompletionText)
+                || !inCompletion
                 || (prevCompletionItems != null && prevCompletionItems.items.size() == 1)) {
             prevCompletion = null;
             index = 0;
@@ -289,12 +298,13 @@ public class AutoCompletion {
         // Current word in textbox
         //-------------------------
         // Find start and end of the word based on where the caret is
-        int end = findWordEnd(text, pos);
         int start = prevStart;
+        int end = prevEnd;
         if (newCompletion) {
             // This is necessary if a prefix was removed which separated the
             // word from previous characters (in the same completion)
             start = findWordStart(text, pos);
+            end = findWordEnd(text, pos);
         }
 
         // Get the word
@@ -389,7 +399,7 @@ public class AutoCompletion {
         int newEnd = end + (nick.length() - actualWord.length());
         prevCaretPos = newEnd;
         textField.setCaretPosition(newEnd);
-        
+        prevEnd = newEnd;
         //System.out.println("'"+prefix+"'"+nick.codePointCount(0, nick.length())+" "+nick.length()+" "+actualWord+" "+end+" "+newEnd+" "+textField.getText().length());
 
         //------------
@@ -536,20 +546,23 @@ public class AutoCompletion {
             b.append("<span ");
             if (i == index) {
                 b.append("style='background-color:#CCCCCC;'>");
-                b.append(item);
+                b.append(Helper.htmlspecialchars_encode(item));
             } else {
                 b.append(">");
                 if (commonPrefix.length() > 0) {
                     int length = commonPrefix.length();
                     b.append("<span style='background-color:#DDDDDD;'>");
-                    b.append(item.substring(0, length)).append("</span>");
-                    b.append(item.substring(length));
+                    b.append(Helper.htmlspecialchars_encode(item.substring(0, length)));
+                    b.append("</span>");
+                    b.append(Helper.htmlspecialchars_encode(item.substring(length)));
                 } else {
-                    b.append(item);
+                    b.append(Helper.htmlspecialchars_encode(item));
                 }
             }
             if (results.hasInfo(item)) {
-                b.append(" <span style='color:#555555'>(").append(results.getInfo(item)).append(")</span>");
+                b.append(" <span style='color:#555555'>(");
+                b.append(results.getInfo(item));
+                b.append(")</span>");
             }
             b.append("</span><br />");
         }
@@ -676,7 +689,7 @@ public class AutoCompletion {
         if (m.find(pos)) {
             end = m.end();
         }
-
+        
         // If position is already at the end of the text, use the text length
         if (text.length() == pos) {
             end = text.length();
@@ -736,7 +749,7 @@ public class AutoCompletion {
         for (String item : input) {
             if (result == null) {
                 result = item;
-            } else if (!item.toLowerCase().startsWith(result.toLowerCase())) {
+            } else if (!StringUtil.toLowerCase(item).startsWith(StringUtil.toLowerCase(result))) {
                 result = findCommonPrefix(item, result);
                 if (result.isEmpty()) {
                     return result;
@@ -756,7 +769,7 @@ public class AutoCompletion {
     private static String findCommonPrefix(String a, String b) {
         int minLength = Math.min(a.length(), b.length());
         for (int i = 0; i < minLength; i++) {
-            if (a.toLowerCase().charAt(i) != b.toLowerCase().charAt(i)) {
+            if (StringUtil.toLowerCase(a).charAt(i) != StringUtil.toLowerCase(b).charAt(i)) {
                 return a.substring(0, i);
             }
         }

@@ -3,6 +3,7 @@ package chatty.gui.components;
 
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.StreamInfosContextMenu;
+import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.api.StreamInfo;
 import java.awt.GridBagConstraints;
@@ -44,7 +45,7 @@ public class LiveStreamsRemovedList extends JPanel {
         gbc.weightx = 1;
         gbc.weighty = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        button = new JButton("Back to Live Streams");
+        button = new JButton(Language.getString("streams.removed.button.back"));
         add(button, gbc);
         
         gbc.gridx = 0;
@@ -155,7 +156,7 @@ public class LiveStreamsRemovedList extends JPanel {
     private static class RemovedListItem implements Comparable<RemovedListItem> {
         
         private final StreamInfo info;
-        private final Long time;
+        private final long time;
         
         public RemovedListItem(StreamInfo info) {
             this.info = info;
@@ -172,7 +173,7 @@ public class LiveStreamsRemovedList extends JPanel {
             return info;
         }
         
-        public Long getTime() {
+        public long getTime() {
             return time;
         }
 

@@ -1,6 +1,7 @@
 
 package chatty.gui.components.settings;
 
+import chatty.util.StringUtil;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -11,7 +12,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -113,20 +113,26 @@ public class TableEditor<T> extends JPanel {
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    editSelectedItem();
+                if (isEnabled()) {
+                    if (e.getClickCount() == 2) {
+                        editSelectedItem();
+                    }
                 }
             }
             
             @Override
             public void mousePressed(MouseEvent e) {
-                selectRowAt(e.getPoint());
-                popupMenu(e);
+                if (isEnabled()) {
+                    selectRowAt(e.getPoint());
+                    popupMenu(e);
+                }
             }
             
             @Override
             public void mouseReleased(MouseEvent e) {
-                popupMenu(e);
+                if (isEnabled()) {
+                    popupMenu(e);
+                }
             }
         });
         
@@ -157,8 +163,8 @@ public class TableEditor<T> extends JPanel {
         searchTimer.setRepeats(true);
 
         // Buttons Configuration
-        configureButton(add, "list-add.png", "Add selected item");
-        configureButton(edit, "edit.png", "Edit selected item");
+        configureButton(add, "list-add.png", "Add new item (after selected)");
+        configureButton(edit, "edit.png", "Edit selected item (double-click)");
         configureButton(remove, "list-remove.png", "Remove selected item");
         configureButton(moveUp, "go-up.png", "Move selected item up");
         configureButton(moveDown, "go-down.png", "Move selected item down");
@@ -316,6 +322,17 @@ public class TableEditor<T> extends JPanel {
         this.listener = listener;
     }
     
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        updateButtons();
+        // Make table visibily disabled
+        table.setEnabled(enabled);
+        table.setFocusable(enabled);
+        table.setOpaque(enabled);
+        table.setShowGrid(enabled);
+    }
+    
     /**
      * Opens the context menu if this MouseEvent was a popup trigger and a menu
      * is set.
@@ -401,8 +418,8 @@ public class TableEditor<T> extends JPanel {
      * Update the enabled-state of the buttons.
      */
     private void updateButtons() {
-        boolean enabled = table.getSelectedRowCount() == 1;
-        add.setEnabled(true);
+        boolean enabled = table.getSelectedRowCount() == 1 && isEnabled();
+        add.setEnabled(isEnabled());
         remove.setEnabled(enabled);
         edit.setEnabled(enabled);
         moveUp.setEnabled(enabled);
@@ -764,7 +781,7 @@ public class TableEditor<T> extends JPanel {
         
         // Update state
         String pressed = String.valueOf(input);
-        search += pressed.toLowerCase();
+        search += StringUtil.toLowerCase(pressed);
         searchColumn = column;
         searchTime = System.currentTimeMillis();
 
@@ -781,12 +798,12 @@ public class TableEditor<T> extends JPanel {
         
         // Perform search and select first result
         for (int i = 0; i < data.getRowCount(); i++) {
-            String item = data.getSearchValueAt(i, column);
-            if (item.toLowerCase().startsWith(search)) {
+            String item = StringUtil.toLowerCase(data.getSearchValueAt(i, column));
+            if (item.startsWith(search)) {
                 setRowSelected(indexToView(i));
                 return;
             }
-            if (item.toLowerCase().contains(search)) {
+            if (item.contains(search)) {
                 setRowSelected(indexToView(i));
             }
         }

@@ -1,6 +1,7 @@
 
 package chatty.gui.components.menus;
 
+import chatty.Room;
 import chatty.User;
 import chatty.util.api.Emoticon;
 import chatty.util.api.Emoticon.EmoticonImage;
@@ -17,7 +18,7 @@ import java.util.List;
 public class ContextMenuAdapter implements ContextMenuListener {
 
     @Override
-    public void userMenuItemClicked(ActionEvent e, User user, String msgId) {
+    public void userMenuItemClicked(ActionEvent e, User user, String msgId, String autoModMsgId) {
 
     }
 
@@ -47,6 +48,10 @@ public class ContextMenuAdapter implements ContextMenuListener {
 
     @Override
     public void usericonMenuItemClicked(ActionEvent e, Usericon usericon) {
+    }
+
+    @Override
+    public void roomsMenuItemClicked(ActionEvent e, Collection<Room> rooms) {
     }
     
 }

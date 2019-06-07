@@ -60,7 +60,7 @@ public class AttachedWindowManager {
                 for (Component comp : components) {
                     temp2.x = comp.getX() + movedX;
                     temp2.y = comp.getY() + movedY;
-                    if (GuiUtil.isPointOnScreen(temp2, comp.getWidth() / 2)) {
+                    if (GuiUtil.isPointOnScreen(temp2, comp.getWidth() / 2, 10)) {
                         comp.setLocation(temp2);
                     }
                 }
@@ -77,9 +77,13 @@ public class AttachedWindowManager {
      * the owner itself
      */
     public void attach(Component comp) {
-        if (comp != owner) {
+        if (comp != owner && !components.contains(comp)) {
             components.add(comp);
         }
+    }
+    
+    public void detach(Component comp) {
+        components.remove(comp);
     }
     
     /**

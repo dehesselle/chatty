@@ -3,15 +3,17 @@ This is a bundled version of Chatty, which includes:
 
 * The Chatty program (Chatty.jar), the original readme.txt and other original
   Chatty files in the `app` subdirectory
-* A private Java Runtime Environment (Java 1.8.0_151, 32bit) in the `runtime`
+* A private Java Runtime Environment (Java 1.8.0_201, 32bit) in the `runtime`
   subdirectory, which is used to run Chatty without having to have Java
   installed on the system
+* Some additional fallback fonts
 * The Chatty.exe and some helper libraries
 
 Advantages
 ----------
 
 * You don't need to install Java on your system
+* A version of Java that Chatty has been tested with
 * The Chatty.exe is a native Windows program with an icon
 
 Downsides
@@ -19,6 +21,7 @@ Downsides
 
 * Larger download size
 * You can't update the bundled Java yourself
+* Currently only available for Windows
 
 =================
 Use and configure

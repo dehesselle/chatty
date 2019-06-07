@@ -6,12 +6,13 @@ import chatty.gui.LinkListener;
 import chatty.gui.UrlOpener;
 import chatty.gui.components.admin.StatusHistoryEntry;
 import chatty.gui.components.menus.ContextMenuListener;
+import chatty.lang.Language;
 import chatty.util.DateTime;
 import static chatty.util.DateTime.H;
 import static chatty.util.DateTime.S;
 import chatty.util.MiscUtil;
 import chatty.util.StringUtil;
-import chatty.util.api.CommunitiesManager.Community;
+import chatty.util.api.StreamTagManager.StreamTag;
 import chatty.util.api.StreamInfo;
 import chatty.util.api.StreamInfo.StreamType;
 import chatty.util.api.StreamInfoHistoryItem;
@@ -37,13 +38,13 @@ import javax.swing.*;
  */
 public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener {
 
-    private static final String STATUS_LABEL_TEXT = "Status:";
-    private static final String STATUS_LABEL_TEXT_HISTORY = "Status (History):";
+    private static final String STATUS_LABEL_TEXT = Language.getString("channelInfo.status")+":";
+    private static final String STATUS_LABEL_TEXT_HISTORY = Language.getString("channelInfo.history")+":";
     
-    private static final String GAME_LABEL_TEXT = "Playing:";
-    private static final String GAME_LABEL_TEXT_VOD = "VODCAST / Playing:";
+    private static final String GAME_LABEL_TEXT = Language.getString("channelInfo.playing")+":";
+    private static final String GAME_LABEL_TEXT_VOD = "VOD / "+Language.getString("channelInfo.playing")+":";
     
-    private final JLabel statusLabel = new JLabel("Status:");
+    private final JLabel statusLabel = new JLabel(STATUS_LABEL_TEXT);
     private final ExtendedTextPane title = new ExtendedTextPane();
     
     private final JLabel onlineSince = new JLabel();
@@ -52,11 +53,11 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
     private final JLabel gameLabel = new JLabel(GAME_LABEL_TEXT);
     private final JTextField game = new JTextField();
     
-    private final LinkLabel communityLabel;
+//    private final LinkLabel communityLabel;
     private final LinkLabel testLabel = new LinkLabel(null, null);
-    private List<Community> communities;
+    private List<StreamTag> communities;
     
-    private final JLabel historyLabel = new JLabel("Viewers:");
+    private final JLabel historyLabel = new JLabel(Language.getString("channelInfo.viewers")+":");
     private final ViewerHistory history = new ViewerHistory();
     
     private StreamInfo currentStreamInfo;
@@ -72,7 +73,6 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
     
     public ChannelInfoDialog(Frame owner) {
         super(owner);
-        setTitle("Channel Info");
         
         setLayout(new GridBagLayout());
         
@@ -112,52 +112,52 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
         gbc.anchor = GridBagConstraints.EAST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 0.9;
-        communityLabel = new LinkLabel(" ", new LinkLabelListener() {
-
-            @Override
-            public void linkClicked(String type, String ref) {
-                if (type.equals("overflow")) {
-                    int overflow = Integer.valueOf(ref);
-                    JPopupMenu menu = new JPopupMenu();
-                    for (int i=communities.size()-overflow;i<communities.size();i++) {
-                        Community c = communities.get(i);
-                        Action a = new AbstractAction(c.toString()) {
-                            
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                String url = "https://www.twitch.tv/communities/"+c.getName();
-                                UrlOpener.openUrlPrompt(ChannelInfoDialog.this, url);
-                            }
-                        };
-                        menu.add(new JMenuItem(a));
-                    }
-                    menu.addSeparator();
-                    menu.add(new JMenuItem(new AbstractAction("Copy all") {
-                        
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            MiscUtil.copyToClipboard(StringUtil.join(communities, ", "));
-                        }
-                    }));
-                    menu.show(communityLabel, communityLabel.getWidth(), communityLabel.getHeight());
-                } else {
-                    String url = "https://www.twitch.tv/communities/"+ref;
-                    UrlOpener.openUrlPrompt(ChannelInfoDialog.this, url);
-                }
-            }
-        });
-        communityLabel.setMargin(game.getMargin());
+//        communityLabel = new LinkLabel(" ", new LinkLabelListener() {
+//
+//            @Override
+//            public void linkClicked(String type, String ref) {
+//                if (type.equals("overflow")) {
+//                    int overflow = Integer.valueOf(ref);
+//                    JPopupMenu menu = new JPopupMenu();
+//                    for (int i=communities.size()-overflow;i<communities.size();i++) {
+//                        StreamTag c = communities.get(i);
+//                        Action a = new AbstractAction(c.toString()) {
+//                            
+//                            @Override
+//                            public void actionPerformed(ActionEvent e) {
+//                                String url = "https://www.twitch.tv/communities/"+c.getName();
+//                                UrlOpener.openUrlPrompt(ChannelInfoDialog.this, url);
+//                            }
+//                        };
+//                        menu.add(new JMenuItem(a));
+//                    }
+//                    menu.addSeparator();
+//                    menu.add(new JMenuItem(new AbstractAction(Language.getString("channelInfo.cm.copyAllCommunities")) {
+//                        
+//                        @Override
+//                        public void actionPerformed(ActionEvent e) {
+//                            MiscUtil.copyToClipboard(StringUtil.join(communities, ", "));
+//                        }
+//                    }));
+//                    menu.show(communityLabel, communityLabel.getWidth(), communityLabel.getHeight());
+//                } else {
+//                    String url = "https://www.twitch.tv/communities/"+ref;
+//                    UrlOpener.openUrlPrompt(ChannelInfoDialog.this, url);
+//                }
+//            }
+//        });
+//        communityLabel.setMargin(game.getMargin());
         
         // Size listener to the dialog, since that is most relevant (other
         // changes update anyway)
-        addComponentListener(new ComponentAdapter() {
-
-            @Override
-            public void componentResized(ComponentEvent e) {
-                updateCommunities();
-            }
-        });
-        add(communityLabel, gbc);
+//        addComponentListener(new ComponentAdapter() {
+//
+//            @Override
+//            public void componentResized(ComponentEvent e) {
+//                updateCommunities();
+//            }
+//        });
+//        add(communityLabel, gbc);
  
         // Graph
         gbc = makeGbc(0,4,1,1);
@@ -166,9 +166,9 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
         add(historyLabel,gbc);
         
         history.setListener(this);
-        history.setForegroundColor(gameLabel.getForeground());
-        history.setBackgroundColor(gameLabel.getBackground());
-        history.setFontSize(gameLabel.getFont().getSize());
+        history.setForegroundColor(game.getForeground());
+        history.setBackgroundColor(game.getBackground());
+        history.setBaseFont(game.getFont());
         history.setPreferredSize(new Dimension(300,150));
         history.setMinimumSize(new Dimension(1,20));
         gbc = makeGbc(0,5,2,1);
@@ -202,7 +202,8 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
         if (!streamInfo.hasRegularDisplayName()) {
             name += " ("+streamInfo.getCapitalizedName()+")";
         }
-        this.setTitle("Channel: "+name+(streamInfo.getFollowed() ? " (followed)" : ""));
+        this.setTitle(Language.getString("channelInfo.title", name)
+                +(streamInfo.getFollowed() ? " ("+Language.getString("channelInfo.title.followed")+")" : ""));
         if (streamInfo.isValid() && streamInfo.getOnline()) {
             statusText = streamInfo.getTitle();
             gameText = streamInfo.getGame();
@@ -215,13 +216,13 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
             updateStreamType(streamInfo.getStreamType());
         }
         else if (streamInfo.isValid()) {
-            statusText = "Stream offline";
+            statusText = Language.getString("channelInfo.streamOffline");
             gameText = "";
             timeStarted = -1;
             setCommunities(null);
         }
         else {
-            statusText = "[No Stream Information]";
+            statusText = Language.getString("channelInfo.noInfo");
             gameText = "";
             timeStarted = -1;
             onlineSince.setText(null);
@@ -250,7 +251,7 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
         }
     }
     
-    private void setCommunities(List<Community> c) {
+    private void setCommunities(List<StreamTag> c) {
         if (c != null && c.contains(null)) {
             // This usually shouldn't contain null elements, but just in case
             c = new ArrayList<>(c);
@@ -260,26 +261,26 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
     }
     
     private void updateCommunities() {
-        // Wrapped in invokeLater so that the size of the gameLabel is updated
-        SwingUtilities.invokeLater(() -> {
-            if (communities == null || communities.isEmpty()) {
-                communityLabel.setText("");
-            } else {
-                // -80 to leave some distance between "Playing" and this
-                int availableWidth = getWidth() - gameLabel.getWidth() - 80;
-                for (int i = 0; i <= communities.size(); i++) {
-                    String result = makeCommunitiesText(communities, i);
-                    // Use a separate label, as to not update the acual one
-                    // until it fits
-                    testLabel.setText(result);
-                    if (availableWidth > testLabel.getPreferredSize().width) {
-                        // Found content that fits, so go set it and stop
-                        communityLabel.setText(result);
-                        break;
-                    }
-                }
-            }
-        });
+//        // Wrapped in invokeLater so that the size of the gameLabel is updated
+//        SwingUtilities.invokeLater(() -> {
+//            if (communities == null || communities.isEmpty()) {
+//                communityLabel.setText("");
+//            } else {
+//                // -80 to leave some distance between "Playing" and this
+//                int availableWidth = getWidth() - gameLabel.getWidth() - 80;
+//                for (int i = 0; i <= communities.size(); i++) {
+//                    String result = makeCommunitiesText(communities, i);
+//                    // Use a separate label, as to not update the acual one
+//                    // until it fits
+//                    testLabel.setText(result);
+//                    if (availableWidth > testLabel.getPreferredSize().width) {
+//                        // Found content that fits, so go set it and stop
+//                        communityLabel.setText(result);
+//                        break;
+//                    }
+//                }
+//            }
+//        });
     }
     
     /**
@@ -289,25 +290,25 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
      * @param overflow How many communities should be in the overflow menu
      * @return The resulting String
      */
-    private String makeCommunitiesText(List<Community> communities, int overflow) {
-        StringBuilder b = new StringBuilder("<div style='text-align:right'>");
-        for (int i = 0; i < communities.size() - overflow; i++) {
-            Community c = communities.get(i);
-            if (i > 0) {
-                b.append(", ");
-            }
-            b.append("[community:").append(c.getName()).append(" ");
-            b.append(c.getDisplayName()).append("]");
-        }
-        if (overflow > 0) {
-            b.append(" [overflow:").append(overflow).append(" (+").append(overflow).append(")]");
-        }
-        b.append("</div>");
-        return b.toString();
-    }
+//    private String makeCommunitiesText(List<StreamTag> communities, int overflow) {
+//        StringBuilder b = new StringBuilder("<div style='text-align:right'>");
+//        for (int i = 0; i < communities.size() - overflow; i++) {
+//            StreamTag c = communities.get(i);
+//            if (i > 0) {
+//                b.append(", ");
+//            }
+//            b.append("[community:").append(c.getName()).append(" ");
+//            b.append(c.getDisplayName()).append("]");
+//        }
+//        if (overflow > 0) {
+//            b.append(" [overflow:").append(overflow).append(" (+").append(overflow).append(")]");
+//        }
+//        b.append("</div>");
+//        return b.toString();
+//    }
     
     private void updateStreamType(StreamType streamType) {
-        if (streamType == StreamType.WATCH_PARTY) {
+        if (streamType != StreamType.LIVE) {
             gameLabel.setText(GAME_LABEL_TEXT_VOD);
         } else {
             gameLabel.setText(GAME_LABEL_TEXT);
@@ -323,14 +324,16 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
         } else if (info.isValid() && info.getOnline()) {
             updateOnlineTime(info.getTimeStarted(), info.getTimeStartedWithPicnic(), System.currentTimeMillis());
         } else if (info.isValid()) {
-            onlineSince.setText("Offline");
+            onlineSince.setText(Language.getString("channelInfo.offline"));
             if (info.getLastOnlineTime() != -1) {
                 String lastBroadcastTime = formatTime(info.getTimeStarted(), info.getLastOnlineTime());
                 if (info.getTimeStarted() != info.getTimeStartedWithPicnic()) {
                     String withPicnic = formatTime(info.getTimeStartedWithPicnic(), info.getLastOnlineTime());
-                    onlineSince.setToolTipText("Last broadcast length (probably approx.): " + lastBroadcastTime+" (With PICNIC: "+withPicnic+")");
+                    onlineSince.setToolTipText(Language.getString("channelInfo.offline.tip.picnic",
+                            lastBroadcastTime, withPicnic));
                 } else {
-                    onlineSince.setToolTipText("Last broadcast length (probably approx.): " + lastBroadcastTime);
+                    onlineSince.setToolTipText(Language.getString("channelInfo.offline.tip",
+                            lastBroadcastTime));
                 }
             } else {
                 onlineSince.setToolTipText(null);
@@ -347,13 +350,15 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
     private void updateOnlineTime(long started, long withPicnic, long current) {
         if (started != -1) {
             if (withPicnic != started) {
-                onlineSince.setText("Live: " + formatTime(started, current) + " (" + formatTime(withPicnic, current)+")");
-                onlineSince.setToolTipText("Stream started: "+DateTime.formatFullDatetime(started)
-                        +" (With PICNIC: "
-                        +DateTime.formatFullDatetime(withPicnic)+")");
+                onlineSince.setText(Language.getString("channelInfo.uptime.picnic",
+                        formatTime(started, current), formatTime(withPicnic, current)));
+                onlineSince.setToolTipText(Language.getString("channelInfo.uptime.tip.picnic",
+                        DateTime.formatFullDatetime(started), DateTime.formatFullDatetime(withPicnic)));
             } else {
-                onlineSince.setText("Live: " + formatTime(started, current));
-                onlineSince.setToolTipText("Stream started: "+DateTime.formatFullDatetime(timeStarted));
+                onlineSince.setText(Language.getString("channelInfo.uptime",
+                        formatTime(started, current)));
+                onlineSince.setToolTipText(Language.getString("channelInfo.uptime.tip",
+                        DateTime.formatFullDatetime(timeStarted)));
             }
         }
     }
@@ -401,7 +406,11 @@ public class ChannelInfoDialog extends JDialog implements ViewerHistoryListener 
     }
     
     public void setHistoryRange(int minutes) {
-        history.setRange(minutes*60*1000);
+        history.setRange(minutes);
+    }
+    
+    public void setHistoryVerticalZoom(boolean verticalZoom) {
+        history.setVerticalZoom(verticalZoom);
     }
     
     public void addContextMenuListener(ContextMenuListener listener) {

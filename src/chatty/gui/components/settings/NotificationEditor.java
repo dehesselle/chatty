@@ -2,7 +2,7 @@
 package chatty.gui.components.settings;
 
 import chatty.gui.GuiUtil;
-import chatty.gui.HtmlColors;
+import chatty.util.colors.HtmlColors;
 import chatty.gui.components.LinkLabelListener;
 import chatty.gui.notifications.Notification;
 import chatty.gui.notifications.Notification.State;
@@ -202,8 +202,8 @@ class NotificationEditor extends TableEditor<Notification> {
         private static final String MATCHER_HELP = "<html><body width='300px'>"
                 + "The Matcher allows you to match on the text of the "
                 + "notification. You can use the same format as for the "
-                + "[help-settings:Highlight Highlights] list, although some prefixes may not have an "
-                + "effect.<br /><br />";
+                + "[help-settings:Highlight Highlights] list, although some "
+                + "prefixes may have no effect.<br /><br />";
         
         private static final int VOLUME_MIN = 0;
         private static final int VOLUME_MAX = 100;
@@ -300,10 +300,11 @@ class NotificationEditor extends TableEditor<Notification> {
 
                         @Override
                         public String test(Window parent, Component component, int x, int y, String value) {
-                            HighlighterTester tester = new HighlighterTester(parent, value);
-                            return tester.test();
+                            HighlighterTester tester = new HighlighterTester(parent, false);
+                            return tester.showDialog("Match Notification Text", value, null);
                         }
-                    });
+                    }
+            );
             
             optionsPanel.add(new JLabel("Channel:"), GuiUtil.makeGbc(0, 1, 1, 1));
             optionsPanel.add(channel, GuiUtil.makeGbc(1, 1, 1, 1, GridBagConstraints.WEST));
@@ -318,8 +319,8 @@ class NotificationEditor extends TableEditor<Notification> {
 
                 @Override
                 public void colorUpdated() {
-                    foregroundColor.update(backgroundColor.getSettingValue());
-                    backgroundColor.update(foregroundColor.getSettingValue());
+                    foregroundColor.setBaseColor(backgroundColor.getSettingValue());
+                    backgroundColor.setBaseColor(foregroundColor.getSettingValue());
                     updateTestNotification();
                 }
             };
@@ -328,11 +329,11 @@ class NotificationEditor extends TableEditor<Notification> {
             
             colorTemplates = new ColorTemplates(settings,
                     NotificationManager.COLOR_PRESETS_SETTING_NAME,
-                    foregroundColor, backgroundColor);
-            colorTemplates.addPreset("Classic", "Black", "#FFFFF0");
-            colorTemplates.addPreset("Highlight", "Black", "#FFFF79");
-            colorTemplates.addPreset("Black", "White", "#333333");
-            colorTemplates.addPreset("Violet", "White", "BlueViolet"); // TODO: Other Chatty icon
+                    new ColorSetting[]{foregroundColor, backgroundColor});
+            colorTemplates.addPreset("Classic",new String[]{"Black", "#FFFFF0"});
+            colorTemplates.addPreset("Highlight",new String[]{"Black", "#FFFF79"});
+            colorTemplates.addPreset("Black", new String[]{"White", "#333333"});
+            colorTemplates.addPreset("Violet", new String[]{"White", "BlueViolet"}); // TODO: Other Chatty icon
             colorTemplates.init();
             
             testColors = new JButton("Test Colors");

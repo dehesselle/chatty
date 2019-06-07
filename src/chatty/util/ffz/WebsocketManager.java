@@ -4,6 +4,7 @@ package chatty.util.ffz;
 import chatty.Chatty;
 import chatty.Helper;
 import chatty.util.JSONUtil;
+import chatty.util.StringUtil;
 import chatty.util.UrlRequest;
 import chatty.util.UrlRequest.FullResult;
 import chatty.util.api.Emoticon;
@@ -154,11 +155,11 @@ public class WebsocketManager {
      * @param room 
      */
     public synchronized void addRoom(String room) {
-        if (!Helper.validateStream(room)) {
+        if (!Helper.isValidStream(room)) {
             return;
         }
         connect();
-        room = room.toLowerCase();
+        room = StringUtil.toLowerCase(room);
         if (rooms.add(room)) {
             subRoom(room);
         }
@@ -171,10 +172,10 @@ public class WebsocketManager {
      * @param room 
      */
     public synchronized void removeRoom(String room) {
-        if (!Helper.validateStream(room)) {
+        if (!Helper.isValidStream(room)) {
             return;
         }
-        room = room.toLowerCase();
+        room = StringUtil.toLowerCase(room);
         if (rooms.remove(room)) {
             unsubRoom(room);
             removeEmotes(room);
@@ -187,7 +188,7 @@ public class WebsocketManager {
         JSONArray rooms = new JSONArray();
         for (String item : split) {
             item = item.trim();
-            if (Helper.validateStream(item)) {
+            if (Helper.isValidStream(item)) {
                 rooms.add(item);
             }
         }
@@ -255,7 +256,7 @@ public class WebsocketManager {
         try {
             JSONObject data = (JSONObject) parser.parse(json);
             for (Object key : data.keySet()) {
-                String room = ((String)key).toLowerCase();
+                String room = StringUtil.toLowerCase((String)key);
                 Set<Integer> emotesets = new HashSet<>();
                 for (Object set : (JSONArray)data.get(key)) {
                     emotesets.add(((Number)set).intValue());

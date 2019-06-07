@@ -40,6 +40,10 @@ public class StringUtil {
         return join(Arrays.asList(array), ",");
     }
     
+    public static String join(Object[] array) {
+        return join(Arrays.asList(array), ",");
+    }
+    
     public static String join(Collection<?> items, String delimiter) {
         return join(items, delimiter, -1, -1);
     }
@@ -132,6 +136,13 @@ public class StringUtil {
         return s != null ? s.toLowerCase(Locale.ENGLISH) : null;
     }
     
+    public static String firstToUpperCase(String s) {
+        if (s == null || s.isEmpty()) {
+            return s;
+        }
+        return s.substring(0, 1).toUpperCase(Locale.ENGLISH) + s.substring(1);
+    }
+    
     /**
      * Removes leading and trailing whitespace and removes and duplicate
      * whitespace in the middle. Due to the way it works, it also replaces any
@@ -208,8 +219,92 @@ public class StringUtil {
         return false;
     }
     
+    public static final String UTF8_BOM = "\uFEFF";
+    
+    /**
+     * Remove the UTF-8 BOM from the beginning of the input.
+     * 
+     * @param input
+     * @return 
+     */
+    public static String removeUTF8BOM(String input) {
+        if (input != null && input.startsWith(UTF8_BOM)) {
+            return input.substring(1);
+        }
+        return input;
+    }
+    
+    /**
+     * Adds linebreaks to the input, in place of existing space characters, so
+     * that each resulting line has the given maximum length. If there is no
+     * space character where needed a line may be longer. The added linebreaks
+     * don't count into the maximum line length.
+     *
+     * @param input The intput to modify
+     * @param maxLineLength The maximum line length in number of characters
+     * @param html If true, a "&lt;br /&gt;" will be added instead of a \n
+     * @return 
+     */
+    public static String addLinebreaks(String input, int maxLineLength, boolean html) {
+        if (input == null || input.length() <= maxLineLength) {
+            return input;
+        }
+        String[] words = input.split(" ");
+        StringBuilder b = new StringBuilder();
+        int lineLength = 0;
+        for (int i=0;i<words.length;i++) {
+            String word = words[i];
+            if (b.length() > 0
+                    && lineLength + word.length() > maxLineLength) {
+                if (html) {
+                    b.append("<br />");
+                } else {
+                    b.append("\n");
+                }
+                lineLength = 0;
+            } else if (b.length() > 0) {
+                b.append(" ");
+                lineLength++;
+            }
+            b.append(word);
+            lineLength += word.length();
+        }
+        return b.toString();
+    }
+    
+    public static String aEmptyb(String value, String a, String b) {
+        if (value == null || value.isEmpty()) {
+            return a;
+        }
+        return String.format(b, value);
+    }
+    
+    public static String concats(Object... args) {
+        return concat(" ", args);
+    }
+    
+    public static String concat(String sep, Object... args) {
+        if (args.length == 0) {
+            return "";
+        }
+        StringBuilder b = new StringBuilder();
+        boolean appended = false;
+        for (Object arg : args) {
+            if (appended) {
+                b.append(sep);
+                appended = false;
+            }
+            if (arg != null) {
+                b.append(arg.toString());
+                appended = true;
+            }
+        }
+        return b.toString();
+    }
+    
     public static final void main(String[] args) {
         System.out.println(shortenTo("abcdefghi", 8, 5));
+        System.out.println(concats("a", null, "b", null));
     }
     
 }

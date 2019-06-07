@@ -5,6 +5,7 @@ import chatty.gui.GuiUtil;
 import chatty.gui.components.menus.CommandMenuItem;
 import chatty.gui.components.menus.CommandMenuItems;
 import chatty.util.commands.CustomCommand;
+import chatty.util.commands.Parameters;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -55,7 +56,7 @@ public class Buttons {
         add(setting);
     }
     
-    public void updateModButtons(boolean localIsStreamer, boolean userIsMod) {
+    protected void updateModButtons(boolean localIsStreamer, boolean userIsMod) {
         if (modUnmodButton == null) {
             return;
         }
@@ -78,7 +79,7 @@ public class Buttons {
         modUnmodButton.setVisible(localIsStreamer);
     }
     
-    public void updateAutoModButtons(String autoModMsgId) {
+    protected void updateAutoModButtons(String autoModMsgId) {
         boolean show = autoModMsgId != null;
         if (approveButton != null) {
             approveButton.setVisible(show);
@@ -157,9 +158,10 @@ public class Buttons {
         if (!rows.containsKey(row)) {
             JPanel newRow = new JPanel();
             ((FlowLayout)(newRow.getLayout())).setVgap(4);
+            // This should be default, but just to be clear
+            ((FlowLayout)(newRow.getLayout())).setHgap(5);
             if (row.startsWith("a")) {
                 primary.add(newRow);
-                
             } else {
                 secondary.add(newRow);
             }
@@ -237,6 +239,40 @@ public class Buttons {
      */
     private void clearShortcut(JButton button) {
         owner.getRootPane().getActionMap().remove(button);
+    }
+    
+    /**
+     * Update button enable status based on whether all named (not numbered)
+     * parameters are available for the associated command.
+     * 
+     * @param parameters 
+     */
+    protected void updateButtonForParameters(Parameters parameters) {
+        for (Map.Entry<JButton, CustomCommand> entry : commands.entrySet()) {
+            JButton button = entry.getKey();
+            CustomCommand command = entry.getValue();
+            boolean allParams = !command.hasError() &&
+                    parameters.getIdentifiers().containsAll(command.getRequiredIdentifiers());
+            button.setEnabled(allParams);
+        }
+    }
+    
+    /**
+     * Hide rows that don't have any visible elements.
+     */
+    protected void updateButtonRows() {
+        for (JPanel row : rows.values()) {
+            boolean hasVisibleElements = false;
+            synchronized(row.getTreeLock()) {
+                for (int i=0;i<row.getComponentCount();i++) {
+                    if (row.getComponent(i).isVisible()) {
+                        hasVisibleElements = true;
+                        break;
+                    }
+                }
+            }
+            row.setVisible(hasVisibleElements);
+        }
     }
     
 }

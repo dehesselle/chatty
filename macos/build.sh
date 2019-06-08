@@ -82,5 +82,13 @@ INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion 10.12" $INFO_PLIST
 
-echo "Build complete."
+echo "Build complete.=========================================================="
 echo "$WORK_DIR/deploy/Chatty.app"
+
+if [ -f $HOME/.developer_id ]; then   # sign the app
+  cd $WORK_DIR/deploy
+  DEVELOPER_ID=$(cat $HOME/.developer_id)
+  codesign --sign "$DEVELOPER_ID" Chatty.app/Contents/Frameworks/Python.framework
+  codesign --sign "$DEVELOPER_ID" --force --verbose=4 Chatty.app
+  codesign --verify --deep --strict Chatty.app
+fi

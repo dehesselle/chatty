@@ -15,13 +15,13 @@
 #
 # If you want to do this yourself, please take note:
 #  - You need a working installation of 'gradle' in your $PATH.
-#  - You need GNU-readlink, 'greadlink',  e.g. via 'coreutils' from homebrew.
 #  - This script does its job without any bells and whistles. It does not
 #    catch errors or give meaningful error messages, it'll just break.
 #
 
 #--- general settings
-REPO_DIR=$(dirname $(greadlink -f $0))/..
+SELF_DIR=$(cd $(dirname "$0"); pwd -P)
+REPO_DIR=$SELF_DIR/..
 . $REPO_DIR/macos/version.sh   # include version information
 
 export MACOSX_DEPLOYMENT_TARGET=10.11

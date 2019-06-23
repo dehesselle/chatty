@@ -2,13 +2,14 @@
 #
 # https://github.com/dehesselle/chatty
 #
-# This script builds Chatty.app for macOS (on macOS!).
+# This script builds Chatty.app for macOS.
 #
 # In short, this script does the following:
 #  - create a 1 GiB ramdisk as build directory
 #  - copy repository to build directory
 #  - build release using 'gradle'
-#  - download Streamlink, copy launch script 'streamlink_vlc.sh'
+#  - download Python 3 framework
+#  - download Streamlink, copy launch scripts for VLC and IINA
 #  - create native application bundle using 'javapackager'
 #  - copy all resources to the 'Resources' folder
 #  - modify version numbers in 'Info.plist'

@@ -5,9 +5,9 @@
 # This script builds Chatty.app for macOS (on macOS!).
 #
 # In short, this script does the following:
-#  - create a 512 MiB ramdisk as build directory
+#  - create a 1 GiB ramdisk as build directory
 #  - copy repository to build directory
-#  - build release using 'gradlew'
+#  - build release using 'gradle'
 #  - download Streamlink, copy launch script 'streamlink_vlc.sh'
 #  - create native application bundle using 'javapackager'
 #  - copy all resources to the 'Resources' folder
@@ -16,7 +16,7 @@
 # If you want to do this yourself, please take note:
 #  - You need a working installation of 'gradle' in your $PATH.
 #  - You need GNU-readlink, 'greadlink',  e.g. via 'coreutils' from homebrew.
-#  - This script does its job without a lot of bells and whistles. It does not
+#  - This script does its job without any bells and whistles. It does not
 #    catch errors or give meaningful error messages, it'll just break.
 #
 
@@ -24,7 +24,7 @@
 REPO_DIR=$(dirname $(greadlink -f $0))/..
 . $REPO_DIR/macos/version.sh   # include version information
 
-export MACOSX_DEPLOYMENT_TARGET=10.12
+export MACOSX_DEPLOYMENT_TARGET=10.11
 
 #--- create temporary workspace
 RAMDISK_VOL=WRKSPC
@@ -39,12 +39,12 @@ cd chatty
 
 #--- download Python.framework
 cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py368.1/py368_framework_1.tar.xz | tar xJp
+curl -L https://github.com/dehesselle/py3framework/releases/download/py368.4/py368_framework_4.tar.xz | tar xJp
 
 #--- download Streamlink
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
-pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink
+pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==1.1.1
 
 sed -i '' '1s/.*/#!\/usr\/bin\/env python3.6\
 /' $STREAMLINK_DIR/bin/chardetect
@@ -80,7 +80,7 @@ INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set CFBundleVersion $CHATTY_MACOS_BUILD" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright (c) 2013-2019 by tduva'" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
-/usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion 10.12" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $MACOSX_DEPLOYMENT_TARGET" $INFO_PLIST
 
 echo "Build complete.=========================================================="
 echo "$WORK_DIR/deploy/Chatty.app"

@@ -40,7 +40,7 @@ cd chatty
 
 #--- download Python.framework
 cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py368.4/py368_framework_4.tar.xz | tar xJp
+curl -L https://github.com/dehesselle/py3framework/releases/download/py369.1/py369_framework_1.tar.xz | tar xJp
 
 #--- download Streamlink
 STREAMLINK_DIR=$WORK_DIR/streamlink

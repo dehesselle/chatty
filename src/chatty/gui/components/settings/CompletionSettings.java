@@ -10,6 +10,7 @@ import java.awt.GridBagLayout;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
@@ -46,27 +47,58 @@ public class CompletionSettings extends SettingsPanel {
         tabChoices.put("custom", Language.getString("settings.completion.option.custom"));
 
         entries.add(new JLabel("TAB:"),
-                d.makeGbc(0, 0, 1, 1));
+                d.makeGbc(0, 0, 1, 1, GridBagConstraints.EAST));
 
         entries.add(
                 d.addComboStringSetting("completionTab", 0, false, tabChoices),
-                d.makeGbc(1, 0, 1, 1));
+                d.makeGbc(1, 0, 1, 1, GridBagConstraints.WEST));
         
         entries.add(new JLabel("Shift-TAB:"),
-                d.makeGbc(2, 0, 1, 1));
+                d.makeGbc(2, 0, 1, 1, GridBagConstraints.EAST));
         
         entries.add(
                 d.addComboStringSetting("completionTab2", 0, false, tabChoices),
-                d.makeGbc(3, 0, 1, 1));
+                d.makeGbc(3, 0, 1, 1, GridBagConstraints.WEST));
         
-        entries.add(new JLabel("<html><body style='width:300px;padding-bottom:5px;'>"
+        entries.add(new JLabel("<html><body style='width:300px;padding-bottom:3px;'>"
                 + Language.getString("settings.completion.info")),
                 d.makeGbc(0, 1, 4, 1));
+        
+        Map<String, String> emotePrefixValues = new LinkedHashMap<>();
+        emotePrefixValues.put("", Language.getString("settings.completionEmotePrefix.option.none"));
+        for (String item : ":,;-#~!'$§%&".split("")) {
+            emotePrefixValues.put(item, item);
+        }
+        
+        ComboStringSetting prefix = d.addComboStringSetting("completionEmotePrefix", 10, false, emotePrefixValues);
+        ComboLongSetting mixed = d.addComboLongSetting("completionMixed", 0, 1, 2);
+        Consumer<String> preferEmojiTest = s -> mixed.setEnabled(prefix.getSettingValue().equals(s));
+        preferEmojiTest.accept(":");
+        prefix.addActionListener(e -> preferEmojiTest.accept(":"));
+        
+        entries.add(d.createPanel("completionEmotePrefix",
+                prefix,
+                mixed),
+                d.makeGbc(0, 2, 4, 1, GridBagConstraints.WEST));
 
-        //================
+        //-------------------
+        // Custom Completion
+        //-------------------
+        CustomCompletionEntries customCompletionDialog = new CustomCompletionEntries(d);
+        
+        JButton editCustomCompletion = new JButton("Edit Custom Completion Items");
+        editCustomCompletion.setMargin(GuiUtil.SMALL_BUTTON_INSETS);
+        editCustomCompletion.addActionListener(e -> {
+            customCompletionDialog.setLocationRelativeTo(d);
+            customCompletionDialog.setVisible(true);
+        });
+        entries.add(editCustomCompletion,
+                d.makeGbc(0, 5, 4, 1, GridBagConstraints.WEST));
+        
+        //=================
         // Localized Names
-        //================
-        JPanel localized = addTitledPanel(Language.getString("settings.section.completionNames"), 1);
+        //=================
+        JPanel localized = addTitledPanel(Language.getString("settings.section.completionNames"), 2);
         
         localized.add(d.addSimpleBooleanSetting("completionPreferUsernames"),
                 d.makeGbc(0, 2, 4, 1, GridBagConstraints.WEST));
@@ -81,35 +113,37 @@ public class CompletionSettings extends SettingsPanel {
         
         SettingsUtil.addSubsettings(completionAllNameTypes, completionAllNameTypesRestriction);
         
-        //===========
+        //============
         // Appearance
-        //===========
-        JPanel appearance = addTitledPanel(Language.getString("settings.section.completionAppearance"), 2);
+        //============
+        JPanel appearance = addTitledPanel(Language.getString("settings.section.completionAppearance"), 1);
         
         final JCheckBox popup = d.addSimpleBooleanSetting("completionShowPopup");
-        appearance.add(popup,
-            d.makeGbc(0, 0, 2, 1, GridBagConstraints.WEST));
+        JPanel numResults = SettingsUtil.createStandardGapPanel();
+        final JTextField max = d.addSimpleLongSetting("completionMaxItemsShown", 3, true);
+        numResults.add(popup);
+        numResults.add(max);
+        numResults.add(d.createLabel("searchResults"));
+        appearance.add(numResults, d.makeNoGapGbc(0, 0, 2, 1, GridBagConstraints.LINE_START));
         
         JPanel popupSettings = new JPanel(new GridBagLayout());
-
-        popupSettings.add(new JLabel(Language.getString("settings.completion.itemsShown")),
-                d.makeGbc(0, 0, 1, 1, GridBagConstraints.WEST));
-        final JTextField max = d.addSimpleLongSetting("completionMaxItemsShown", 3, true);
-        popupSettings.add(max,
-                d.makeGbc(1, 0, 1, 1, GridBagConstraints.LINE_START));
+        
+        final JCheckBox auto = d.addSimpleBooleanSetting("completionAuto");
+        popupSettings.add(auto,
+                d.makeGbcCloser(0, 1, 1, 1, GridBagConstraints.LINE_START));
         
         final JCheckBox common = d.addSimpleBooleanSetting("completionCommonPrefix");
         popupSettings.add(common,
-                d.makeGbcCloser(0, 1, 2, 1, GridBagConstraints.WEST));
+                d.makeGbcCloser(0, 2, 1, 1, GridBagConstraints.WEST));
         
-        SettingsUtil.addSubsettings(popup, max, common);
+        SettingsUtil.addSubsettings(popup, max, common, auto);
         
         appearance.add(popupSettings,
                 d.makeGbcSub(0, 1, 2, 1, GridBagConstraints.WEST));
         
-        //-----------------
-        // Username Sorting
-        //-----------------
+        //-------------------
+        // Sorting and Other
+        //-------------------
         appearance.add(new JLabel(Language.getString("settings.completion.nameSorting")),
                 d.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
         
@@ -128,20 +162,9 @@ public class CompletionSettings extends SettingsPanel {
         appearance.add(
             d.addComboStringSetting("completionSearch", false, new String[]{"start", "words", "anywhere"}),
             d.makeGbc(1, 3, 1, 1, GridBagConstraints.WEST));
-
-        //==================
-        // Custom Completion
-        //==================
-        CustomCompletionEntries customCompletionDialog = new CustomCompletionEntries(d);
         
-        JButton editCustomCompletion = new JButton("Edit Custom Completion Items");
-        editCustomCompletion.setMargin(GuiUtil.SMALL_BUTTON_INSETS);
-        editCustomCompletion.addActionListener(e -> {
-            customCompletionDialog.setLocationRelativeTo(d);
-            customCompletionDialog.setVisible(true);
-        });
-        entries.add(editCustomCompletion,
-                d.makeGbc(0, 5, 4, 1, GridBagConstraints.WEST));
+        appearance.add(d.addSimpleBooleanSetting("completionSpace"),
+                d.makeGbcCloser(0, 4, 4, 1, GridBagConstraints.WEST));
     }
     
     private class CustomCompletionEntries extends JDialog {

@@ -1183,11 +1183,13 @@ public class MainGui extends JFrame implements Runnable {
         connectionDialog.setAreChannelsOpen(channels.getChannelCount() > 0);
     }
     
+    private void setChannelInfoDialogChannel(Channel channel) {
+        channelInfoDialog.set(getStreamInfo(channel.getStreamName()));
+    }
+    
     private void updateChannelInfoDialog(StreamInfo info) {
         if (info == null) {
-            String stream = channels.getLastActiveChannel().getStreamName();
-            info = getStreamInfo(stream);
-            channelInfoDialog.set(info);
+            setChannelInfoDialogChannel(channels.getLastActiveChannel());
         } else {
             channelInfoDialog.update(info);
         }
@@ -1632,6 +1634,8 @@ public class MainGui extends JFrame implements Runnable {
             }
             else if (cmd.startsWith("command")) {
                 Parameters parameters = Parameters.create(user.getRegularDisplayNick());
+                parameters.put("nick", user.getName());
+                parameters.put("msg", user.getMessageText(msgId));
                 parameters.put("msg-id", msgId);
                 parameters.put("automod-msg-id", autoModMsgId);
                 customCommand(user.getRoom(), e, parameters);
@@ -1680,25 +1684,19 @@ public class MainGui extends JFrame implements Runnable {
          * Context menu event without any channel context, which means it just
          * uses the active one or performs some other action that doesn't
          * immediately require one.
-         * 
-         * @param e 
          */
         @Override
         public void menuItemClicked(ActionEvent e) {
+            Debugging.println("cmchan", "[cm] tab: %s chan: %s lastchan: %s",
+                    channels.getActiveTab(), channels.getActiveChannel(), channels.getLastActiveChannel());
+            
             String cmd = e.getActionCommand();
-            if (cmd.equals("channelInfo")) {
-                openChannelInfoDialog();
-            }
-            else if (cmd.equals("channelAdmin")) {
-                openChannelAdminDialog();
-            }
-            else if (cmd.equals("chatRules")) {
-                openChatRules();
-            }
-            else if (cmd.equals("closeChannel")) {
+            if (cmd.equals("closeChannel")) {
+                // TabContextMenu
                 client.closeChannel(channels.getActiveChannel().getChannel());
             }
             else if (cmd.startsWith("closeAllTabs")) {
+                // TabContextMenu
                 Collection<Channel> chans = null;
                 if (cmd.equals("closeAllTabsButCurrent")) {
                     chans = channels.getTabsRelativeToCurrent(0);
@@ -1715,19 +1713,9 @@ public class MainGui extends JFrame implements Runnable {
                     }
                 }
             }
-            else if (cmd.equals("joinHostedChannel")) {
-                client.command(channels.getActiveChannel().getRoom(), "joinhosted");
-            }
-            else if (cmd.equals("srcOpen")) {
-                client.speedruncom.openCurrentGame(channels.getActiveChannel());
-            }
             else if (cmd.equals("popoutChannel")) {
+                // TabContextMenu
                 channels.popoutActiveChannel();
-            }
-            else if (cmd.startsWith("command")) {
-                // TODO: Check getStreamName()
-                customCommand(channels.getActiveChannel().getRoom(), e,
-                        Parameters.create(channels.getActiveChannel().getStreamName()));
             }
             else if (cmd.startsWith("historyRange")) {
                 int range = Integer.parseInt(cmd.substring("historyRange".length()));
@@ -1735,11 +1723,50 @@ public class MainGui extends JFrame implements Runnable {
                 // update may be needed. This will make it update twice often.
                 //updateHistoryRange();
                 client.settings.setLong("historyRange", range);
-            } else if (cmd.startsWith("toggleVerticalZoom")) {
-                boolean selected = ((JMenuItem)e.getSource()).isSelected();
+            }
+            else if (cmd.startsWith("toggleVerticalZoom")) {
+                boolean selected = ((JMenuItem) e.getSource()).isSelected();
                 client.settings.setBoolean("historyVerticalZoom", selected);
-            } else {
+            }
+            else {
                 nameBasedStuff(e, channels.getActiveChannel().getStreamName());
+            }
+        }
+        
+        /**
+         * ChannelContextMenu, with Channel context.
+         */
+        @Override
+        public void channelMenuItemClicked(ActionEvent e, Channel channel) {
+            Debugging.println("cmchan", "[channelcm] tab: %s chan: %s lastchan: %s",
+                    channels.getActiveTab(), channels.getActiveChannel(), channels.getLastActiveChannel());
+            
+            String cmd = e.getActionCommand();
+            if (cmd.equals("channelInfo")) {
+                setChannelInfoDialogChannel(channel);
+                openChannelInfoDialog();
+            }
+            else if (cmd.equals("channelAdmin")) {
+                openChannelAdminDialog(channel.getStreamName());
+            }
+            else if (cmd.equals("chatRules")) {
+                openChatRules(channel.getChannel());
+            }
+            else if (cmd.equals("closeChannel")) {
+                client.closeChannel(channel.getChannel());
+            }
+            else if (cmd.equals("joinHostedChannel")) {
+                client.command(channel.getRoom(), "joinhosted");
+            }
+            else if (cmd.equals("srcOpen")) {
+                client.speedruncom.openCurrentGame(channel);
+            }
+            else if (cmd.startsWith("command")) {
+                customCommand(channel.getRoom(), e,
+                        Parameters.create(channel.getStreamName()));
+            }
+            else {
+                nameBasedStuff(e, channel.getStreamName());
             }
         }
 
@@ -1750,10 +1777,8 @@ public class MainGui extends JFrame implements Runnable {
         }
 
         /**
-         * Context menu event associated with a list of stream or channel names.
-         * 
-         * @param e
-         * @param streams 
+         * Context menu event associated with a list of stream or channel names,
+         * used in the channel favorites dialog.
          */
         @Override
         public void roomsMenuItemClicked(ActionEvent e, Collection<Room> rooms) {
@@ -1953,6 +1978,12 @@ public class MainGui extends JFrame implements Runnable {
             } else if (cmd.equals("copy") && !streams.isEmpty()) {
                 MiscUtil.copyToClipboard(StringUtil.join(streams, ", "));
             } else if (cmd.startsWith("command")) {
+                /**
+                 * For example for Live Streams/Favorites context menu, so it
+                 * makes sense to use the last active channel, since this might
+                 * be triggered from a Chatty window that doesn't represent a
+                 * single joined room.
+                 */
                 customCommand(channels.getLastActiveChannel().getRoom(), e, Parameters.create(StringUtil.join(streams, " ")));
             }
         }
@@ -1980,6 +2011,8 @@ public class MainGui extends JFrame implements Runnable {
             } else if (e.getActionCommand().equals("emoteCreator")) {
                 if (emote.type == Emoticon.Type.FFZ) {
                     url = TwitchUrl.makeFFZUrl(emote.creator);
+                } else if (emote.creator.equals("Twemoji")) {
+                    url = "https://github.com/twitter/twemoji";
                 }
             } else if (e.getActionCommand().equals("twitchturbolink")) {
                 url = TwitchUrl.makeTwitchTurboUrl();
@@ -2292,6 +2325,8 @@ public class MainGui extends JFrame implements Runnable {
                 return true;
             }
             printSystem("Invalid parameters.");
+        } else if (command.equals("popoutchannel")) {
+            channels.popoutActiveChannel();
         } else {
             return false;
         }
@@ -2356,9 +2391,12 @@ public class MainGui extends JFrame implements Runnable {
     }
     
     private void openChannelAdminDialog() {
+        openChannelAdminDialog(channels.getActiveChannel().getStreamName());
+    }
+    
+    private void openChannelAdminDialog(String stream) {
         windowStateManager.setWindowPosition(adminDialog, getActiveWindow());
         updateTokenScopes();
-        String stream = channels.getActiveChannel().getStreamName();
         if (stream == null) {
             stream = client.settings.getString("username");
         }
@@ -2866,14 +2904,20 @@ public class MainGui extends JFrame implements Runnable {
                             highlightMatches,
                             hasReplacements ? filter.getLastTextMatches() : null,
                             hasReplacements ? filter.getLastReplacement() : null);
+                    
+                    // Custom color
                     if (highlighted) {
                         message.color = highlighter.getLastMatchColor();
                         message.backgroundColor = highlighter.getLastMatchBackgroundColor();
-                    } else {
-                        ColorItem colorItem = msgColorManager.getMsgColor(user, text);
-                        message.color = colorItem.getForegroundIfEnabled();
-                        message.backgroundColor = colorItem.getBackgroundIfEnabled();
                     }
+                    if (!highlighted || client.settings.getBoolean("msgColorsPrefer")) {
+                        ColorItem colorItem = msgColorManager.getMsgColor(user, text);
+                        if (!colorItem.isEmpty()) {
+                            message.color = colorItem.getForegroundIfEnabled();
+                            message.backgroundColor = colorItem.getBackgroundIfEnabled();
+                        }
+                    }
+
                     message.whisper = whisper;
                     message.action = action;
                     if (highlighted) {
@@ -3152,11 +3196,15 @@ public class MainGui extends JFrame implements Runnable {
                             highlighter.getLastMatchNoNotification(),
                             highlighter.getLastMatchNoSound());
                 } else {
+                    notificationManager.info(channel.getRoom(), message.text);
+                }
+                if (!highlighted || client.settings.getBoolean("msgColorsPrefer")) {
                     ColorItem colorItem = msgColorManager.getInfoColor(
                             message.text, channel.getChannel(), client.addressbook);
-                    message.color = colorItem.getForegroundIfEnabled();
-                    message.bgColor = colorItem.getBackgroundIfEnabled();
-                    notificationManager.info(channel.getRoom(), message.text);
+                    if (!colorItem.isEmpty()) {
+                        message.color = colorItem.getForegroundIfEnabled();
+                        message.bgColor = colorItem.getBackgroundIfEnabled();
+                    }
                 }
             }
             channel.printInfoMessage(message);
@@ -4458,12 +4506,12 @@ public class MainGui extends JFrame implements Runnable {
         return client.settings.getSettingNames();
     }
     
-    public Collection<String> getEmoteNames() {
-        return emoticons.getEmoteNames();
+    public Collection<Emoticon> getUsableGlobalEmotes() {
+        return emoticons.getLocalTwitchEmotes();
     }
     
-    public Collection<String> getEmoteNamesPerStream(String stream) {
-        return emoticons.getEmotesNamesByStream(stream);
+    public Collection<Emoticon> getUsableEmotesPerStream(String stream) {
+        return emoticons.getUsableEmotesByStream(stream);
     }
     
     public String getCustomCompletionItem(String key) {
@@ -4479,7 +4527,7 @@ public class MainGui extends JFrame implements Runnable {
 
             @Override
             public void run() {
-                emoticons.updateEmoteNames(client.getSpecialUser().getEmoteSet());
+                emoticons.updateLocalEmotes(client.getSpecialUser().getEmoteSet());
             }
         });
     }

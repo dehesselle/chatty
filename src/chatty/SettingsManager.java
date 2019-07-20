@@ -195,6 +195,7 @@ public class SettingsManager {
         settings.addLong("displayNamesModeUserlist", DISPLAY_NAMES_MODE_CAPITALIZED);
         settings.addBoolean("showImageTooltips", true);
         settings.addLong("mentions", 3);
+        settings.addLong("mentionsInfo", 3);
         settings.addLong("markHoveredUser", chatty.gui.components.textpane.SettingConstants.USER_HOVER_HL_MENTIONS);
 
         // Badges/Emotes
@@ -207,7 +208,7 @@ public class SettingsManager {
         settings.addBoolean("ffzEvent", true);
         settings.addBoolean("ffzModIcon", true);
         settings.addBoolean("bttvEmotes", true);
-        settings.addBoolean("showAnimatedEmotes", false);
+        settings.addBoolean("showAnimatedEmotes", true);
         settings.addList("ignoredEmotes", new ArrayList(), Setting.STRING);
         settings.addList("favoriteEmotes", new ArrayList(), Setting.LIST);
         
@@ -247,11 +248,13 @@ public class SettingsManager {
         settings.addString("searchResultColor2", "#FFFF80");
         settings.addBoolean("colorCorrection", true);
         settings.addString("nickColorCorrection", "normal");
+        settings.addLong("nickColorBackground", 1);
         settings.addList("colorPresets", new ArrayList<>(), Setting.LIST);
         
         // Message Colors
         settings.addBoolean("msgColorsEnabled", false);
         settings.addList("msgColors", new LinkedList(), Setting.STRING);
+        settings.addBoolean("msgColorsPrefer", false);
         
         // Usercolors
         settings.addBoolean("customUsercolors", false);
@@ -271,13 +274,19 @@ public class SettingsManager {
         settings.addBoolean("abSaveOnChange", false);
 
         // Custom Commands
-        settings.addList("commands", new ArrayList(), Setting.STRING);
-        // Default entries, will only be set if setting is not loaded from file
-        settings.setAdd("commands", "/slap /me slaps $$1- around a bit with a large trout");
-        settings.setAdd("commands", "/permit !permit $$1");
+        List<String> commandsDefault = new ArrayList<>();
+        commandsDefault.add("/slap /me slaps $$1- around a bit with a large trout");
+        commandsDefault.add("/permit !permit $$1");
+        settings.addList("commands", commandsDefault, Setting.STRING);
 
         // Menu Entries
-        settings.addString("timeoutButtons","/Ban[B], /Unban[U], 5s[1], 2m[2], 10m[3], 30m[4]");
+        settings.addString("timeoutButtons","/Ban[B], /Unban[U], 5s[1], 2m[2], 10m[3], 30m[4], /ModUnmod"
+                + "\n\n"
+                + "@AutoMod\n"
+                + ".Approve=/Automod_approve\n"
+                + ".Deny=/Automod_deny\n"
+                + "\n"
+                + "Delete=/delete $$(msg-id)");
         settings.addString("banReasons", "Spam\nPosting Bad Links\nBan Evasion\n"
                                 + "Hate / Harassment\nSpoilers / Backseat Gaming");
         settings.addString("userContextMenu", "");
@@ -546,6 +555,10 @@ public class SettingsManager {
         settings.addString("completionTab", "both");
         settings.addString("completionTab2", "emotes");
         settings.addString("completionSearch", "words");
+        settings.addBoolean("completionAuto", true);
+        settings.addString("completionEmotePrefix", ":");
+        settings.addLong("completionMixed", 0);
+        settings.addBoolean("completionSpace", false);
 
         // Stream Chat
         settings.addLong("streamChatMessageTimeout", -1);
@@ -788,6 +801,10 @@ public class SettingsManager {
             if (!settings.getBoolean("colorCorrection")) {
                 settings.setString("nickColorCorrection", "off");
             }
+        }
+        
+        if (switchedFromVersionBefore("0.9.7-b4")) {
+            settings.setLong("mentionsInfo", settings.getLong("mentions"));
         }
         
         overrideHotkeySettings();

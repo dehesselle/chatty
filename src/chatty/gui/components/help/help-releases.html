@@ -17,6 +17,7 @@
     <h1><a name="top">Release Information</a></h1>
     
     <p>
+        <a href="#0.9.7">0.9.7</a> |
         <a href="#0.9.6">0.9.6</a> |
         <a href="#0.9.5">0.9.5</a> |
         <a href="#0.9.4">0.9.4</a> |
@@ -56,7 +57,63 @@
     full list of changes.</p>
     
     <h2>
-        <a name="0.9.6">Version 0.9.6</a> <a name="latest">(This one!)</a> (2019-03-27)
+        <a name="0.9.7">Version 0.9.7</a> <a name="latest">(This one!)</a> (2019-07-15)
+        <a href="#top" class="top">[back to top]</a>
+    </h2>
+    <p>The updated TAB Completion now shows emote images and allows scrolling
+        and inserting results with the mouse. It is also easier accessible since
+        it automatically shows up in some cases and includes some simple usage
+        tooltips. As always, several settings allow customization.</p>
+    
+    <p>Also included in this update are several Moderation and Chat related
+        improvements, updated Emoji, Bugfixes, and more.</p>
+    
+    <pre>
+### TAB Completion
+- Show emote images in TAB Completion popup (not just Emoji)
+- Automatically start TAB Completion in some cases
+- Allow scrolling and selection of emotes with the mouse (Shift-Click to insert
+  several emotes)
+- Improved Emoji search (expanding search if few results, aliases)
+- Added new settings to Settings Dialog
+
+### Custom Commands
+- Added new function `$upper()` (make text uppercase)
+- Added new function `$sort()` (sort token separated items alphabetically)
+- Added new function `$urlencode()` (prepare text for including it in a URL)
+- Added new identifiers `nick`, `reason` and `msg` in some contexts
+- Improved "User Dialog Buttons" setting Test-button to show a User Dialog
+- Improved error output
+
+### Chat / Moderation
+- Added clickable mentions to Info Messages
+- Added Highlight matches marking in AutoMod messages
+- Added AutoMod reason/category (e.g. "aggressive") to User Dialog
+- Added info to User Dialog when a user is unbanned (from Moderation Log)
+- Added setting to add background to unreadable nicknames in chat
+- Added Msg. Colors setting to prefer Custom Msg. Colors over Highlight Colors
+
+### Emoticons
+- Sort Subemote channels in Emotes Dialog alphabetically
+- Added previously missing Cheeremotes
+- Updated Twemoji Emoji to Unicode 12 (and improved metadata)
+
+### Other
+- Disabled rotating tab rows for dark Look&amp;Feels
+- Added scrollbars (if necessary) to Settings Dialog
+- Added `/popoutchannel` command (same as right-click on TAB - Popout)
+
+### Bugfixes
+- Fixed Custom Command $rand() function error
+- Fixed duped emotes occuring when an emote causes a highlight and "Mark all
+  occurences" is enabled
+- Fixed own subemotes missing if subscribed to a lot(!) of different channels
+- Fixed channel context for context menu in non-focused popout
+- Fixed PubSub reconnect delay
+    </pre>
+    
+    <h2>
+        <a name="0.9.6">Version 0.9.6</a> (2019-03-27)
         <a href="#top" class="top">[back to top]</a>
     </h2>
     <p>The new clickable mentions feature allows you to open the User Dialog by

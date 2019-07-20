@@ -33,6 +33,17 @@ public class ColorCorrectionNew {
     }
     
     /**
+     * Gets the difference between the perceived brightness between colors.
+     *
+     * @param c1
+     * @param c2
+     * @return
+     */
+    public static int getLightnessDifferenceAbs(Color c1, Color c2) {
+        return Math.abs(getLightnessDifference(c1, c2));
+    }
+    
+    /**
      * Tries to change the color (if necessary) so it it better readable on the
      * given background color.
      *
@@ -83,6 +94,19 @@ public class ColorCorrectionNew {
     
     public static Color makeDarker(Color c, float factor) {
         return new Color((int)(c.getRed() * factor), (int)(c.getGreen() * factor), (int)(c.getBlue() * factor));
+    }
+    
+    public static Color offset(Color c, float factor) {
+        if (getLightness(c) < 180) {
+            return makeBrighter(c, 1 - factor);
+        }
+        return makeDarker(c, factor);
+    }
+    
+    public static void main(String[] args) {
+        Color c = Color.BLACK;
+        System.out.println(makeBrighter(Color.BLACK, 0.2f));
+        System.out.println(makeDarker(Color.WHITE, 0.2f));
     }
     
 }

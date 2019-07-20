@@ -69,29 +69,7 @@ public class Parser {
      * @throws ParseException 
      */
     private void error(String message, int offset) throws ParseException {
-        int pos = reader.pos() + offset;
-        
-        final int before = 30;
-        final int after = 20;
-        final String dotdot = "[..]";
-        
-        int start = pos > before+dotdot.length() ? pos - before : 0;
-        int end = input.length() > pos + after + dotdot.length() ? pos + after : input.length();
-        int displayPos = pos - start + 1; // +1 
-        String excerpt = input.substring(start, end);
-        if (start > 0) {
-            excerpt = dotdot+excerpt;
-            displayPos += dotdot.length();
-        }
-        if (end < input.length()) {
-            excerpt = excerpt+dotdot;
-        }
-        throw new ParseException(String.format("%s at pos %s\n %s\n%s^",
-                message,
-                pos+1,
-                excerpt,
-                String.join("", Collections.nCopies(displayPos, " "))
-        ), reader.pos());
+        throw new ParseException(message, reader.pos() + offset);
     }
 
     /**
@@ -187,6 +165,9 @@ public class Parser {
         else if (type.equals("lower")) {
             return lower(isRequired);
         }
+        else if (type.equals("upper")) {
+            return upper(isRequired);
+        }
         else if (type.equals("rand")) {
             return rand(isRequired);
         }
@@ -195,6 +176,12 @@ public class Parser {
         }
         else if (type.equals("datetime")) {
             return datetime(isRequired);
+        }
+        else if (type.equals("urlencode")) {
+            return urlencode(isRequired);
+        }
+        else if (type.equals("sort")) {
+            return sort(isRequired);
         }
         else {
             error("Invalid function '"+type+"'", 0);
@@ -288,14 +275,19 @@ public class Parser {
         return new Lower(identifier, isRequired);
     }
     
+    private Item upper(boolean isRequired) throws ParseException {
+        expect("(");
+        Item identifier = peekParam();
+        expect(")");
+        return new Upper(identifier, isRequired);
+    }
+    
     private Item rand(boolean isRequired) throws ParseException {
         expect("(");
         List<Item> params = new ArrayList<>();
-        Items param;
-        while (!(param = param()).isEmpty()) {
-            params.add(param);
-            accept(",");
-        }
+        do {
+            params.add(param());
+        } while(accept(","));
         expect(")");
         return new Rand(isRequired, params);
     }
@@ -324,6 +316,28 @@ public class Parser {
         }
         expect(")");
         return new DateTime(format, timezone, locale, isRequired);
+    }
+    
+    private Item urlencode(boolean isRequired) throws ParseException {
+        expect("(");
+        Item item = param();
+        expect(")");
+        return new UrlEncode(item, isRequired);
+    }
+    
+    private Item sort(boolean isRequired) throws ParseException {
+        expect("(");
+        Item item = param();
+        Item type = null;
+        if (accept(",")) {
+            type = param();
+        }
+        Item sep = null;
+        if (accept(",")) {
+            sep = param();
+        }
+        expect(")");
+        return new Sort(item, sep, type, isRequired);
     }
     
     private Replacement replacement(boolean isRequired) throws ParseException {

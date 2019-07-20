@@ -328,6 +328,7 @@ public class TwitchClient {
             }
             kb.clearMessagesIfInactive(0);
             kb.addMessage("abc", false, null);
+            kb.setDisplayNick("reallyLongDisplayNickAndStuffBlahNeedsToBeLonger");
             kb.setBot(true);
             g.addUser(kb);
             User l = new User("lotsofs", "LotsOfS", testRoom);
@@ -481,6 +482,7 @@ public class TwitchClient {
     private void createTestUser(String name, String channel) {
         testUser = new User(name, name, Room.createRegular(channel));
         testUser.setColor(new Color(94, 0, 211));
+        //testUser.setColor(new Color(0,216,107));
         //testUser.setBot(true);
         //testUser.setTurbo(true);
         //testUser.setModerator(true);
@@ -1447,6 +1449,8 @@ public class TwitchClient {
             pubsub.connect();
         } else if (command.equals("psdisconnect")) {
             pubsub.disconnect();
+        } else if (command.equals("psreconnect")) {
+            pubsub.reconnect();
         } else if (command.equals("modaction")) {
             String by = "Blahfasel";
             String action = "timeout";
@@ -1470,7 +1474,13 @@ public class TwitchClient {
             List<String> args = new ArrayList<>();
             args.add("tduva");
             if (parameter != null) {
-                args.add(parameter);
+                if (parameter.contains(",")) {
+                    String[] split = parameter.split(",", 2);
+                    args.add(split[1]);
+                    args.add(split[0]);
+                } else {
+                    args.add(parameter);
+                }
             } else {
                 args.add("fuck and stuff like that, rather long message and whatnot Kappa b "+Debugging.count(channel));
             }
@@ -1553,7 +1563,7 @@ public class TwitchClient {
     
     public void anonCustomCommand(Room room, CustomCommand command, Parameters parameters) {
         if (command.hasError()) {
-            g.printLine("Custom command invalid: "+command.getError());
+            g.printLine("Parse error: "+command.getSingleLineError());
             return;
         }
         if (room == null) {
@@ -2077,6 +2087,14 @@ public class TwitchClient {
                         User bannedUser = c.getUser(channel, bannedUsername);
                         bannedUser.addBanInfo(data);
                         g.updateUserinfo(bannedUser);
+                    }
+                    String unbannedUsername = ModLogInfo.getUnbannedUsername(data);
+                    if (unbannedUsername != null) {
+                        // Add info to unbanned user
+                        User unbannedUser = c.getUser(channel, unbannedUsername);
+                        int type = User.UnbanMessage.getType(data.moderation_action);
+                        unbannedUser.addUnban(type, data.created_by);
+                        g.updateUserinfo(unbannedUser);
                     }
                 }
             }
@@ -2647,7 +2665,13 @@ public class TwitchClient {
     private class Messages implements TwitchConnection.ConnectionListener {
 
         private void checkModLogListen(User user) {
+            Debugging.println("pubsub", "%s/%s==%s/%s",
+                    user.hasChannelModeratorRights(),
+                    user.getName(),
+                    c.getUsername(),
+                    user.getStream());
             if (user.hasChannelModeratorRights() && user.getName().equals(c.getUsername()) && user.getStream() != null) {
+                Debugging.println("pubsub", "Listen");
                 pubsub.setLocalUsername(c.getUsername());
                 pubsub.listenModLog(user.getStream(), settings.getString("token"));
             }

@@ -227,14 +227,21 @@
         </tr>
         <!-- User Context Menu -->
         <tr>
-            <td rowspan="3">User Context Menu</td>
-            <td><code>1</code></td>
+            <td rowspan="4">User Context Menu</td>
+            <td><code>1</code>, <code>nick</code></td>
             <td>Name of the user</td>
+        </tr>
+        <tr>
+            <td><code>msg</code></td>
+            <td>Message text of the selected message (depending on the line in
+                chat you opened the User Contex Menu from, not available for
+                your own messages)</td>
         </tr>
         <tr>
             <td><code>msg-id</code></td>
             <td>Message id of the selected message (depending on the line in
-                chat you opened the User Contex Menu from)</td>
+                chat you opened the User Contex Menu from, not available for
+                your own messages)</td>
         </tr>
         <tr>
             <td><code>automod-msg-id</code></td>
@@ -244,18 +251,25 @@
         </tr>
         <!-- User Dialog -->
         <tr>
-            <td rowspan="7">User Dialog</td>
-            <td><code>1</code></td>
+            <td rowspan="8">User Dialog</td>
+            <td><code>1</code>, <code>nick</code></td>
             <td>Name of the user</td>
         </tr>
         <tr>
-            <td><code>2-</code></td>
+            <td><code>2-</code>, <code>reason</code></td>
             <td>Ban reason (if selected)</td>
+        </tr>
+        <tr>
+            <td><code>msg</code></td>
+            <td>Message text of the selected message (<code>&gt;</code> in front
+                of message, depending on the line in chat you opened it from,
+                not available for your own messages)</td>
         </tr>
         <tr>
             <td><code>msg-id</code></td>
             <td>Message id of the selected message (<code>&gt;</code> in front
-                of message, depending on the line in chat you opened it from)</td>
+                of message, depending on the line in chat you opened it from,
+                not available for your own messages)</td>
         </tr>
         <tr>
             <td><code>automod-msg-id</code></td>
@@ -314,6 +328,12 @@
         
     <p><code>$&lt;functionName&gt;(&lt;identifier&gt;,&lt;some parameters&gt;,[optional parameters])</code></p>
     
+    <p class="note"><em>Note:</em> The <code>&lt;identifier&gt;</code> parameter
+        means anything not starting with <code>$</code> is interpreted as the
+        identifier only. You can think of it as an extension to the regular
+        replacement:
+        <code>$(1-) -> $<u>join</u>(1-<u>,/</u>)</code></p>
+    
     <p>The following functions are available:</p>
     <dl class="defList">
         <dt><code>$if(&lt;identifier&gt;,&lt;output if exists&gt;,[output if not])</code></dt>
@@ -343,7 +363,12 @@
         <dd><em>Example:</em> <code>$lower(1)</code> with <code>1</code>
             referring to <code>Fremily</code> turns into <code>fremily</code>.</dd>
         
-        <dt><code>$rand(&lt;output1&gt;,&lt;output2&gt;,&lt;output3&gt,..)</code></dt>
+        <dt><code>$upper(&lt;identifier&gt;)</code></dt>
+        <dd>Makes the given input uppercase.</dd>
+        <dd><em>Example:</em> <code>$upper(1)</code> with <code>1</code>
+            referring to <code>Fremily</code> turns into <code>FREMILY</code>.</dd>
+        
+        <dt><code>$rand([output1],[output2],[output3],..)</code></dt>
         <dd>Randomly chooses one of the outputs.</dd>
         <dd><em>Example:</em> <code>$rand(cheesecake,strawberry cake,$1-)</code>
             with <code>1-</code> referring to <code>apple pie</code> turns into
@@ -359,6 +384,20 @@
             number between 600 and 800.</dd>
         <dd><em>Example:</em> <code>$randum($$1)</code> chooses a random number
             between 0 and what is the first parameter.</dd>
+        
+        <dt><code>$urlencode(&lt;input&gt;)</code></dt>
+        <dd>Uses <a href="https://docs.oracle.com/javase/8/docs/api/java/net/URLEncoder.html#encode-java.lang.String-java.lang.String-">UrlEncoder.encode()</a>
+            to prepare the input to be used in a URL query parameter.</dd>
+        <dd><em>Example:</em> <code>$urlencode($(msg))</code> in User Dialog
+            encodes the currently selected message.</dd>
+        
+        <dt><code>$sort(&lt;input&gt;,[type],[separator]</code></dt>
+        <dd>Sorts the given input alphabetically. The sort type can be "abc"
+            (default) for case-insensitive sorting or "Abc" for case-sensitive
+            sorting. The separator is what separates the parts that are sorted,
+            by default a space.</dd>
+        <dd><em>Example:</em> <code>$sort(B c a)</code> turns into <code>a B c</code></dd>
+        <dd><em>Example:</em> <code>$sort(B c a,Abc)</code> turns into <code>B a c</code></dd>
         
         <dt><code>$datetime([format],[timezone],[locale])</code></dt>
         <dd>Outputs the current date/time. You can optionally give a format
@@ -418,17 +457,7 @@
         into the chat inputbox to test a function directly, use arrow up/down
         keys to cycle through previous inputs. Of course you won't be able to
         use some context dependant parameters this way.</p>
-    
-    <p class="note"><em>Note:</em> The <code>&lt;identifier&gt;</code> parameter means <em>only</em>
-        the identifier, without any <code>$</code>, while the other parameters
-        may contain replacements (including functions). You can think of this
-        function syntax as an extension to the regular replacement:
-        <code>$(1-) -> $<u>join</u>(1-<u>,/</u>)</code></p>
-    
-    <p class="note"><em>Addendum:</em> As of v0.8.7 the <code>&lt;identifier&gt;</code>
-        parameter will also accept replacements as input (anything starting with
-        <code>$</code>).</p>
-    
+
     <p>Examples of Custom Commands with these functions:</p>
     <dl class="defList">
         <dt><code>/slap /me slaps $$1 around a bit with a large $if(2,$2,trout)</code></dt>

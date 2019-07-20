@@ -345,6 +345,10 @@ public class User implements Comparable {
         replayCachedBanInfo();
     }
     
+    public synchronized void addUnban(int type, String by) {
+        addLine(new UnbanMessage(System.currentTimeMillis(), type, by));
+    }
+    
     public synchronized void addMsgDeleted(String targetMsgId, String msg) {
         addLine(new MsgDeleted(System.currentTimeMillis(), targetMsgId, msg, null));
         replayCachedBanInfo();
@@ -437,8 +441,8 @@ public class User implements Comparable {
         return false;
     }
     
-    public synchronized void addAutoModMessage(String line, String id) {
-        addLine(new AutoModMessage(line, id));
+    public synchronized void addAutoModMessage(String line, String id, String reason) {
+        addLine(new AutoModMessage(line, id, reason));
     }
     
     /**
@@ -464,6 +468,26 @@ public class User implements Comparable {
         return new ArrayList<>(lines);
     }
     
+    public synchronized TextMessage getMessage(String msgId) {
+        if (msgId == null) {
+            return null;
+        }
+        for (Message msg : lines) {
+            if (msg instanceof TextMessage) {
+                TextMessage textMsg = (TextMessage)msg;
+                if (msgId.equals(textMsg.id)) {
+                    return textMsg;
+                }
+            }
+        }
+        return null;
+    }
+    
+    public String getMessageText(String msgId) {
+        TextMessage msg = getMessage(msgId);
+        return msg != null ? msg.text : null;
+    }
+    
     public synchronized int clearMessagesIfInactive(long duration) {
         if (!lines.isEmpty()
                 && System.currentTimeMillis() - getLastLineTime() >= duration) {
@@ -472,6 +496,12 @@ public class User implements Comparable {
             return size;
         }
         return 0;
+    }
+    
+    public synchronized void clearMessages() {
+        lines.clear();
+        numberOfMessages = 0;
+        numberOfLines = 0;
     }
     
     private long getLastLineTime() {
@@ -1082,6 +1112,31 @@ public class User implements Comparable {
         
     }
     
+    public static class UnbanMessage extends Message {
+        
+        public static final int TYPE_UNKNOWN = -1;
+        public static final int TYPE_UNBAN = 0;
+        public static final int TYPE_UNTIMEOUT = 1;
+        
+        public final int type;
+        public final String by;
+        
+        public UnbanMessage(long time, int type, String by) {
+            super(time);
+            this.type = type;
+            this.by = by;
+        }
+        
+        public static int getType(String modAction) {
+            switch (modAction) {
+                case "unban": return TYPE_UNBAN;
+                case "untimeout": return TYPE_UNTIMEOUT;
+            }
+            return TYPE_UNKNOWN;
+        }
+        
+    }
+    
     public static class MsgDeleted extends Message {
         
         public final String targetMsgId;
@@ -1139,11 +1194,13 @@ public class User implements Comparable {
         
         public final String message;
         public final String id;
+        public final String reason;
         
-        public AutoModMessage(String message, String id) {
+        public AutoModMessage(String message, String id, String reason) {
             super(System.currentTimeMillis());
             this.message = message;
             this.id = id;
+            this.reason = reason;
         }
         
     }

@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -121,14 +120,44 @@ public class Emoticons {
     private final Set<Emoticon> otherGlobalEmotes = new HashSet<>();
     
     /**
-     * Twitch emotes associated to their Twitch id.
+     * All loaded Twitch Emotes, by their Twitch Emote Id.
      */
     private final HashMap<Integer,Emoticon> twitchEmotesById = new HashMap<>();
     
     /**
-     * Emoticons associated with a channel (FrankerFaceZ/BTTV).
+     * Emoticons restricted to a channel (FrankerFaceZ/BTTV).
      */
     private final HashMap<String,HashSet<Emoticon>> streamEmoticons = new HashMap<>();
+    
+    //===============
+    // Usable Emotes
+    //===============
+    // Used for TAB completion
+    
+    /**
+     * Global emotes the local user has access to.
+     */
+    private final Set<Emoticon> usableGlobalEmotes = new HashSet<>();
+    
+    /**
+     * Channel-specific emotes the local user has access to. Needs to be in a
+     * separate map if the user may not have access to all channel-specific
+     * emotes, which is rather unusual, but some BTTV may have an emoteset as
+     * requirement.
+     * 
+     * TODO: May need to check when localEmotesets changes as well
+     */
+    private final Map<String, Set<Emoticon>> usableStreamEmotes = new HashMap<>();
+    
+    /**
+     * Used to check what emotes the local user has access to for completion. If
+     * this changes, it checks usableGlobalEmotes again.
+     */
+    private Set<Integer> localEmotesets = new HashSet<>();
+    
+    //==================
+    // Meta Information
+    //==================
     
     /**
      * Emoteset -> Stream association (from Twitchemotes.com).
@@ -137,17 +166,9 @@ public class Emoticons {
     
     private static final HashSet<Emoticon> EMPTY_SET = new HashSet<>();
     
-    private static final Set<String> EMPTY_STRING_SET = new HashSet<>();
-    
     private final Set<String> ignoredEmotes = new HashSet<>();
     
     private final EmoticonFavorites favorites = new EmoticonFavorites();
-    
-    private final Set<String> emoteNames = new HashSet<>();
-    
-    private final Map<String, Set<String>> emotesNamesPerStream = new HashMap<>();
-    
-    private Set<Integer> localEmotesets = new HashSet<>();
     
     public Emoticons() {
         Timer timer = new Timer(1*60*60*1000, e -> {
@@ -176,26 +197,31 @@ public class Emoticons {
             return;
         }
         int removedCount = 0;
-        if (update.typeToRemove == Emoticon.Type.FFZ) {
+        if (update.typeToRemove == Emoticon.Type.FFZ
+                || update.typeToRemove == Emoticon.Type.BTTV) {
             Iterator<Emoticon> it;
             if (update.roomToRemove == null) {
+                // Global Non-Twitch
                 it = otherGlobalEmotes.iterator();
             }
             else {
+                // Channel-specific
                 if (!streamEmoticons.containsKey(update.roomToRemove)) {
                     return;
                 }
                 it = streamEmoticons.get(update.roomToRemove).iterator();
             }
+            // Check selected for removal
             while (it.hasNext()) {
                 Emoticon emote = it.next();
                 if (emote.type == update.typeToRemove) {
                     if (update.subTypeToRemove == null
                             || emote.subType == update.subTypeToRemove) {
                         it.remove();
-                        emoteNames.remove(emote.code);
-                        if (update.roomToRemove != null && emotesNamesPerStream.containsKey(update.roomToRemove)) {
-                            emotesNamesPerStream.get(update.roomToRemove).remove(emote.code);
+                        usableGlobalEmotes.remove(emote);
+                        if (update.roomToRemove != null &&
+                                usableStreamEmotes.containsKey(update.roomToRemove)) {
+                            usableStreamEmotes.get(update.roomToRemove).remove(emote);
                         }
                         removedCount++;
                     }
@@ -285,17 +311,20 @@ public class Emoticons {
          */
         if ((emote.hasGlobalEmoteset() || localEmotesets.contains(emote.emoteSet))) {
             if (!emote.hasStreamRestrictions()) {
-                emoteNames.add(emote.code);
+                usableGlobalEmotes.add(emote);
             } else {
-                // Channel specific emotes
                 for (String stream : emote.getStreamRestrictions()) {
-                    if (!emotesNamesPerStream.containsKey(stream)) {
-                        emotesNamesPerStream.put(stream, new HashSet<String>());
+                    if (!usableStreamEmotes.containsKey(stream)) {
+                        usableStreamEmotes.put(stream, new HashSet<>());
                     }
-                    emotesNamesPerStream.get(stream).add(emote.code);
+                    usableStreamEmotes.get(stream).add(emote);
                 }
             }
         }
+        
+        /**
+         * Add to collection.
+         */
         collection.remove(emote);
         collection.add(emote);
     }
@@ -370,7 +399,8 @@ public class Emoticons {
     
     /**
      * Gets a list of emoticons that are associated with the given emoteset.
-     * This returns the original Set, so it should not be modified.
+     * This returns the original Set, so it should not be modified. Does not
+     * return emotes for the global emoteset (0).
      *
      * @param emoteSet
      * @return
@@ -409,21 +439,37 @@ public class Emoticons {
         return result;
     }
     
-    public Collection<String> getEmoteNames() {
-        return emoteNames;
+    public Collection<Emoticon> getLocalTwitchEmotes() {
+        return usableGlobalEmotes;
     }
     
-    public Collection<String> getEmotesNamesByStream(String stream) {
-        Collection<String> names = emotesNamesPerStream.get(stream);
-        return names == null ? EMPTY_STRING_SET : names;
+    public Collection<Emoticon> getUsableEmotesByStream(String stream) {
+        Collection<Emoticon> names = usableStreamEmotes.get(stream);
+        return names == null ? EMPTY_SET : names;
     }
     
-    public void updateEmoteNames(Set<Integer> emotesets) {
+    /**
+     * Update Twitch Emotes for TAB Completion. Twitch Emotes are always global,
+     * so only need to update usableGlobalEmotes. This only updates based on
+     * emotesets, other global emotes (like FFZ) must not be removed by this.
+     * 
+     * @param emotesets 
+     */
+    public void updateLocalEmotes(Set<Integer> emotesets) {
         if (!this.localEmotesets.equals(emotesets)) {
             this.localEmotesets = emotesets;
+            // Remove emotes not having current sets (and not being global)
+            Iterator<Emoticon> it = usableGlobalEmotes.iterator();
+            while (it.hasNext()) {
+                Emoticon emote = it.next();
+                if (!emote.hasGlobalEmoteset() && !localEmotesets.contains(emote.emoteSet)) {
+                    it.remove();
+                }
+            }
+            // Add all emotes for current sets
             for (int emoteset : emotesets) {
                 for (Emoticon emote : getEmoticons(emoteset)) {
-                    emoteNames.add(emote.code);
+                    usableGlobalEmotes.add(emote);
                 }
             }
         }
@@ -1018,7 +1064,10 @@ public class Emoticons {
         Map<Pattern, String> replacements = new HashMap<>();
         for (Emoticon e : emoji) {
             if (e.stringId != null) {
-                replacements.put(Pattern.compile(e.stringId), e.code);
+                replacements.put(Pattern.compile(e.stringId, Pattern.LITERAL), e.code);
+            }
+            if (e.stringIdAlias != null) {
+                replacements.put(Pattern.compile(e.stringIdAlias, Pattern.LITERAL), e.code);
             }
         }
         emojiReplacement = replacements;

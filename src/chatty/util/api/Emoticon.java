@@ -106,6 +106,7 @@ public class Emoticon {
     public final boolean literal;
     public final int numericId;
     public final String stringId;
+    public final String stringIdAlias;
     public final String urlX2;
     public final String creator;
     
@@ -145,6 +146,7 @@ public class Emoticon {
         private int emoteset = SET_UNDEFINED;
         private int numericId = ID_UNDEFINED;
         private String stringId = null;
+        private String stringIdAlias = null;
         private String creator;
         private boolean isAnimated = false;
         
@@ -197,6 +199,11 @@ public class Emoticon {
         
         public Builder setStringId(String id) {
             this.stringId = id;
+            return this;
+        }
+        
+        public Builder setStringIdAlias(String id) {
+            this.stringIdAlias = id;
             return this;
         }
         
@@ -330,6 +337,7 @@ public class Emoticon {
         this.literal = builder.literal;
         this.numericId = builder.numericId;
         this.stringId = builder.stringId;
+        this.stringIdAlias = builder.stringIdAlias;
         this.creator = builder.creator;
         this.infos = builder.infos;
         this.isAnimated = builder.isAnimated;
@@ -507,20 +515,18 @@ public class Emoticon {
      * @param user
      * @return
      */
-    public EmoticonImage getIcon(float scaleFactor, int maxHeight, EmoticonUser user, boolean f) {
-        boolean flipped = f && ((ChannelTextPane)user).getRand(5) != 0;
+    public EmoticonImage getIcon(float scaleFactor, int maxHeight, EmoticonUser user) {
         if (images == null) {
             images = new HalfWeakSet<>();
         }
         EmoticonImage resultImage = null;
         for (EmoticonImage image : images) {
-            if (image.scaleFactor == scaleFactor && image.maxHeight == maxHeight
-                    && image.flipped == flipped) {
+            if (image.scaleFactor == scaleFactor && image.maxHeight == maxHeight) {
                 resultImage = image;
             }
         }
         if (resultImage == null) {
-            resultImage = new EmoticonImage(scaleFactor, maxHeight, flipped);
+            resultImage = new EmoticonImage(scaleFactor, maxHeight);
             images.add(resultImage);
         } else {
             images.markStrong(resultImage);
@@ -574,7 +580,7 @@ public class Emoticon {
      * @return 
      */
     public EmoticonImage getIcon(EmoticonUser user) {
-        return getIcon(1, 0, user, false);
+        return getIcon(1, 0, user);
     }
     
     /**
@@ -802,6 +808,11 @@ public class Emoticon {
                 Image scaled = getScaledImage(icon.getImage(), targetSize.width,
                         targetSize.height);
                 icon.setImage(scaled);
+            } else if (icon.getIconWidth() > MAX_SCALED_WIDTH
+                    || icon.getIconHeight() > MAX_SCALED_HEIGHT) {
+                // Fail-safe for accidentally large images that can't be scaled
+                // (e.g. GIF)
+                return null;
             }
 
             /**
@@ -815,10 +826,6 @@ public class Emoticon {
                     // setCachedSize checks for type
                     setCachedSize(width, height);
                 }
-            }
-            
-            if (image.flipped && !gif) {
-                icon.setImage(MiscUtil.rotateImage(icon.getImage()));
             }
             return icon;
         }
@@ -943,7 +950,6 @@ public class Emoticon {
         private ImageIcon icon;
         public final float scaleFactor;
         public final int maxHeight;
-        public final boolean flipped;
         
         private Set<EmoticonUser> users;
       
@@ -960,10 +966,9 @@ public class Emoticon {
         private long lastLoadingAttempt;
         private long lastUsed;
         
-        public EmoticonImage(float scaleFactor, int maxHeight, boolean flipped) {
+        public EmoticonImage(float scaleFactor, int maxHeight) {
             this.scaleFactor = scaleFactor;
             this.maxHeight = maxHeight;
-            this.flipped = flipped;
         }
         
         /**

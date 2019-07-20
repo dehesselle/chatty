@@ -16,10 +16,13 @@ import chatty.util.settings.Setting;
 import chatty.util.settings.Settings;
 import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -66,6 +69,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
     
     private boolean restartRequired = false;
     private boolean reconnectRequired = false;
+    private Dimension autoSetSize;
     
     private static final String RESTART_REQUIRED_INFO = "<html><body style='width: 280px'>"
             + Language.getString("settings.restartRequired");
@@ -79,7 +83,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
     private final HashMap<String,ListSetting> listSettings = new HashMap<>();
     private final HashMap<String,MapSetting> mapSettings = new HashMap<>();
     
-    private final Settings settings;
+    final Settings settings;
     private final MainGui owner;
     
     private final NotificationSettings notificationSettings;
@@ -179,7 +183,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
 
     public SettingsDialog(final MainGui owner, final Settings settings) {
         super(owner, Language.getString("settings.title"), true);
-        setResizable(false);
+//        setResizable(false);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         
         addWindowListener(new WindowAdapter() {
@@ -211,17 +215,29 @@ public class SettingsDialog extends JDialog implements ActionListener {
         selection = Tree.createTree(MENU);
         selection.setSelectionRow(0);
         selection.setBorder(BorderFactory.createEtchedBorder());
+        JScrollPane selectionScroll = new JScrollPane(selection);
+        selectionScroll.setBorder(null);
+        selectionScroll.setMinimumSize(selectionScroll.getPreferredSize());
 
         gbc = makeGbc(0,0,1,1);
         gbc.insets = new Insets(10,10,10,3);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 0;
         gbc.weighty = 1;
-        add(selection, gbc);
+        add(selectionScroll, gbc);
 
         // Create setting pages, the order here doesn't matter
         cardManager = new CardLayout();
-        cards = new JPanel(cardManager);
+        cards = new JPanel(cardManager) {
+            
+            @Override
+            public void add(Component comp, Object constraints) {
+                JScrollPane scroll = new JScrollPane(comp);
+                scroll.setBorder(null);
+                super.add(scroll, constraints);
+            }
+            
+        };
         cards.add(new MainSettings(this), Page.MAIN.name);
         cards.add(new MessageSettings(this), Page.MESSAGES.name);
         cards.add(new ModerationSettings(this), Page.MODERATION.name);
@@ -319,16 +335,40 @@ public class SettingsDialog extends JDialog implements ActionListener {
     }
     
     public void showSettings(String action, Object parameter) {
+        //------------
+        // Initialize
+        //------------
         loadSettings();
         notificationSettings.setUserReadPermission(settings.getList("scopes").contains(TokenInfo.Scope.USERINFO.scope));
-        setLocationRelativeTo(owner);
         if (action != null) {
             editDirectly(action, parameter);
         }
         stuffBasedOnPanel();
         selection.requestFocusInWindow();
         
-        pack();
+        //-----------------
+        // Size / Position
+        //-----------------
+        // If not set and not manually resized window (not ideal, but should be
+        // good enough for now, manually resizing indicates wanting to have it
+        // a certain way)
+        if (autoSetSize == null || autoSetSize.equals(getSize())) {
+            pack();
+            Rectangle screenBounds = GuiUtil.getEffectiveScreenBounds(this);
+//            screenBounds = new Rectangle(700, 400); // Test
+            if (getHeight() > screenBounds.height) {
+                /**
+                 * Add some width for possible scrollbars, not ideal but should do
+                 * for now (especially since this shouldn't happen for many users)
+                 */
+                setSize(getWidth()+50, screenBounds.height);
+            }
+            if (getWidth() > screenBounds.width) {
+                setSize(screenBounds.width, getHeight());
+            }
+            GuiUtil.setLocationRelativeTo(this, owner);
+            autoSetSize = getSize(autoSetSize);
+        }
         setVisible(true);
     }
     
@@ -568,6 +608,17 @@ public class SettingsDialog extends JDialog implements ActionListener {
         return gbc;
     }
     
+    protected GridBagConstraints makeNoGapGbc(int x, int y, int w, int h, int anchor) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = x;
+        gbc.gridy = y;
+        gbc.gridwidth = w;
+        gbc.gridheight = h;
+        gbc.insets = new Insets(0,0,0,0);
+        gbc.anchor = anchor;
+        return gbc;
+    }
+    
     protected GridBagConstraints makeGbcCloser(int x, int y, int w, int h, int anchor) {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = x;
@@ -731,13 +782,17 @@ public class SettingsDialog extends JDialog implements ActionListener {
         return result;
     }
     
-    protected ComboLongSetting addComboLongSetting(String name, int[] choices) {
+    protected ComboLongSetting addComboLongSetting(String name, int... choices) {
         Map<Long, String> localizedChoices = new LinkedHashMap<>();
         for (Integer choice : choices) {
-            String label = Language.getString("settings.long."+name+".option."+choice);
+            String label = Language.getString("settings.long."+name+".option."+choice, false);
+            if (label == null) {
+                label = String.valueOf(choice);
+            }
             localizedChoices.put((long)choice, label);
         }
         ComboLongSetting result = new ComboLongSetting(localizedChoices);
+        result.setToolTipText(SettingsUtil.addTooltipLinebreaks(Language.getString("settings.long."+name+".tip", false)));
         longSettings.put(name, result);
         return result;
     }
@@ -823,6 +878,22 @@ public class SettingsDialog extends JDialog implements ActionListener {
         JLabel label = new JLabel(text);
         label.setToolTipText(SettingsUtil.addTooltipLinebreaks(tip));
         return label;
+    }
+    
+    protected JPanel createPanel(String settingName, JComponent... settingComponent) {
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = makeGbc(0, 0, 1, 1);
+        // Make sure to only have space between the two components, since other
+        // spacing will be added when this panel is added to the layout
+        gbc.insets = new Insets(0, 0, 0, gbc.insets.right);
+        panel.add(createLabel(settingName), gbc);
+        gbc = makeGbc(1, 0, 1, 1);
+        gbc.insets = new Insets(0, gbc.insets.left, 0, 0);
+        for (JComponent comp : settingComponent) {
+            panel.add(comp, gbc);
+            gbc.gridx++;
+        }
+        return panel;
     }
     
     protected void clearHistory() {

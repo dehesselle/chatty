@@ -469,7 +469,7 @@ public class EmotesDialog extends JDialog {
                 EmoticonUser emoteUser) {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             addMouseListener(mouseListener);
-            EmoticonImage emoteImage = emote.getIcon(scale, 0, emoteUser, false);
+            EmoticonImage emoteImage = emote.getIcon(scale, 0, emoteUser);
             this.code = emote.code;
             this.emote = emoteImage;
             setIcon(emoteImage.getImageIcon());
@@ -839,7 +839,9 @@ public class EmotesDialog extends JDialog {
             //------------
             // Add emotes
             //------------
-            for (String stream : perStream.keySet()) {
+            List<String> sortedStreams = new ArrayList<>(perStream.keySet());
+            Collections.sort(sortedStreams, String.CASE_INSENSITIVE_ORDER);
+            for (String stream : sortedStreams) {
                 addEmotes(stream, perStream.get(stream));
             }
             
@@ -1120,6 +1122,12 @@ public class EmotesDialog extends JDialog {
             }
             
             // Info
+            if (emote.type == Emoticon.Type.EMOJI && emote.stringId != null) {
+                addInfo(panel2, emote.stringId);
+                if (emote.stringIdAlias != null) {
+                    addInfo(panel2, "("+emote.stringIdAlias+")");
+                }
+            }
             featured = emote.subType == Emoticon.SubType.EVENT ? "Featured " : "";
             for (String info : emote.getInfos()) {
                 addInfo(panel2, featured+info);

@@ -27,6 +27,8 @@ REPO_DIR=$SELF_DIR/..
 
 export MACOSX_DEPLOYMENT_TARGET=10.11
 
+set -e
+
 #--- create temporary workspace
 RAMDISK_VOL=WRKSPC
 diskutil erasevolume HFS+ "$RAMDISK_VOL" $(hdiutil attach -nomount ram://2097152)
@@ -58,7 +60,7 @@ sed -i '' '1s/.*/#!\/usr\/bin\/env python3.6\
 cd $WORK_DIR
 mkdir -p package/macosx
 cp $REPO_DIR/macos/Chatty.icns package/macosx
-javapackager -deploy -native image -srcdir $WORK_DIR/chatty/build/libs -srcfiles Chatty.jar -appclass chatty.Chatty -name Chatty -outdir $WORK_DIR/deploy -outfile Chatty -v
+javapackager -deploy -native image -srcdir $WORK_DIR/chatty/build/libs -srcfiles Chatty.jar -appclass chatty.Chatty -name Chatty -outdir $WORK_DIR/deploy -outfile Chatty -v -nosign
 
 FRAMEWORKS_DIR=$WORK_DIR/deploy/Chatty.app/Contents/Frameworks
 mkdir -p $FRAMEWORKS_DIR
@@ -86,10 +88,3 @@ INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
 echo "Build complete.=========================================================="
 echo "$WORK_DIR/deploy/Chatty.app"
 
-if [ -f $HOME/.developer_id ]; then   # sign the app
-  cd $WORK_DIR/deploy
-  DEVELOPER_ID=$(cat $HOME/.developer_id)
-  codesign --sign "$DEVELOPER_ID" Chatty.app/Contents/Frameworks/Python.framework
-  codesign --sign "$DEVELOPER_ID" --force --verbose=4 Chatty.app
-  codesign --verify --deep --strict Chatty.app
-fi

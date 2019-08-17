@@ -6,7 +6,7 @@
 
 STREAMLINK_DIR=$RESOURCES_DIR/streamlink
 
-export PYTHONPATH=$STREAMLINK_DIR/lib/python3.6/site-packages
+export PYTHONPATH=$STREAMLINK_DIR/lib/python3.7/site-packages
 
 VLC=/Applications/VLC.app/Contents/MacOS/VLC
 

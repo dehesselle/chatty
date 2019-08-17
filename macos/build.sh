@@ -42,18 +42,18 @@ cd chatty
 
 #--- download Python.framework
 cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py369.1/py369_framework_1.tar.xz | tar xJp
+curl -L https://github.com/dehesselle/py3framework/releases/download/py374.1/py374_framework_1.tar.xz | tar xJp
 
 #--- download Streamlink
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
 pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==1.1.1
 
-sed -i '' '1s/.*/#!\/usr\/bin\/env python3.6\
+sed -i '' '1s/.*/#!\/usr\/bin\/env python3.7\
 /' $STREAMLINK_DIR/bin/chardetect
-sed -i '' '1s/.*/#!\/usr\/bin\/env python3.6\
+sed -i '' '1s/.*/#!\/usr\/bin\/env python3.7\
 /' $STREAMLINK_DIR/bin/streamlink
-sed -i '' '1s/.*/#!\/usr\/bin\/env python3.6\
+sed -i '' '1s/.*/#!\/usr\/bin\/env python3.7\
 /' $STREAMLINK_DIR/bin/wsdump.py
 
 #--- build macOS app

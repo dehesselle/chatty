@@ -25,7 +25,7 @@ SELF_DIR=$(cd $(dirname "$0"); pwd -P)
 REPO_DIR=$SELF_DIR/..
 . $REPO_DIR/macos/version.sh   # include version information
 
-export MACOSX_DEPLOYMENT_TARGET=10.11
+export MACOSX_DEPLOYMENT_TARGET=10.12
 
 set -e
 
@@ -42,12 +42,12 @@ cd chatty
 
 #--- download Python.framework
 cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py374.1/py374_framework_1.tar.xz | tar xJp
+curl -L https://github.com/dehesselle/py3framework/releases/download/py374.2.1012/py374_framework_2_macos1012.tar.xz | tar xJp
 
 #--- download Streamlink
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
-pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==1.1.1
+pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==1.2.0
 
 sed -i '' '1s/.*/#!\/usr\/bin\/env python3.7\
 /' $STREAMLINK_DIR/bin/chardetect

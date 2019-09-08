@@ -5,7 +5,7 @@
 # This script builds Chatty.app for macOS.
 #
 # In short, this script does the following:
-#  - create a 1 GiB ramdisk as build directory
+#  - create a 2 GiB ramdisk as build directory
 #  - copy repository to build directory
 #  - build release using 'gradle'
 #  - download Python 3 framework
@@ -15,7 +15,7 @@
 #  - modify version numbers in 'Info.plist'
 #
 # If you want to do this yourself, please take note:
-#  - You need a working installation of 'gradle' in your $PATH.
+#  - You need a working installation of 'gradle' in your PATH.
 #  - This script does its job without any bells and whistles. It does not
 #    catch errors or give meaningful error messages, it'll just break.
 #
@@ -25,7 +25,8 @@ SELF_DIR=$(cd $(dirname "$0"); pwd -P)
 REPO_DIR=$SELF_DIR/..
 . $REPO_DIR/macos/version.sh   # include version information
 
-export MACOSX_DEPLOYMENT_TARGET=10.12
+export MACOSX_DEPLOYMENT_TARGET=10.9
+export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_DEPLOYMENT_TARGET}.sdk
 
 set -e
 
@@ -42,7 +43,7 @@ cd chatty
 
 #--- download Python.framework
 cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py374.2.1012/py374_framework_2_macos1012.tar.xz | tar xJp
+curl -L https://github.com/dehesselle/py3framework/releases/download/py374.3/py374_framework_3.tar.xz | tar xJp
 
 #--- download Streamlink
 STREAMLINK_DIR=$WORK_DIR/streamlink

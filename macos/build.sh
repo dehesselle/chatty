@@ -86,6 +86,8 @@ INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $MACOSX_DEPLOYMENT_TARGET" $INFO_PLIST
 
+python3 -m compileall -f $WORK_DIR/deploy/Chatty.app || true   # precompile all packages
+
 echo "Build complete.=========================================================="
 echo "$WORK_DIR/deploy/Chatty.app"
 

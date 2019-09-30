@@ -208,8 +208,8 @@ public class Chatty {
             return settingsDir + File.separator;
         }
         String dir = System.getProperty("user.home")
-                + File.separator 
-                + ".chatty" 
+                + File.separator
+                + "Library/Application Support/Chatty"
                 + File.separator;
         new File(dir).mkdirs();
         return dir;

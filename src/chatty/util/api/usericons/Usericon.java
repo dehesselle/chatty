@@ -37,7 +37,7 @@ public class Usericon implements Comparable {
     
     private static final Set<String> statusDef = new HashSet<>(Arrays.asList(
             "$mod", "$sub", "$admin", "$staff", "$turbo", "$broadcaster", "$bot",
-            "$globalmod", "$anymod"));
+            "$globalmod", "$anymod", "$vip"));
     
     /**
      * The type determines whether it should replace any of the default icons
@@ -61,6 +61,7 @@ public class Usericon implements Comparable {
         BITS(11, "Bits", "BIT", "$", "bits", null),
         OTHER(12, "Other", "OTH", "'", null, null),
         VIP(13, "VIP", "VIP", "!", "vip", null),
+        HL(14, "Highlighted by channel points", "HL", "'", null, null),
         UNDEFINED(-1, "Undefined", "UDF", null, null, null);
         
         public Color color;

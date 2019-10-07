@@ -63,6 +63,11 @@
         <code>Hello World!</code> to chat, just as if you would have written it
         yourself and pressed Enter.</p>
     
+    <p>Any entry in the "Custom Commands" list starting with a <code>#</code>
+        will be completely ignored. For example:</p>
+    
+    <p><code># Hello World!</code></p>
+    
     <p>See <a href="#replacements">Replacements</a> for more advanced usage.</p>
     
     <h3><a name="restrict-channel">Restrict to channel</a></h3>
@@ -227,9 +232,18 @@
         </tr>
         <!-- User Context Menu -->
         <tr>
-            <td rowspan="4">User Context Menu</td>
+            <td rowspan="7">User Context Menu</td>
             <td><code>1</code>, <code>nick</code></td>
             <td>Name of the user</td>
+        </tr>
+        <tr>
+            <td><code>display-nick</code>, <code>custom-nick</code>,
+                <code>full-nick</code></td>
+            <td>Variations of the name of the user. <code>display-nick</code>
+                may contain spaces for some users. <code>custom-nick</code> may
+                also be the <a href="help.html#customNames">Custom Name</a> you
+                set, <code>full-nick</code> is what is displayed in the userlist
+                (includes status symbols)</td>
         </tr>
         <tr>
             <td><code>msg</code></td>
@@ -249,11 +263,19 @@
                 approving or denying the message (when opened by clicking on
                 an appropriate message in chat)</td>
         </tr>
+        <tr>
+            <td><code>user-id</code></td>
+            <td>The Twitch ID of the user</td>
+        </tr>
+        <tr>
+            <td><code>twitch-badge-info</code></td>
+            <td>Textual info of the user's Twitch badges (may change)</td>
+        </tr>
         <!-- User Dialog -->
         <tr>
-            <td rowspan="8">User Dialog</td>
-            <td><code>1</code>, <code>nick</code></td>
-            <td>Name of the user</td>
+            <td rowspan="6">User Dialog</td>
+            <td><em>All from User Context Menu</em></td>
+            <td>See above</td>
         </tr>
         <tr>
             <td><code>2-</code>, <code>reason</code></td>
@@ -276,10 +298,6 @@
             <td>Message id of the selected message filtered by AutoMod, for
                 approving or denying the message (when opened by clicking on
                 an appropriate message in chat)</td>
-        </tr>
-        <tr>
-            <td><code>user-id</code></td>
-            <td>The Twitch ID of the user</td>
         </tr>
         <tr>
             <td><code>followage</code> /
@@ -367,6 +385,21 @@
         <dd>Makes the given input uppercase.</dd>
         <dd><em>Example:</em> <code>$upper(1)</code> with <code>1</code>
             referring to <code>Fremily</code> turns into <code>FREMILY</code>.</dd>
+        
+        <dt><code>$replace(&lt;input&gt;,&lt;search&gt;,&lt;replace&gt;,[method])</code>
+        <dd>Search and replace in text. Especially when using Regex, remember
+            escaping of <code>\</code> (<code>\\</code>) and <code>$</code> (<code>\$</code>).</dd>
+        <dd>Methods are:
+            <ul style="margin-top:0">
+                <li><em>Not specified</em> - Literal case-insensitive search</li>
+                <li><code>cs</code> - Literal case-sensitive search</li>
+                <li><code>reg</code> - Regular Expression search</li>
+                <li><code>regRef</code> - Regular Expression search, with references to groups (<code>\$1</code>) in the replacement</li>
+                <li><code>regFirst</code>, <code>refFirstRef</code> - Same as above, but only replace first occurence</li>
+            </ul>
+        </dd>
+        <dd><em>Example:</em> <code>$replace(A b and another B,b,bee)</code> turns into <code>A bee and another bee</code></dd>
+        <dd><em>Example:</em> <code>$replace(Was timed out for 30 seconds,.*?(\\d+) seconds,Number of seconds: \$1,regRef)</code> turns into <code>Number of seconds: 30</code></dd>
         
         <dt><code>$rand([output1],[output2],[output3],..)</code></dt>
         <dd>Randomly chooses one of the outputs.</dd>

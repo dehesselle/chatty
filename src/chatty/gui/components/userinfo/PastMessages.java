@@ -21,6 +21,7 @@ public class PastMessages extends JTextArea {
     public PastMessages() {
         setEditable(false);
         setLineWrap(true);
+        setWrapStyleWord(true);
     }
     
     public String getCurrentMessage() {
@@ -140,6 +141,10 @@ public class PastMessages extends JTextArea {
                 b.append(": ").append(ma.message);
                 b.append("\n");
             }
+        }
+        // Remove last newline
+        if (b.length() > 0 && b.charAt(b.length() - 1) == '\n') {
+            b.deleteCharAt(b.length() - 1);
         }
         return b.toString();
     }

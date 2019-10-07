@@ -4,12 +4,13 @@ package chatty.gui;
 import chatty.Addressbook;
 import chatty.Room;
 import chatty.User;
+import chatty.gui.Highlighter.HighlightItem.Type;
+import chatty.util.irc.MsgTags;
 import chatty.util.settings.Settings;
 import java.awt.Color;
 import java.util.Arrays;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -38,7 +39,18 @@ public class HighlighterTest {
         ab = new Addressbook(null, null, settings);
         user.setAddressbook(ab);
         user2.setAddressbook(ab);
-        ab.add("testUser", "testCat");
+        user3.setAddressbook(ab);
+        user4.setAddressbook(ab);
+        ab.add("testUser", "testCat,testCat2");
+        ab.add("testUser3", "testCat2");
+        ab.add("testUser2", "testCat3");
+        Map<String, String> badges = new HashMap<>();
+        badges.put("vip", "1");
+        badges.put("subscriber", "24");
+        user.setTwitchBadges(badges);
+        Map<String, String> badges2 = new HashMap<>();
+        badges2.put("subscriber", "12");
+        user2.setTwitchBadges(badges2);
     }
     
     private void update(String... items) {
@@ -60,6 +72,10 @@ public class HighlighterTest {
         assertTrue(highlighter.check(user, "test message"));
         assertFalse(highlighter.check(user, "abc"));
         
+        update(" test");
+        assertTrue(highlighter.check(user, "test message"));
+        assertFalse(highlighter.check(user, "abc"));
+        
         update("");
         assertFalse(highlighter.check(user, "test"));
         assertFalse(highlighter.check(user3, ""));
@@ -68,6 +84,18 @@ public class HighlighterTest {
         assertTrue(highlighter.check(user, "mäh"));
         assertTrue(highlighter.check(user, "Mäh"));
         assertTrue(highlighter.check(user, "MÄH"));
+        
+        update("   mäh       ");
+        assertTrue(highlighter.check(user, "mäh"));
+        
+        update("\"");
+        assertTrue(highlighter.check(user, "\""));
+        assertTrue(highlighter.check(user, "blah\" blubb"));
+        assertFalse(highlighter.check(user, "mäh"));
+        
+        update("abc\\blah");
+        assertTrue(highlighter.check(user, "abc\\blah"));
+        assertFalse(highlighter.check(user, "mäh"));
         
         // cs:
         update("cs:Test");
@@ -90,6 +118,10 @@ public class HighlighterTest {
         assertFalse(highlighter.check(user, " !bet test"));
         assertTrue(highlighter.check(user, "!bett"));
         assertTrue(highlighter.check(user3, "!bet abc"));
+        
+        update("start:\\abc");
+        assertTrue(highlighter.check(user, "\\abc"));
+        assertFalse(highlighter.check(user, "mäh"));
         
         // w:
         update("w:Test");
@@ -114,6 +146,14 @@ public class HighlighterTest {
         assertTrue(highlighter.check(user, "dum"));
         assertTrue(highlighter.check(user, "hmm dum dum dumdidum"));
         assertFalse(highlighter.check(user, "Dum"));
+        
+        update("reg:\"abc\"");
+        assertTrue(highlighter.check(user, "test \"abc\" test"));
+        assertFalse(highlighter.check(user, "test abc test"));
+        
+        update("reg:\\\\");
+        assertTrue(highlighter.check(user, "test\\test"));
+        assertFalse(highlighter.check(user, "test abc test"));
         
         update("re*:dumdi|dum");
         assertTrue(highlighter.check(user, "dumdi"));
@@ -205,10 +245,92 @@ public class HighlighterTest {
         ab.add("testUser2", "testCat");
         assertTrue(highlighter.check(user2, "test"));
         
+        update("cat:testCat  chan:testChannel");
+        assertTrue(highlighter.check(user, "test"));
+        
+        update("cat:testCat,");
+        assertTrue(highlighter.check(user, "test"));
+        assertFalse(highlighter.check(user4, "test"));
+        
+        update("cat:testCat");
+        assertFalse(highlighter.check(null, "test"));
+        
+        update("cat:testCat2");
+        assertTrue(highlighter.check(user, "test"));
+        assertTrue(highlighter.check(user4, "test"));
+        
+        update("cat:testCat cat:testCat2");
+        assertTrue(highlighter.check(user, "test"));
+        assertFalse(highlighter.check(user4, "test"));
+        
+        update("cat:testCat,testCat2");
+        assertTrue(highlighter.check(user, "test"));
+        assertTrue(highlighter.check(user4, "test"));
+        
+        update("!cat:abc");
+        assertTrue(highlighter.check(user, "test"));
+        assertTrue(highlighter.check(user4, "test"));
+        
+        update("!cat:testCat");
+        assertFalse(highlighter.check(user, "test"));
+        assertTrue(highlighter.check(user4, "test"));
+        
+        update("!cat:testCat,testCat2");
+        assertFalse(highlighter.check(user, "test"));
+        assertTrue(highlighter.check(user4, "test"));
+        
+        update("!cat:testCat !cat:testCat2");
+        assertFalse(highlighter.check(user, "test"));
+        assertFalse(highlighter.check(user4, "test"));
+        
+        update("!cat:testCat,testCat2,testCat3");
+        assertTrue(highlighter.check(user, "test"));
+        assertTrue(highlighter.check(user4, "test"));
+        
+        update("!cat:testCat2");
+        assertFalse(highlighter.check(user, "test"));
+        assertFalse(highlighter.check(user4, "test"));
+        
+        update("!cat:testCat2,testCat3");
+        assertTrue(highlighter.check(user, "test"));
+        assertTrue(highlighter.check(user4, "test"));
+        assertTrue(highlighter.check(user3, "test"));
+        
+        update("!cat:testCat2 !cat:testCat3");
+        assertFalse(highlighter.check(user, "test"));
+        assertFalse(highlighter.check(user4, "test"));
+        assertFalse(highlighter.check(user3, "test"));
+        
+        update("!cat:testCat !cat:testCat3");
+        assertFalse(highlighter.check(user, "test"));
+        assertTrue(highlighter.check(user4, "test"));
+        assertFalse(highlighter.check(user3, "test"));
+        
+        update("chan:testChannel");
+        assertTrue(highlighter.check(user, "test"));
+        assertFalse(highlighter.check(user3, "test"));
+        
+        update("chan:testChannel,testChannel2");
+        assertTrue(highlighter.check(user, "test"));
+        assertTrue(highlighter.check(user3, "test"));
+        
+        update("!chan:testChannel,testChannel2");
+        assertFalse(highlighter.check(user, "test"));
+        assertFalse(highlighter.check(user3, "test"));
+        
         update("!chan:testChannel2 test");
         assertTrue(highlighter.check(user, "test"));
         assertFalse(highlighter.check(user, "mäh"));
         assertFalse(highlighter.check(user3, "test"));
+        
+        // user:
+        update("user:abc");
+        assertFalse(highlighter.check(user, "mäh"));
+        update("user:testUser");
+        assertTrue(highlighter.check(user, "mäh"));
+        assertFalse(highlighter.check(null, "mäh"));
+        update("config:info user:testUser");
+        assertFalse(highlighter.check(Type.INFO, "abc", null, ab, null, MsgTags.EMPTY));
 
         // reuser:
         update("reuser:test.*");
@@ -225,6 +347,38 @@ public class HighlighterTest {
         assertFalse(highlighter.check(user, "whatever"));
         assertTrue(highlighter.check(user2, "whatever"));
         assertFalse(highlighter.check(user4, "whatever"));
+        assertFalse(highlighter.check(null, "whatever"));
+        
+        // Badge
+        update("config:b|vip");
+        assertTrue(highlighter.check(user, "whatever"));
+        assertFalse(highlighter.check(user2, "whatever"));
+        
+        update("config:b|subscriber/12");
+        assertFalse(highlighter.check(user, "whatever"));
+        assertTrue(highlighter.check(user2, "whatever"));
+        
+        update("config:b|subscriber");
+        assertTrue(highlighter.check(user, "whatever"));
+        assertTrue(highlighter.check(user2, "whatever"));
+        
+        update("config:b|subscriber/12 color:red", "config:b|vip color:blue");
+        assertTrue(highlighter.check(user, "whatever"));
+        assertEquals(highlighter.getLastMatchColor(), Color.BLUE);
+        assertTrue(highlighter.check(user2, "whatever"));
+        assertEquals(highlighter.getLastMatchColor(), Color.RED);
+        
+        update("config:b|subscriber/12,b|vip");
+        assertTrue(highlighter.check(user, "whatever"));
+        assertTrue(highlighter.check(user2, "whatever"));
+        
+        update("config:b|subscriber/12 config:b|vip");
+        assertFalse(highlighter.check(user, "whatever"));
+        assertFalse(highlighter.check(user2, "whatever"));
+        
+        update("config:b|subscriber/24 config:b|vip");
+        assertTrue(highlighter.check(user, "whatever"));
+        assertFalse(highlighter.check(user2, "whatever"));
         
         // Color
         update("color:red testi", "test");
@@ -427,6 +581,9 @@ public class HighlighterTest {
         assertFalse(highlighter.check(staff, ""));
         assertFalse(highlighter.check(subscriber, ""));
         
+        // Status with no user
+        assertFalse(highlighter.check(null, "abc"));
+        
         // Highlighter shouldn't take empty items
         update("");
         assertFalse(highlighter.check(broadcaster, "test"));
@@ -450,9 +607,27 @@ public class HighlighterTest {
         Highlighter.HighlightItem item = new Highlighter.HighlightItem("");
         assertTrue(item.matchesAny("", null));
         assertTrue(item.matchesAny("abc", null));
-        assertTrue(item.matches(Highlighter.HighlightItem.Type.REGULAR, "", broadcaster));
-        assertTrue(item.matches(Highlighter.HighlightItem.Type.REGULAR, "", normal));
-        assertFalse(item.matches(Highlighter.HighlightItem.Type.INFO, "", normal));
+        assertTrue(item.matches(Highlighter.HighlightItem.Type.REGULAR, "", broadcaster, MsgTags.EMPTY));
+        assertTrue(item.matches(Highlighter.HighlightItem.Type.REGULAR, "", normal, MsgTags.EMPTY));
+        assertFalse(item.matches(Highlighter.HighlightItem.Type.INFO, "", normal, MsgTags.EMPTY));
+        
+        // Several status prefixes
+        update("status:bm status:s");
+        assertFalse(highlighter.check(broadcaster, "test"));
+        assertFalse(highlighter.check(normal, ""));
+        assertFalse(highlighter.check(modTurbo, "test"));
+        assertFalse(highlighter.check(admin, ""));
+        assertFalse(highlighter.check(adminBroadcasterTurbo, "hello"));
+        assertFalse(highlighter.check(staff, ""));
+        assertFalse(highlighter.check(subscriber, ""));
+        User modSub = new User("abc", Room.EMPTY);
+        modSub.setModerator(true);
+        modSub.setSubscriber(true);
+        User broadcasterSub = new User("abc", Room.createRegular("#abc"));
+        broadcasterSub.setBroadcaster(true);
+        broadcasterSub.setSubscriber(true);
+        assertTrue(highlighter.check(modSub, ""));
+        assertTrue(highlighter.check(broadcasterSub, ""));
     }
     
     @Test
@@ -539,35 +714,78 @@ public class HighlighterTest {
         updateBlacklist();
         
         update("config:info abc");
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.INFO, "abc", null, ab, null));
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.REGULAR, "abc", null, ab, null));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", null, ab, null));
+        assertTrue(highlighter.check(Type.INFO, "abc", null, ab, null, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.REGULAR, "abc", null, ab, null, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.ANY, "abc", null, ab, null, MsgTags.EMPTY));
         update("abc");
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.INFO, "abc", null, ab, null));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", null, ab, null));
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.ANY, "", null, ab, null));
+        assertFalse(highlighter.check(Type.INFO, "abc", null, ab, null, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.ANY, "abc", null, ab, null, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.ANY, "", null, ab, null, MsgTags.EMPTY));
         
         update("config:info chan:joshimuz");
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", "#joshimuz", ab, null));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.INFO, "abc", "#joshimuz", ab, null));
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.REGULAR, "abc", "#joshimuz", ab, null));
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", "joshimuz", ab, null));
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", "#somechannel", ab, null));
+        assertTrue(highlighter.check(Type.ANY, "abc", "#joshimuz", ab, null, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.INFO, "abc", "#joshimuz", ab, null, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.REGULAR, "abc", "#joshimuz", ab, null, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.ANY, "abc", "joshimuz", ab, null, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.ANY, "abc", "#somechannel", ab, null, MsgTags.EMPTY));
         
         update("chan:testchannel");
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.REGULAR, "abc", "#testchannel", ab, null));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.REGULAR, "abc", "#testchannel", ab, user));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.REGULAR, "abc", null, ab, user));
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.REGULAR, "abc", "#somechannel", ab, user));
+        assertTrue(highlighter.check(Type.REGULAR, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.REGULAR, "abc", "#testchannel", ab, user, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.REGULAR, "abc", null, ab, user, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.REGULAR, "abc", "#somechannel", ab, user, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.REGULAR, "abc", null, null, null, MsgTags.EMPTY));
         
+        // Channel categories / missing user or ab
         update("chanCat:subonly");
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", "#testchannel", ab, null));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", null, null, null));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", null, ab, null));
+        assertFalse(highlighter.check(Type.ANY, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        // No ab/user given
+        assertFalse(highlighter.check(Type.ANY, "abc", null, null, null, MsgTags.EMPTY));
+        // No user, but ab given
+        assertFalse(highlighter.check(Type.ANY, "abc", null, ab, null, MsgTags.EMPTY));
         ab.add("#testchannel", "subonly");
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", "#testchannel", ab, null));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", null, null, user));
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", "#somechannel", null, user));
+        // Ab/channel given, but no user
+        assertTrue(highlighter.check(Type.ANY, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        // Ab given, but no user/channel
+        assertFalse(highlighter.check(Type.ANY, "abc", null, ab, null, MsgTags.EMPTY));
+        // Gets ab and chan from user
+        assertTrue(highlighter.check(Type.ANY, "abc", null, null, user, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.ANY, "abc", "#somechannel", null, user, MsgTags.EMPTY));
+        
+        update("!chanCat:subonly");
+        assertFalse(highlighter.check(Type.ANY, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.ANY, "abc", "#testchannel2", ab, null, MsgTags.EMPTY));
+        
+        // Either of the categories
+        update("chanCat:subonly,modding");
+        assertTrue(highlighter.check(Type.ANY, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.ANY, "abc", "#testchannel2", ab, null, MsgTags.EMPTY));
+        
+        // Either of the categories (category added)
+        ab.add("#testchannel2", "modding");
+        update("chanCat:subonly,modding");
+        assertTrue(highlighter.check(Type.ANY, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.ANY, "abc", "#testchannel2", ab, null, MsgTags.EMPTY));
+        
+        // Not one of the categories
+        update("!chanCat:subonly,modding");
+        assertTrue(highlighter.check(Type.ANY, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.ANY, "abc", "#testchannel2", ab, null, MsgTags.EMPTY));
+        
+        // Not both categories
+        update("!chanCat:subonly !chanCat:modding");
+        assertFalse(highlighter.check(Type.ANY, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.ANY, "abc", "#testchannel2", ab, null, MsgTags.EMPTY));
+        
+        // One has both categories
+        ab.add("#testchannel2", "subonly");
+        update("!chanCat:subonly,modding");
+        assertTrue(highlighter.check(Type.ANY, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.ANY, "abc", "#testchannel2", ab, null, MsgTags.EMPTY));
+        // Both have both categories
+        ab.add("#testchannel", "modding");
+        assertFalse(highlighter.check(Type.ANY, "abc", "#testchannel", ab, null, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.ANY, "abc", "#testchannel2", ab, null, MsgTags.EMPTY));
         
         update("config:firstmsg");
         assertTrue(highlighter.check(user, "abc"));
@@ -576,17 +794,75 @@ public class HighlighterTest {
         assertTrue(highlighter.check(user2, "abc"));
         update("config:info,firstmsg");
         assertFalse(highlighter.check(user2, "abc"));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", null, ab, user2));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.INFO, "abc", null, ab, user2));
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.REGULAR, "abc", null, ab, user2));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", null, null, null));
-        assertFalse(highlighter.check(Highlighter.HighlightItem.Type.ANY, "abc", null, ab, user));
+        assertTrue(highlighter.check(Type.ANY, "abc", null, ab, user2, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.INFO, "abc", null, ab, user2, MsgTags.EMPTY));
+        assertFalse(highlighter.check(Type.REGULAR, "abc", null, ab, user2, MsgTags.EMPTY));
+        // No user given
+        assertFalse(highlighter.check(Type.ANY, "abc", null, null, null, MsgTags.EMPTY));
+        // User with a message already added (checks 0 since message is normally added after checking)
+        assertFalse(highlighter.check(Type.ANY, "abc", null, ab, user, MsgTags.EMPTY));
         
         update("config:any");
         assertTrue(highlighter.check(user, "abc"));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.ANY, "", null, ab, user2));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.INFO, "", null, ab, user2));
-        assertTrue(highlighter.check(Highlighter.HighlightItem.Type.REGULAR, "", null, ab, user2));
+        assertTrue(highlighter.check(Type.ANY, "", null, ab, user2, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.INFO, "", null, ab, user2, MsgTags.EMPTY));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user2, MsgTags.EMPTY));
+        
+        update("config:hl");
+        assertFalse(highlighter.check(user, "abc"));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message")));
+        
+        // Tags prefix
+        update("config:t|msg-id=highlighted-message");
+        assertFalse(highlighter.check(user, "abc"));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message")));
+        
+        // Several tags
+        update("config:t|msg-id,t|subscriber=1");
+        assertFalse(highlighter.check(user, "abc"));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message")));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("subscriber", "1")));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message", "subscriber", "0")));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message", "subscriber", "1")));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("subscriber", "0")));
+        
+        update("config:t|msg-id config:t|subscriber=1");
+        assertFalse(highlighter.check(user, "abc"));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message")));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("subscriber", "1")));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message", "subscriber", "0")));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message", "subscriber", "1")));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("subscriber", "0")));
+        
+        update("config:t|msg-id config:t|subscriber=1,t|mod=1");
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message", "mod", "1")));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message", "mod", "0")));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message", "mod", "1", "subscriber", "1")));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("msg-id", "highlighted-message")));
+        
+        // Tags prefix with regex value matching
+        update("config:t|color=reg:(#00FF7F|#FF00FF)");
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("color", "#00FF7F")));
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("color", "#FF00FF")));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("color", "#123456")));
+        
+        // New list parsing/adding space
+        update("config:t|test=abc\\,lol");
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("test", "abc,lol")));
+        update("config:t|test=\"a,b,c\",!notify");
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("test", "a,b,c")));
+        update("config:t|test=\"abc lol\"");
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("test", "abc lol")));
+        update("config:t|test=reg:abc\\ lol");
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("test", "abc lol")));
+        update("config:t|test=reg:abc\\ \\\\w{2\\,3}");
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("test", "abc lol")));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("test", "abc rofl")));
+        assertFalse(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("test", "abclol")));
+        update("config:t|test=reg:\"abc \\\\w{2,3}\"");
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("test", "abc lol")));
+        update("config:t|test=abc\\\\slol");
+        assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, MsgTags.create("test", "abc\\slol")));
     }
     
 }

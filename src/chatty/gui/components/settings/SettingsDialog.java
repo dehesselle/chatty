@@ -60,7 +60,7 @@ public class SettingsDialog extends JDialog implements ActionListener {
             "bttvEmotes", "botNamesBTTV", "botNamesFFZ", "ffzEvent",
             "logPath", "logTimestamp", "logSplit", "logSubdirectories",
             "tabsPlacement", "tabsLayout", "logLockFiles",
-            "laf", "lafTheme", "language"
+            "laf", "lafTheme", "lafFontScale", "language"
     ));
     
     private final Set<String> reconnectRequiredDef = new HashSet<>(Arrays.asList(
@@ -873,9 +873,18 @@ public class SettingsDialog extends JDialog implements ActionListener {
     }
     
     protected JLabel createLabel(String settingName) {
+        return createLabel(settingName, false);
+    }
+    
+    protected JLabel createLabel(String settingName, boolean info) {
         String text = Language.getString("settings.label."+settingName);
         String tip = Language.getString("settings.label."+settingName+".tip", false);
-        JLabel label = new JLabel(text);
+        JLabel label;
+        if (info) {
+            label = new JLabel(SettingConstants.HTML_PREFIX+text);
+        } else {
+            label = new JLabel(text);
+        }
         label.setToolTipText(SettingsUtil.addTooltipLinebreaks(tip));
         return label;
     }

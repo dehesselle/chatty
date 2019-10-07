@@ -12,24 +12,18 @@ import chatty.util.StringUtil;
 import chatty.util.api.pubsub.ModeratorActionData;
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Represents a single user on a specific channel.
  * 
  * @author tduva
  */
-public class User implements Comparable {
-    
-    private static final Pattern SPLIT_EMOTESET = Pattern.compile("[^0-9]");
-    
-    private static final Set<Integer> EMPTY_EMOTESETS = new HashSet<>();
+public class User implements Comparable<User> {
     
     private static final NamedColor[] defaultColors = {
         new NamedColor("Red", 255, 0, 0),
@@ -108,18 +102,10 @@ public class User implements Comparable {
     private boolean hasCorrectedColor;
     private boolean hasCustomColor;
     
-    //===========
-    // Emoticons
-    //===========
-    /**
-     * Current emotesets. Set gets modified. Only the local User should have
-     * this set nowadays, so by default no value.
-     */
-    private Set<Integer> emoteSets;
-    
     //========
     // Status
     //========
+    private boolean localUser;
     private boolean online;
     private boolean isModerator;
     private boolean isBroadcaster;
@@ -207,10 +193,14 @@ public class User implements Comparable {
         return twitchBadges != null && twitchBadges.containsKey(id);
     }
     
-    public List<Usericon> getBadges(boolean botBadgeEnabled) {
+    public synchronized boolean hasTwitchBadge(String id, String version) {
+        return twitchBadges != null && twitchBadges.containsKey(id) && twitchBadges.get(id).equals(version);
+    }
+    
+    public List<Usericon> getBadges(boolean botBadgeEnabled, boolean pointsHl) {
         Map<String, String> badges = getTwitchBadges();
         if (iconManager != null) {
-            return iconManager.getBadges(badges, this, botBadgeEnabled);
+            return iconManager.getBadges(badges, this, botBadgeEnabled, pointsHl);
         }
         return null;
     }
@@ -488,6 +478,26 @@ public class User implements Comparable {
         return msg != null ? msg.text : null;
     }
     
+    public synchronized AutoModMessage getAutoModMessage(String msgId) {
+        if (msgId == null) {
+            return null;
+        }
+        for (Message msg : lines) {
+            if (msg instanceof AutoModMessage) {
+                AutoModMessage autoModMsg = (AutoModMessage) msg;
+                if (msgId.equals(autoModMsg.id)) {
+                    return autoModMsg;
+                }
+            }
+        }
+        return null;
+    }
+    
+    public String getAutoModMessageText(String msgId) {
+        AutoModMessage msg = getAutoModMessage(msgId);
+        return msg != null ? msg.message : null;
+    }
+    
     public synchronized int clearMessagesIfInactive(long duration) {
         if (!lines.isEmpty()
                 && System.currentTimeMillis() - getLastLineTime() >= duration) {
@@ -737,12 +747,7 @@ public class User implements Comparable {
     }
 
     @Override
-    public synchronized int compareTo(Object o) {
-        if (!(o instanceof User)) {
-            return 0;
-        }
-        User u = (User)o;
-        
+    public synchronized int compareTo(User u) {
         int broadcaster = 16;
         int admin = 8;
         int moderator = 4;
@@ -801,6 +806,10 @@ public class User implements Comparable {
         } else {
             setModerator(false);
         }
+    }
+    
+    public synchronized boolean isLocalUser() {
+        return localUser;
     }
     
     /**
@@ -871,6 +880,14 @@ public class User implements Comparable {
     
     public synchronized boolean isVip() {
         return isVip;
+    }
+    
+    public synchronized boolean setLocalUser(boolean localUser) {
+        if (this.localUser != localUser) {
+            this.localUser = localUser;
+            return true;
+        }
+        return false;
     }
     
     public synchronized boolean setModerator(boolean mod) {
@@ -972,62 +989,6 @@ public class User implements Comparable {
             return "@"+result;
         }
         return result;
-    }
-    
-    /**
-     * Sets the set of emoticons available for this user.
-     * 
-     * Splits at any character that is not a number, but usually it should
-     * be a string like: [1,5,39]
-     * 
-     * @param newEmoteSets 
-     */
-    public synchronized void setEmoteSets(String newEmoteSets) {
-        if (emoteSets == null) {
-            emoteSets = new HashSet<>();
-        }
-        emoteSets.clear();
-        if (newEmoteSets == null) {
-            return;
-        }
-        String[] split = SPLIT_EMOTESET.split(newEmoteSets);
-        for (String emoteSet : split) {
-            if (!emoteSet.isEmpty()) {
-                try {
-                    emoteSets.add(Integer.parseInt(emoteSet));
-                } catch (NumberFormatException ex) {
-                    // Do nothing, invalid emoteset, just don't add it
-                }
-            }
-        }
-    }
-    
-    /**
-     * Set new emotesets.
-     * 
-     * @param newEmotesets Non-null Set of emotesets, may be empty
-     */
-    public synchronized void setEmoteSets(Set<Integer> newEmotesets) {
-        if (emoteSets == null) {
-            emoteSets = new HashSet<>();
-        }
-        emoteSets.clear();
-        emoteSets.addAll(newEmotesets);
-    }
-    
-    /**
-     * Gets a Set of Integer containing the emotesets available to this user.
-     * Defensive copying because it might be iterated over while being modified
-     * concurrently. The resulting Set must not be modified, since it could also
-     * be the shared empty Set.
-     * 
-     * @return 
-     */
-    public synchronized Set<Integer> getEmoteSet() {
-        if (emoteSets == null || emoteSets.isEmpty()) {
-            return EMPTY_EMOTESETS;
-        }
-        return new HashSet<>(emoteSets);
     }
     
     public synchronized int getActivityScore() {

@@ -106,6 +106,10 @@ public class HighlightSettings extends SettingsPanel {
         JCheckBox highlightMatchesAll = d.addSimpleBooleanSetting("highlightMatchesAll");
         base.add(highlightMatchesAll, gbc);
         
+        gbc = d.makeGbc(0, 4, 2, 1, GridBagConstraints.WEST);
+        JCheckBox highlightByPoints = d.addSimpleBooleanSetting("highlightByPoints");
+        base.add(highlightByPoints, gbc);
+        
         gbc = d.makeGbc(0,5,2,1);
         gbc.insets = new Insets(5,10,5,5);
         ListSelector items = d.addListSetting("highlight", "Highlight", 220, 250, true, true);
@@ -115,6 +119,7 @@ public class HighlightSettings extends SettingsPanel {
             highlightBlacklist.addItem(e.getActionCommand());
         });
         tester.setLinkLabelListener(d.getLinkLabelListener());
+        items.setInfoLinkLabelListener(d.getLinkLabelListener());
         items.setEditor(tester);
         items.setDataFormatter(input -> input.trim());
         gbc.fill = GridBagConstraints.BOTH;
@@ -238,6 +243,7 @@ public class HighlightSettings extends SettingsPanel {
             HighlighterTester tester = new HighlighterTester(d, true);
             tester.setEditingBlacklistItem(true);
             tester.setLinkLabelListener(d.getLinkLabelListener());
+            setting.setInfoLinkLabelListener(d.getLinkLabelListener());
             setting.setEditor(tester);
             
             add(setting, gbc);

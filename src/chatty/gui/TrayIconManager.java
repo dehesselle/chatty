@@ -2,7 +2,10 @@
 package chatty.gui;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.logging.Logger;
 
 /**
@@ -78,6 +81,32 @@ public class TrayIconManager {
     public void addActionListener(ActionListener listener) {
         if (trayIcon != null) {
             trayIcon.addActionListener(listener);
+            /**
+             * Show with single-click. Just keeping the ActionListener in case
+             * the MouseListener doesn't work or the ActionListener is triggered
+             * via different ways as well.
+             */
+            trayIcon.addMouseListener(new MouseAdapter() {
+                
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    // Checking just isPopupTrigger() didn't seem to work
+                    if (!e.isPopupTrigger() && e.getButton() == MouseEvent.BUTTON1) {
+                        if (e.getClickCount() % 2 == 0) {
+                            /**
+                             * The action listener above may already trigger for
+                             * double-clicks, but this allows for quicker toggle
+                             * (at least on Windows 7).
+                             */
+                            listener.actionPerformed(new ActionEvent(e, ActionEvent.ACTION_FIRST, "doubleClick"));
+                        }
+                        else {
+                            listener.actionPerformed(new ActionEvent(e, ActionEvent.ACTION_FIRST, "singleClick"));
+                        }
+                    }
+                }
+                
+            });
             popup.addActionListener(listener);
         }
     }

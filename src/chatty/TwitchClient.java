@@ -41,13 +41,12 @@ import chatty.util.Speedruncom;
 import chatty.util.StreamHighlightHelper;
 import chatty.util.StreamStatusWriter;
 import chatty.util.StringUtil;
-import chatty.util.TwitchEmotes;
-import chatty.util.TwitchEmotes.EmotesetInfo;
-import chatty.util.TwitchEmotes.TwitchEmotesListener;
+import chatty.util.TwitchEmotesApi;
 import chatty.util.Webserver;
 import chatty.util.api.AutoModCommandHelper;
 import chatty.util.api.ChatInfo;
 import chatty.util.api.CheerEmoticon;
+import chatty.util.api.EmotesetManager;
 import chatty.util.api.EmoticonSizeCache;
 import chatty.util.api.EmoticonUpdate;
 import chatty.util.api.Emoticons;
@@ -121,7 +120,7 @@ public class TwitchClient {
     public final chatty.util.api.pubsub.Manager pubsub;
     private final PubSubResults pubsubListener = new PubSubResults();
     
-    public final TwitchEmotes twitchemotes;
+    public final EmotesetManager emotesetManager;
     
     public final BTTVEmotes bttvEmotes;
     
@@ -195,7 +194,6 @@ public class TwitchClient {
         LOGGER.info("[Working Directory] "+System.getProperty("user.dir")
                 +" [Settings Directory] "+Chatty.getUserDataDirectory()
                 +" [Classpath] "+System.getProperty("java.class.path"));
-        LOGGER.info("Retina Display: "+GuiUtil.hasRetinaDisplay());
         
         settings = new Settings(Chatty.getUserDataDirectory()+"settings");
         // Settings
@@ -227,8 +225,8 @@ public class TwitchClient {
         createTestUser("tduva", "");
         
         api = new TwitchApi(new TwitchApiResults(), new MyStreamInfoListener());
-        twitchemotes = new TwitchEmotes(new TwitchemotesListener());
         bttvEmotes = new BTTVEmotes(new EmoteListener());
+        TwitchEmotesApi.api.setTwitchApi(api);
         
         Language.setLanguage(settings.getString("language"));
         
@@ -296,12 +294,12 @@ public class TwitchClient {
         LOGGER.info("Create GUI..");
         g = new MainGui(this);
         g.loadSettings();
+        emotesetManager = new EmotesetManager(api, g, settings);
         g.showGui();
         
         autoModCommandHelper = new AutoModCommandHelper(g, api);
         
         if (Chatty.DEBUG) {
-            getSpecialUser().setEmoteSets("130,4280,33,42,19194");
             Room testRoom =  Room.createRegular("");
             g.addUser(new User("josh", testRoom));
             g.addUser(new User("joshua", testRoom));
@@ -387,6 +385,9 @@ public class TwitchClient {
         // Output any cached warning messages
         warning(null);
         
+        // Request some stuff
+        api.getEmotesBySets("0");
+        
         // Before checkNewVersion(), so "updateAvailable" is already updated
         checkForVersionChange();
         // Check version, if enabled in this build
@@ -431,11 +432,14 @@ public class TwitchClient {
     private void initDxSettings() {
         try {
             Boolean d3d = !settings.getBoolean("nod3d");
-            System.setProperty("sun.java2d.d3d", d3d.toString());
             Boolean ddraw = settings.getBoolean("noddraw");
+            LOGGER.info(String.format("d3d: %s (%s) / noddraw: %s (%s) / opengl: (%s) / retina: %s",
+                    d3d, System.getProperty("sun.java2d.d3d"),
+                    ddraw, System.getProperty("sun.java2d.noddraw"),
+                    System.getProperty("sun.java2d.opengl"),
+                    GuiUtil.hasRetinaDisplay()));
+            System.setProperty("sun.java2d.d3d", d3d.toString());
             System.setProperty("sun.java2d.noddraw", ddraw.toString());
-            //System.out.println(System.getProperty("sun.java2d.opengl"));
-            LOGGER.info("Drawing settings: d3d: "+d3d+" / noddraw: "+ddraw);
         } catch (SecurityException ex) {
             LOGGER.warning("Error setting drawing settings: "+ex.getLocalizedMessage());
         }
@@ -482,12 +486,13 @@ public class TwitchClient {
     private void createTestUser(String name, String channel) {
         testUser = new User(name, name, Room.createRegular(channel));
         testUser.setColor(new Color(94, 0, 211));
+        // Force color correction for longer userinfo color label
+        testUser.setColor(new Color(255, 255, 255));
         //testUser.setColor(new Color(0,216,107));
         //testUser.setBot(true);
         //testUser.setTurbo(true);
         //testUser.setModerator(true);
         //testUser.setSubscriber(true);
-        testUser.setEmoteSets("4280");
         //testUser.setAdmin(true);
         //testUser.setStaff(true);
         //testUser.setBroadcaster(true);
@@ -714,7 +719,7 @@ public class TwitchClient {
             settings.setString("channel", channel);
         }
         api.requestUserId(Helper.toStream(autojoin));
-        api.getEmotesByStreams(Helper.toStream(autojoin));
+//        api.getEmotesByStreams(Helper.toStream(autojoin)); // Removed
         c.connect(server, ports, name, password, autojoin);
         return true;
     }
@@ -775,7 +780,7 @@ public class TwitchClient {
                     if (testUser.getRoom().equals(room)) {
                         user = testUser;
                     }
-                    g.printMessage(user,text,false,null,1);
+                    g.printMessage(user,text,false);
                 } else {
                     g.printLine("Not in a channel");
                 }
@@ -798,9 +803,9 @@ public class TwitchClient {
     private void sendMessage(String channel, String text, boolean allowCommandMessageLocally) {
         if (c.sendSpamProtectedMessage(channel, text, false)) {
             User user = c.localUserJoined(channel);
-            g.printMessage(user, text, false, null, 0);
+            g.printMessage(user, text, false);
             if (allowCommandMessageLocally) {
-                modCommandAddStreamHighlight(user, text);
+                modCommandAddStreamHighlight(user, text, MsgTags.EMPTY);
             }
         } else {
             g.printLine("# Message not sent to prevent ban: " + text);
@@ -919,7 +924,7 @@ public class TwitchClient {
             commandReconnect();
         }
         else if (command.equals("connection")) {
-            g.printLine(c.getConnectionInfo());
+            g.printLine(room, c.getConnectionInfo());
         }
         else if (command.equals("join")) {
             commandJoinChannel(parameter);
@@ -1014,9 +1019,9 @@ public class TwitchClient {
         }
         else if (command.equals("echo")) {
             if (parameter != null) {
-                g.printLine(parameter);
+                g.printLine(room, parameter);
             } else {
-                g.printLine("Invalid parameters: /echo <message>");
+                g.printLine(room, "Invalid parameters: /echo <message>");
             }
         }
         else if (command.equals("echoall")) {
@@ -1273,12 +1278,8 @@ public class TwitchClient {
         } else if (command.equals("settestuser")) {
             String[] split = parameter.split(" ");
             createTestUser(split[0], split[1]);
-        } else if (command.equals("setemoteset")) {
-            testUser.setEmoteSets(parameter);
-        } else if (command.equals("setemoteset2")) {
-            getSpecialUser().setEmoteSets(parameter);
         } else if (command.equals("getemoteset")) {
-            g.printLine(g.emoticons.getEmoticons(Integer.parseInt(parameter)).toString());
+            g.printLine(g.emoticons.getEmoticonsBySet(parameter).toString());
         } else if (command.equals("testcolor")) {
             testUser.setColor(parameter);
         } else if (command.equals("testupdatenotification")) {
@@ -1737,7 +1738,7 @@ public class TwitchClient {
     public void sendActionMessage(String channel, String message) {
         if (c.onChannel(channel, true)) {
             if (c.sendSpamProtectedMessage(channel, message, true)) {
-                g.printMessage(c.localUserJoined(channel), message, true, null, 0);
+                g.printMessage(c.localUserJoined(channel), message, true);
             } else {
                 g.printLine("# Action Message not sent to prevent ban: " + message);
             }
@@ -1848,9 +1849,9 @@ public class TwitchClient {
         g.printLine(room, streamHighlights.openFile());
     }
     
-    public void modCommandAddStreamHighlight(User user, String message) {
+    public void modCommandAddStreamHighlight(User user, String message, MsgTags tags) {
         // Stream Highlights
-        String result = streamHighlights.modCommand(user, message);
+        String result = streamHighlights.modCommand(user, message, tags);
         if (result != null) {
             result = user.getDisplayNick() + ": " + result;
             if (settings.getBoolean("streamHighlightChannelRespond")) {
@@ -1883,8 +1884,6 @@ public class TwitchClient {
             refreshRequests.add("emoticons");
             //Emoticons.clearCache(Emoticon.Type.TWITCH);
             api.refreshEmotes();
-        } else if (parameter.equals("emoticons_old")) {
-            api.refreshEmotesOld();
         } else if (parameter.equals("bits")) {
             g.printLine("Refreshing bits..");
             refreshRequests.add("bits");
@@ -1916,10 +1915,6 @@ public class TwitchClient {
             refreshRequests.add("bttvemotes");
             bttvEmotes.requestEmotes("$global$", true);
             bttvEmotes.requestEmotes(channel, true);
-        } else if (parameter.equals("emotesets")) {
-            g.printLine("Refreshing emoteset information..");
-            refreshRequests.add("emotesets");
-            twitchemotes.refresh();
         } else {
             g.printLine("Usage: /refresh <type> (invalid type, see help)");
         }
@@ -1929,25 +1924,29 @@ public class TwitchClient {
         return c.getSpecialUser();
     }
     
+    public Set<String> getEmotesets() {
+        return emotesetManager.getEmotesets();
+    }
+    
     /**
      * Outputs the emotesets for the local user. This might not work correctly
      * if the user is changed or the emotesets change during the session.
      */
     private void commandMyEmotes() {
-        Set<Integer> emotesets = getSpecialUser().getEmoteSet();
+        Set<String> emotesets = getEmotesets();
         if (emotesets.isEmpty()) {
             g.printLine("No subscriber emotes found. (Only works if you joined"
                     + " any channel before.)");
         } else {
             StringBuilder b = new StringBuilder("Your subemotes: ");
             String sep = "";
-            for (Integer emoteset : emotesets) {
+            for (String emoteset : emotesets) {
                 b.append(sep);
                 if (Emoticons.isTurboEmoteset(emoteset)) {
                     b.append("Turbo/Prime emotes");
                 } else {
                     String sep2 = "";
-                    for (Emoticon emote : g.emoticons.getEmoticons(emoteset)) {
+                    for (Emoticon emote : g.emoticons.getEmoticonsBySet(emoteset)) {
                         b.append(sep2);
                         b.append(emote.code);
                         sep2 = ", ";
@@ -1967,7 +1966,7 @@ public class TwitchClient {
             output = Emoticons.filterByType(g.emoticons.getGlobalTwitchEmotes(), Emoticon.Type.FFZ);
         } else {
             b.append("This channel's FFZ emotes: ");
-            Set<Emoticon> emotes = g.emoticons.getEmoticons(Helper.toStream(channel));
+            Set<Emoticon> emotes = g.emoticons.getEmoticonsByStream(Helper.toStream(channel));
             output = Emoticons.filterByType(emotes, Emoticon.Type.FFZ);
         }
         if (output.isEmpty()) {
@@ -2113,8 +2112,18 @@ public class TwitchClient {
     private class TwitchApiResults implements TwitchApiResultListener {
         
         @Override
-        public void receivedEmoticons(Set<Emoticon> emoticons) {
-            g.addEmoticons(emoticons);
+        public void receivedEmoticons(EmoticonUpdate update) {
+            g.updateEmoticons(update);
+            
+            // After adding emotes, update sets
+            if (update.source == EmoticonUpdate.Source.USER_EMOTES
+                    && update.setsToRemove != null) {
+                // setsToRemove contains all sets (only for USER_EMOTES)
+                // This may also update EmoteDialog etc.
+                emotesetManager.setEmotesets(update.setsToRemove);
+            }
+            
+            // Other stuff
             if (refreshRequests.contains("emoticons")) {
                 g.printLine("Emoticons list updated.");
                 refreshRequests.remove("emoticons");
@@ -2551,7 +2560,7 @@ public class TwitchClient {
         if (settings.getBoolean("bttvEmotes")) {
             bttvEmotes.requestEmotes(channel, false);
         }
-        api.getEmotesByStreams(Helper.toStream(channel));
+//        api.getEmotesByStreams(Helper.toStream(channel)); // Removed
     }
     
     private class EmoteListener implements EmoticonListener {
@@ -2571,20 +2580,6 @@ public class TwitchClient {
                 String channel = Helper.toValidChannel(stream);
                 botNameManager.addBotNames(channel, names);
             }
-        }
-        
-    }
-    
-    private class TwitchemotesListener implements TwitchEmotesListener {
-
-        @Override
-        public void emotesetsReceived(EmotesetInfo info) {
-            if (refreshRequests.contains("emotesets")) {
-                g.printLine("Emoteset information updated.");
-                refreshRequests.remove("emotesets");
-            }
-            g.setEmotesets(info);
-            api.setEmotesetInfo(info);
         }
         
     }
@@ -2734,12 +2729,20 @@ public class TwitchClient {
         }
 
         @Override
-        public void onChannelMessage(User user, String message, boolean action,
-                String emotes, String id, int bits) {
-            g.printMessage(user, message, action, emotes, bits, id);
-            if (!action) {
-                addressbookCommands(user.getChannel(), user, message);
-                modCommandAddStreamHighlight(user, message);
+        public void onChannelMessage(User user, String text, boolean action, MsgTags tags) {
+            if (tags.isCustomReward()) {
+                String rewardInfo = (String)settings.mapGet("rewards", tags.getCustomRewardId());
+                String info = String.format("%s redeemed a custom reward (%s)",
+                                            user.getDisplayNick(),
+                                            rewardInfo != null ? rewardInfo : "unknown");
+                g.printUsernotice("Points", user, info, text, tags);
+            }
+            else {
+                g.printMessage(user, text, action, tags);
+                if (!action) {
+                    addressbookCommands(user.getChannel(), user, text);
+                    modCommandAddStreamHighlight(user, text, tags);
+                }
             }
         }
 
@@ -2858,12 +2861,10 @@ public class TwitchClient {
         public void onConnectionStateChanged(int state) {
             g.updateState(true);
         }
-
+        
         @Override
-        public void onSpecialUserUpdated() {
-            g.updateEmotesDialog();
-            g.updateEmoteNames();
-            api.getEmotesBySets(getSpecialUser().getEmoteSet());
+        public void onEmotesets(Set<String> emotesets) {
+            emotesetManager.setIrcEmotesets(emotesets);
         }
 
         @Override
@@ -2932,8 +2933,8 @@ public class TwitchClient {
         }
 
         @Override
-        public void onSubscriberNotification(User user, String text, String message, int months, String emotes) {
-            g.printSubscriberMessage(user, text, message, emotes);
+        public void onSubscriberNotification(User user, String text, String message, int months, MsgTags tags) {
+            g.printSubscriberMessage(user, text, message, tags);
             
             // May be using dummy User if from twitchnotify that doesn't contain a propery name tag
             if (user.getName().isEmpty()) {
@@ -2960,8 +2961,8 @@ public class TwitchClient {
         }
         
         @Override
-        public void onUsernotice(String type, User user, String text, String message, String emotes) {
-            g.printUsernotice(type, user, text, message, emotes);
+        public void onUsernotice(String type, User user, String text, String message, MsgTags tags) {
+            g.printUsernotice(type, user, text, message, tags);
         }
 
         @Override
@@ -3032,7 +3033,7 @@ public class TwitchClient {
 
         @Override
         public void whisperReceived(User user, String message, String emotes) {
-            g.printMessage(user, message, false, emotes, 0);
+            g.printMessage(user, message, false, MsgTags.create("emotes", emotes));
             g.updateUser(user);
         }
 
@@ -3043,7 +3044,7 @@ public class TwitchClient {
 
         @Override
         public void whisperSent(User to, String message) {
-            g.printMessage(to, message, true, null, 0);
+            g.printMessage(to, message, true);
         }
     }
     

@@ -39,7 +39,9 @@ public class StyleManager implements StyleServer {
             "backgroundColor2", "alternateBackground", "messageSeparator",
             "separatorColor", "bottomMargin",
             "inputBackgroundColor","inputForegroundColor","usericonsEnabled",
-            "timestamp","highlightColor","highlightBackgroundColor",
+            "timestamp", "timestampColor", "timestampColorEnabled",
+            "timestampFontEnabled", "timestampFont", "timestampColorInherit",
+            "highlightColor","highlightBackgroundColor",
             "highlightBackground", "showBanMessages","autoScroll",
             "deletedMessagesMode", "deletedMessagesMaxLength","searchResultColor",
             "lineSpacing", "bufferSize", "actionColored","combineBanMessages",
@@ -50,7 +52,8 @@ public class StyleManager implements StyleServer {
             "banReasonAppended", "banDurationAppended",
             "banDurationMessage", "banReasonMessage", "displayNamesMode",
             "paragraphSpacing", "bufferSizes", "userlistFont",
-            "showImageTooltips", "highlightMatches", "nickColorCorrection",
+            "showImageTooltips", "showTooltipImages", "highlightMatches",
+            "nickColorCorrection",
             "mentions", "mentionsInfo", "markHoveredUser", "highlightMatchesAll",
             "nickColorBackground",
             "inputHistoryMultirowRequireCtrl" // Not delievered through this
@@ -58,6 +61,7 @@ public class StyleManager implements StyleServer {
     
     private MutableAttributeSet baseStyle;
     private MutableAttributeSet standardStyle;
+    private MutableAttributeSet timestampStyle;
     private MutableAttributeSet specialStyle;
     private MutableAttributeSet infoStyle;
     private MutableAttributeSet paragraphStyle;
@@ -70,6 +74,7 @@ public class StyleManager implements StyleServer {
     private Color inputBackgroundColor;
     private Color inputForegroundColor;
     private Color highlightColor;
+    private Color highlightBackgroundColor;
     private Color searchResultColor;
     private Color searchResultColor2;
     private Color infoColor;
@@ -104,6 +109,9 @@ public class StyleManager implements StyleServer {
         inputBackgroundColor = makeColor("inputBackgroundColor");
         inputForegroundColor = makeColor("inputForegroundColor");
         highlightColor = makeColor("highlightColor");
+        highlightBackgroundColor = settings.getBoolean("highlightBackground")
+                                   ? makeColor("highlightBackgroundColor", null)
+                                   : null;
         searchResultColor = makeColor("searchResultColor");
         searchResultColor2 = makeColor("searchResultColor2");
         infoColor = makeColor("infoColor");
@@ -119,6 +127,49 @@ public class StyleManager implements StyleServer {
         
         standardStyle = new SimpleAttributeSet(baseStyle);
         StyleConstants.setForeground(standardStyle, makeColor("foregroundColor"));
+        
+        /**
+         * Start with empty style, this should only modify whatever style is
+         * used on the timestamp line (e.g. normal or info). That base style is
+         * stored in the element, so that it can reapply it properly when on
+         * old lines when changing styles.
+         * 
+         * Add current time so style always gets changed/updated. Otherwise,
+         * even if inheriting from e.g. "standard", it still wouldn't update
+         * when e.g. "info" is changed.
+         */
+        timestampStyle = new SimpleAttributeSet();
+        timestampStyle.addAttribute(Attribute.TIME_CREATED, System.currentTimeMillis());
+        if (settings.getBoolean("timestampFontEnabled") || settings.getBoolean("timestampColorEnabled")) {
+            if (settings.getBoolean("timestampFontEnabled")) {
+                Font font = Font.decode(settings.getString("timestampFont"));
+                StyleConstants.setFontFamily(timestampStyle, font.getName());
+                StyleConstants.setFontSize(timestampStyle, font.getSize());
+                StyleConstants.setBold(timestampStyle, font.isBold());
+                StyleConstants.setItalic(timestampStyle, font.isItalic());
+            }
+            if (settings.getBoolean("timestampColorEnabled")) {
+                StyleConstants.setForeground(timestampStyle, makeColor("timestampColor"));
+                /**
+                 * Add this setting as well, so the style changes when setting
+                 * changes and the timestamp is updated (also used to get the
+                 * setting value, since it is added anyway, instead of an actual
+                 * setting). Should only be set when custom color is enabled,
+                 * since it might match lightness to the wrong color otherwise
+                 * (StyleConstants.getForeground() defaults to black if null).
+                 */
+                String inherit = settings.getString("timestampColorInherit");
+                if (!inherit.equals("off")) {
+                    try {
+                        float inheritFactor = 1 - (Integer.parseInt(inherit) / 100.0f);
+                        inheritFactor = Math.min(inheritFactor, 1); // Max 1.0
+                        timestampStyle.addAttribute(Attribute.TIMESTAMP_COLOR_INHERIT, inheritFactor);
+                    } catch (NumberFormatException ex) {
+                        // Treat as "off"
+                    }
+                }
+            }
+        }
         
         highlightStyle = new SimpleAttributeSet(baseStyle);
         StyleConstants.setForeground(highlightStyle, highlightColor);
@@ -136,12 +187,16 @@ public class StyleManager implements StyleServer {
         paragraphStyle.addAttribute(Attribute.PARAGRAPH_SPACING, settings.getLong("paragraphSpacing"));
         
         MyStyleConstants.setBackground2(paragraphStyle,
-                settings.getBoolean("alternateBackground") ? makeColor("backgroundColor2", null) : null);
-        MyStyleConstants.setHighlightBackground(paragraphStyle,
-                settings.getBoolean("highlightBackground") ? makeColor("highlightBackgroundColor", null) : null);
+                settings.getBoolean("alternateBackground")
+                ? makeColor("backgroundColor2", null)
+                : null);
+        MyStyleConstants.setHighlightBackground(paragraphStyle, highlightBackgroundColor);
         MyStyleConstants.setSeparatorColor(paragraphStyle,
-                settings.getBoolean("messageSeparator") ? makeColor("separatorColor", null) : null);
-        MyStyleConstants.setFontHeight(paragraphStyle, dummyComponent.getFontMetrics(new Font(fontFamily, Font.PLAIN, fontSize)).getHeight());
+                settings.getBoolean("messageSeparator")
+                ? makeColor("separatorColor", null)
+                : null);
+        MyStyleConstants.setFontHeight(paragraphStyle,
+                dummyComponent.getFontMetrics(new Font(fontFamily, Font.PLAIN, fontSize)).getHeight());
         MyStyleConstants.setHighlightMatchesEnabled(paragraphStyle, settings.getBoolean("highlightMatches"));
         
         other = new SimpleAttributeSet();
@@ -161,6 +216,7 @@ public class StyleManager implements StyleServer {
         addBooleanSetting(Setting.BAN_REASON_MESSAGE, "banReasonMessage");
         addBooleanSetting(Setting.BOT_BADGE_ENABLED, "botBadgeEnabled");
         addBooleanSetting(Setting.SHOW_TOOLTIPS, "showImageTooltips");
+        addBooleanSetting(Setting.SHOW_TOOLTIP_IMAGES, "showTooltipImages");
         addBooleanSetting(Setting.HIGHLIGHT_MATCHES_ALL, "highlightMatchesAll");
         addLongSetting(Setting.HIGHLIGHT_HOVERED_USER, "markHoveredUser");
         addLongSetting(Setting.FILTER_COMBINING_CHARACTERS, "filterCombiningCharacters");
@@ -198,31 +254,29 @@ public class StyleManager implements StyleServer {
     }
     
     private Color makeColor(String setting, Color defaultColor) {
-        return HtmlColors.decode(settings.getString(setting),defaultColor);
-    }
-
-    @Override
-    public MutableAttributeSet getStyle() {
-        return getStyle("regular");
+        return HtmlColors.decode(settings.getString(setting), defaultColor);
     }
 
     @Override
     public MutableAttributeSet getStyle(String type) {
+//        System.out.println(timestampStyle);
         switch (type) {
             case "special":
-                return specialStyle;
+                return new SimpleAttributeSet(specialStyle);
             case "standard":
-                return standardStyle;
+                return new SimpleAttributeSet(standardStyle);
+            case "timestamp":
+                return new SimpleAttributeSet(timestampStyle);
             case "info":
-                return infoStyle;
+                return new SimpleAttributeSet(infoStyle);
             case "highlight":
-                return highlightStyle;
+                return new SimpleAttributeSet(highlightStyle);
             case "paragraph":
-                return paragraphStyle;
+                return new SimpleAttributeSet(paragraphStyle);
             case "settings":
-                return other;
+                return new SimpleAttributeSet(other);
         }
-        return baseStyle;
+        return new SimpleAttributeSet(baseStyle);
     }
 
     @Override
@@ -253,6 +307,10 @@ public class StyleManager implements StyleServer {
                 return searchResultColor2;
             case "info":
                 return infoColor;
+            case "highlight":
+                return highlightColor;
+            case "highlightBackground":
+                return highlightBackgroundColor;
         }
         return foregroundColor;
     }

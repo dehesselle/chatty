@@ -41,7 +41,7 @@ public class ModerationSettings extends SettingsPanel {
                 + "You can also set a custom hotkey to open dialogs (go "
                 + "to <code>Hotkeys</code> settings, add a new item and select "
                 + "<code>Dialog: AutoMod Dialog</code> as action)."),
-                d.makeGbc(1, 6, 2, 1, GridBagConstraints.EAST));
+                d.makeGbc(1, 6, 2, 1, GridBagConstraints.CENTER));
         
         
         JPanel userInfo = addTitledPanel(Language.getString("settings.section.userDialog"), 1);
@@ -62,6 +62,16 @@ public class ModerationSettings extends SettingsPanel {
                 d.makeGbc(0, 3, 1, 1, GridBagConstraints.EAST));
         userInfo.add(d.addComboLongSetting("clearUserMessages", new int[]{-1, 3, 6, 12, 24}),
                 d.makeGbc(1, 3, 1, 1, GridBagConstraints.WEST));
+        
+        HotkeyTextField banReasonsHotkey = new HotkeyTextField(12, null);
+        d.addStringSetting("banReasonsHotkey", banReasonsHotkey);
+        userInfo.add(d.createLabel("banReasonsHotkey"),
+                d.makeGbc(0, 4, 1, 1, GridBagConstraints.WEST));
+        userInfo.add(banReasonsHotkey,
+                d.makeGbc(1, 4, 1, 1, GridBagConstraints.WEST));
+        
+        userInfo.add(d.createLabel("banReasonsInfo", true),
+                d.makeGbc(0, 5, 2, 1));
     }
     
 }

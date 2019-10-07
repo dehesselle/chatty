@@ -7,6 +7,7 @@ import chatty.User;
 import chatty.gui.Highlighter;
 import chatty.util.colors.HtmlColors;
 import chatty.util.StringUtil;
+import chatty.util.irc.MsgTags;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -267,11 +268,11 @@ public class Notification {
         return channel.equalsIgnoreCase(this.channel);
     }
     
-    public boolean matches(String text, String channel, Addressbook ab, User user) {
+    public boolean matches(String text, String channel, Addressbook ab, User user, MsgTags tags) {
         if (matcherItem == null || text == null) {
             return true;
         }
-        return matcherItem.matches(Highlighter.HighlightItem.Type.ANY, text, null, channel, ab, user);
+        return matcherItem.matches(Highlighter.HighlightItem.Type.ANY, text, null, channel, ab, user, tags);
     }
     
     public boolean hasChannel() {
@@ -294,8 +295,8 @@ public class Notification {
         return matcher == null ? "" : matcher;
     }
     
-    public List toList() {
-        List result = new ArrayList<>();
+    public List<Object> toList() {
+        List<Object> result = new ArrayList<>();
         result.add(type.name());
         result.add(desktopState.id);
         result.add(soundState.id);
@@ -312,7 +313,7 @@ public class Notification {
         return result;
     }
     
-    public static Notification fromList(List list) {
+    public static Notification fromList(List<Object> list) {
         try {
             Type type = Type.valueOf((String)list.get(0));
             State desktopState = State.getTypeFromId(((Number)list.get(1)).intValue());

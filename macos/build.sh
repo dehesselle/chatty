@@ -43,7 +43,7 @@ cd chatty
 
 #--- download Python.framework
 cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py374.3/py374_framework_3.tar.xz | tar -xJp --exclude='Versions/3.7/lib/python3.7/test/*'
+curl -L https://github.com/dehesselle/py3framework/releases/download/py374.5/py374_framework_5.tar.xz | tar -xJp --exclude='Versions/3.7/lib/python3.7/test/*'
 
 #--- download Streamlink
 STREAMLINK_DIR=$WORK_DIR/streamlink

@@ -48,7 +48,7 @@ curl -L https://github.com/dehesselle/py3framework/releases/download/py374.5/py3
 #--- download Streamlink
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
-pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==1.2.0
+pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==1.3.0
 
 sed -i '' '1s/.*/#!\/usr\/bin\/env python3.7\
 /' $STREAMLINK_DIR/bin/chardetect

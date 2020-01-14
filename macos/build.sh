@@ -82,9 +82,11 @@ cp $REPO_DIR/macos/play.sh $SCRIPTS_DIR
 INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set CFBundleShortVersionString $CHATTY_VERSION" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set CFBundleVersion $CHATTY_MACOS_BUILD" $INFO_PLIST
-/usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright (c) 2013-2020 by tduva'" $INFO_PLIST
-/usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Set LSApplicationCategoryType public.app-category.social-networking" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $MACOSX_DEPLOYMENT_TARGET" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright (c) 2013-2020 by tduva'" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Add NSRequiresAquaSystemAppearance bool false" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
 
 python3 -m compileall -f $WORK_DIR/deploy/Chatty.app || true   # precompile all packages
 

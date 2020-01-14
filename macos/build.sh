@@ -43,7 +43,7 @@ cd chatty
 
 #--- download Python.framework
 cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py374.5/py374_framework_5.tar.xz | tar -xJp --exclude='Versions/3.7/lib/python3.7/test/*'
+curl -L https://github.com/dehesselle/py3framework/releases/download/py376.1/py376_framework_1.tar.xz | tar -xJp --exclude='Versions/3.7/lib/python3.7/test/*'
 
 #--- download Streamlink
 STREAMLINK_DIR=$WORK_DIR/streamlink
@@ -82,7 +82,7 @@ cp $REPO_DIR/macos/play.sh $SCRIPTS_DIR
 INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set CFBundleShortVersionString $CHATTY_VERSION" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set CFBundleVersion $CHATTY_MACOS_BUILD" $INFO_PLIST
-/usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright (c) 2013-2019 by tduva'" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright (c) 2013-2020 by tduva'" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $MACOSX_DEPLOYMENT_TARGET" $INFO_PLIST
 

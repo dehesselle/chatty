@@ -3,6 +3,7 @@ package chatty.gui;
 
 import chatty.Helper;
 import chatty.gui.components.textpane.ChannelTextPane;
+import chatty.lang.Language;
 import chatty.util.Debugging;
 import chatty.util.MiscUtil;
 import chatty.util.ProcessManager;
@@ -10,15 +11,16 @@ import chatty.util.StringUtil;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.Frame;
+import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.KeyboardFocusManager;
 import java.awt.MouseInfo;
@@ -29,23 +31,33 @@ import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyVetoException;
 import java.beans.VetoableChangeListener;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JRootPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
@@ -60,7 +72,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
 import javax.swing.text.DocumentFilter;
-import javax.swing.text.Element;
 import javax.swing.text.JTextComponent;
 
 /**
@@ -342,14 +353,26 @@ public class GuiUtil {
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame dialog = new JFrame();
-            dialog.setSize(100, 100);
-            dialog.setLocationRelativeTo(null);
-            dialog.setVisible(true);
-            JButton button = new JButton("Shake");
-            button.addActionListener(e -> shake(dialog, 2, 2));
-            dialog.add(button);
-            dialog.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+            try {
+                JFrame dialog = new JFrame();
+                dialog.setSize(100, 100);
+                dialog.setLocationRelativeTo(null);
+                dialog.setVisible(true);
+                JButton button = new JButton("Shake");
+                ImageIcon a = new ImageIcon(new URL("https://cdn.betterttv.net/emote/58487cc6f52be01a7ee5f205/1x"));
+                ImageIcon b = new ImageIcon(new URL("https://static-cdn.jtvnw.net/emoticons/v1/123171/1.0"));
+                button.addActionListener(e -> shake(dialog, 2, 2));
+                dialog.add(button, BorderLayout.NORTH);
+                LinkedHashMap<ImageIcon, Integer> map = new LinkedHashMap<>();
+                map.put(b, 0);
+                map.put(a, -8);
+                Debugging.command("overlayframe");
+                dialog.add(new JLabel("text", overlay(map), 0), BorderLayout.CENTER);
+                dialog.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+            }
+            catch (MalformedURLException ex) {
+                Logger.getLogger(GuiUtil.class.getName()).log(Level.SEVERE, null, ex);
+            }
         });
     }
     
@@ -517,7 +540,52 @@ public class GuiUtil {
         im.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, KeyEvent.META_DOWN_MASK), DefaultEditorKit.selectAllAction);
     }
     
-    public static void showCommandNotification(String commandText, String title,
+    private static class TextContextMenu extends JPopupMenu {
+        
+        public TextContextMenu() {
+            add(new DefaultEditorKit.CopyAction(), Language.getString("textCm.copy"), KeyEvent.VK_C);
+            add(new DefaultEditorKit.CutAction(), Language.getString("textCm.cut"), KeyEvent.VK_X);
+            add(new DefaultEditorKit.PasteAction(), Language.getString("textCm.paste"), KeyEvent.VK_P);
+        }
+        
+        private void add(Action action, String name, int key) {
+            action.putValue(Action.NAME, name);
+            action.putValue(Action.MNEMONIC_KEY, key);
+            add(action);
+        }
+        
+    }
+    
+    private static TextContextMenu textContextMenu;
+    
+    /**
+     * Sets copy/cut/paste context menu to the text component. Menu is created
+     * when this is first called and shared between all following calls.
+     * 
+     * @param c The text component
+     */
+    public static void installTextContextMenu(JTextComponent c) {
+        if (textContextMenu == null) {
+            textContextMenu = new TextContextMenu();
+        }
+        c.setComponentPopupMenu(textContextMenu);
+    }
+    
+    /**
+     * Executes a process with the given commandText, with some parameters
+     * replaced. The resulting command will be split into arguments by spaces,
+     * although sections can be quoted to group them together. Escaped quotes
+     * (\") are ignored.
+     * 
+     * If the commandText isn't a valid CustomCommand, nothing will be executed.
+     * 
+     * @param commandText A command in CustomCommand format
+     * @param title The title of the notification
+     * @param message The message of the notification
+     * @param channel The associated channel (may be null)
+     * @return A result message intended for output to the user while testing
+     */
+    public static String showCommandNotification(String commandText, String title,
             String message, String channel) {
         CustomCommand command = CustomCommand.parse(commandText);
 
@@ -525,8 +593,16 @@ public class GuiUtil {
         param.put("title", title.replace("\"", "\\\""));
         param.put("message", message.replace("\"", "\\\""));
         param.put("channel", channel);
-
-        ProcessManager.execute(command.replace(param), "Notification");
+        param.put("chan", channel);
+        
+        if (command.hasError()) {
+            LOGGER.warning("Notification command error: "+command.getSingleLineError());
+            return "Error: "+command.getSingleLineError();
+        } else {
+            String resultCommand = command.replace(param);
+            ProcessManager.execute(resultCommand, "Notification");
+            return "Running: "+resultCommand;
+        }
     }
     
     /**
@@ -669,6 +745,73 @@ public class GuiUtil {
                         target.getPreferredSize().width,
                         source.getPreferredSize().height
                 ));
+    }
+    
+    public static ImageIcon getScaledIcon(Icon icon, int w, int h) {
+        BufferedImage img = new BufferedImage(
+                icon.getIconWidth(),
+                icon.getIconHeight(),
+                BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        icon.paintIcon(null, g, 0, 0);
+        g.dispose();
+        return new ImageIcon(img.getScaledInstance(w, h, Image.SCALE_SMOOTH));
+    }
+    
+    public static ImageIcon getIcon(Object o, String name) {
+        return new ImageIcon(Toolkit.getDefaultToolkit().createImage(o.getClass().getResource(name)));
+    }
+    
+    public static ImageIcon createEmptyIcon(int width, int height) {
+        BufferedImage res = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        return new ImageIcon(res);
+    }
+    
+    public static ImageIcon overlay(LinkedHashMap<ImageIcon, Integer> overlay) {
+        if (overlay == null || overlay.isEmpty()) {
+            return null;
+        }
+        if (overlay.size() == 1) {
+            return overlay.entrySet().iterator().next().getKey();
+        }
+        ImageIcon base = null;
+        int width = 0;
+        int height = 0;
+        int oh = 0;
+        Iterator<Map.Entry<ImageIcon, Integer>> it = overlay.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<ImageIcon, Integer> entry = it.next();
+            ImageIcon icon = entry.getKey();
+            if (base == null) {
+                base = entry.getKey();
+            }
+            width = Integer.max(width, icon.getIconWidth());
+            height = Integer.max(height, icon.getIconHeight());
+            int offset = Math.abs((int)(entry.getValue()/100.0*icon.getIconHeight()));
+            int inclOffset = icon.getIconHeight()+offset;
+            if (inclOffset > height) {
+                oh += inclOffset - height;
+                height = inclOffset;
+            }
+        }
+        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        Iterator<Map.Entry<ImageIcon, Integer>> it2 = overlay.entrySet().iterator();
+        while (it2.hasNext()) {
+            Map.Entry<ImageIcon, Integer> entry = it2.next();
+            ImageIcon icon = entry.getKey();
+            int offset = (int)(entry.getValue()/100.0*icon.getIconHeight());
+            g.drawImage(icon.getImage(),
+                    (width - icon.getIconWidth()) / 2,
+                    (height - icon.getIconHeight()) / 2 + offset + oh,
+                    null);
+        }
+        if (Debugging.isEnabled("overlayframe")) {
+            g.setColor(Color.BLACK);
+            g.drawRect(0, 0, width - 1, height - 1);
+        }
+        g.dispose();
+        return new ImageIcon(img);
     }
     
 }

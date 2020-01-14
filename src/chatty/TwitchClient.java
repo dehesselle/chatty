@@ -20,7 +20,10 @@ import chatty.util.api.TwitchApi;
 import chatty.WhisperManager.WhisperListener;
 import chatty.gui.GuiUtil;
 import chatty.gui.LaF;
+import chatty.gui.LaF.LaFSettings;
 import chatty.gui.MainGui;
+import chatty.gui.components.eventlog.EventLog;
+import chatty.gui.components.menus.UserContextMenu;
 import chatty.gui.components.textpane.ModLogInfo;
 import chatty.gui.components.updating.Stuff;
 import chatty.splash.Splash;
@@ -42,9 +45,9 @@ import chatty.util.StreamHighlightHelper;
 import chatty.util.StreamStatusWriter;
 import chatty.util.StringUtil;
 import chatty.util.TwitchEmotesApi;
+import chatty.util.UserRoom;
 import chatty.util.Webserver;
 import chatty.util.api.AutoModCommandHelper;
-import chatty.util.api.ChatInfo;
 import chatty.util.api.CheerEmoticon;
 import chatty.util.api.EmotesetManager;
 import chatty.util.api.EmoticonSizeCache;
@@ -52,11 +55,11 @@ import chatty.util.api.EmoticonUpdate;
 import chatty.util.api.Emoticons;
 import chatty.util.api.Follower;
 import chatty.util.api.FollowerInfo;
-import chatty.util.api.RoomsInfo;
 import chatty.util.api.StreamInfo.StreamType;
 import chatty.util.api.StreamInfo.ViewerStats;
 import chatty.util.api.StreamTagManager.StreamTag;
 import chatty.util.api.TwitchApi.RequestResultCode;
+import chatty.util.api.pubsub.UserinfoMessageData;
 import chatty.util.api.pubsub.Message;
 import chatty.util.api.pubsub.ModeratorActionData;
 import chatty.util.api.pubsub.PubSubListener;
@@ -96,7 +99,7 @@ public class TwitchClient {
      * added.
      */
     public static final String REQUEST_TOKEN_URL = ""
-            + "https://api.twitch.tv/kraken/oauth2/authorize"
+            + "https://id.twitch.tv/oauth2/authorize"
             + "?response_type=token"
             + "&client_id="+Chatty.CLIENT_ID
             + "&redirect_uri="+Chatty.REDIRECT_URI
@@ -225,7 +228,7 @@ public class TwitchClient {
         createTestUser("tduva", "");
         
         api = new TwitchApi(new TwitchApiResults(), new MyStreamInfoListener());
-        bttvEmotes = new BTTVEmotes(new EmoteListener());
+        bttvEmotes = new BTTVEmotes(new EmoteListener(), api);
         TwitchEmotesApi.api.setTwitchApi(api);
         
         Language.setLanguage(settings.getString("language"));
@@ -267,7 +270,7 @@ public class TwitchClient {
         spamProtection = new SpamProtection();
         spamProtection.setLinesPerSeconds(settings.getString("spamProtection"));
         
-        roomManager = new RoomManager(api, new MyRoomUpdatedListener());
+        roomManager = new RoomManager(new MyRoomUpdatedListener());
         channelFavorites = new ChannelFavorites(settings, roomManager);
         
         c = new TwitchConnection(new Messages(), settings, "main", roomManager);
@@ -286,8 +289,7 @@ public class TwitchClient {
         streamStatusWriter.setEnabled(settings.getBoolean("enableStatusWriter"));
         settings.addSettingChangeListener(streamStatusWriter);
         
-        LaF.setSettings(settings);
-        LaF.setLookAndFeel(settings.getString("laf"), settings.getString("lafTheme"));
+        LaF.setLookAndFeel(LaFSettings.fromSettings(settings));
         GuiUtil.addMacKeyboardActions();
         
         // Create GUI
@@ -422,6 +424,8 @@ public class TwitchClient {
         if (Chatty.DEBUG) {
             //textInput(Room.EMPTY, "/test3");
         }
+        
+        UserContextMenu.client = this;
     }
     
 
@@ -543,6 +547,7 @@ public class TwitchClient {
         if (!c.onOwnerChannel(room.getOwnerChannel())) {
             frankerFaceZ.left(room.getOwnerChannel());
             pubsub.unlistenModLog(room.getStream());
+            pubsub.unlistenPoints(room.getStream());
         }
     }
     
@@ -1207,7 +1212,16 @@ public class TwitchClient {
             commandOpenStreamHighlights(room);
         }
         else if (command.equals("testnotification")) {
-            g.showTestNotification(parameter);
+            if (parameter == null) {
+                parameter = "";
+            }
+            String[] split = parameter.split("\\|\\|", 2);
+            if (split.length == 2) {
+                g.showTestNotification(null, split[0], split[1]);
+            }
+            else {
+                g.showTestNotification(parameter, null, null);
+            }
         }
         else if (command.equals("clearchat")) {
             g.clearChat();
@@ -1284,8 +1298,11 @@ public class TwitchClient {
             testUser.setColor(parameter);
         } else if (command.equals("testupdatenotification")) {
             g.setUpdateAvailable("[test]", null);
-        } else if (command.equals("testannouncement")) {
-            g.setAnnouncementAvailable(Boolean.parseBoolean(parameter));
+        } else if (command.equals("testnewevent")) {
+            g.setSystemEventCount(Integer.valueOf(parameter));
+        } else if (command.equals("addevent")) {
+            String[] split = parameter.split(" ", 3);
+            EventLog.addSystemEvent(split[0], split[1], split[2]);
         } else if (command.equals("removechan")) {
             g.removeChannel(parameter);
         } else if (command.equals("tt")) {
@@ -1447,7 +1464,7 @@ public class TwitchClient {
         } else if (command.equals("wsdisconnect")) {
             frankerFaceZ.disconnectWs();
         } else if (command.equals("psconnect")) {
-            pubsub.connect();
+//            pubsub.connect();
         } else if (command.equals("psdisconnect")) {
             pubsub.disconnect();
         } else if (command.equals("psreconnect")) {
@@ -2069,32 +2086,39 @@ public class TwitchClient {
 
         @Override
         public void messageReceived(Message message) {
-            if (message.data != null && message.data instanceof ModeratorActionData) {
-                ModeratorActionData data = (ModeratorActionData)message.data;
-                if (data.stream != null) {
-                    String channel = Helper.toChannel(data.stream);
-                    g.printModerationAction(data, data.created_by.equals(c.getUsername()));
-                    chatLog.modAction(data);
-                    
-                    User modUser = c.getUser(channel, data.created_by);
-                    modUser.addModAction(data);
-                    g.updateUserinfo(modUser);
-                    
-                    String bannedUsername = ModLogInfo.getBannedUsername(data);
-                    if (bannedUsername != null) {
-                        // If this is actually a ban, add info to banned user
-                        User bannedUser = c.getUser(channel, bannedUsername);
-                        bannedUser.addBanInfo(data);
-                        g.updateUserinfo(bannedUser);
+            if (message.data != null) {
+                if (message.data instanceof ModeratorActionData) {
+                    ModeratorActionData data = (ModeratorActionData) message.data;
+                    if (data.stream != null) {
+                        String channel = Helper.toChannel(data.stream);
+                        g.printModerationAction(data, data.created_by.equals(c.getUsername()));
+                        chatLog.modAction(data);
+
+                        User modUser = c.getUser(channel, data.created_by);
+                        modUser.addModAction(data);
+                        g.updateUserinfo(modUser);
+
+                        String bannedUsername = ModLogInfo.getBannedUsername(data);
+                        if (bannedUsername != null) {
+                            // If this is actually a ban, add info to banned user
+                            User bannedUser = c.getUser(channel, bannedUsername);
+                            bannedUser.addBanInfo(data);
+                            g.updateUserinfo(bannedUser);
+                        }
+                        String unbannedUsername = ModLogInfo.getUnbannedUsername(data);
+                        if (unbannedUsername != null) {
+                            // Add info to unbanned user
+                            User unbannedUser = c.getUser(channel, unbannedUsername);
+                            int type = User.UnbanMessage.getType(data.moderation_action);
+                            unbannedUser.addUnban(type, data.created_by);
+                            g.updateUserinfo(unbannedUser);
+                        }
                     }
-                    String unbannedUsername = ModLogInfo.getUnbannedUsername(data);
-                    if (unbannedUsername != null) {
-                        // Add info to unbanned user
-                        User unbannedUser = c.getUser(channel, unbannedUsername);
-                        int type = User.UnbanMessage.getType(data.moderation_action);
-                        unbannedUser.addUnban(type, data.created_by);
-                        g.updateUserinfo(unbannedUser);
-                    }
+                }
+                else if (message.data instanceof UserinfoMessageData) {
+                    UserinfoMessageData data = (UserinfoMessageData) message.data;
+                    User user = c.getUser(Helper.toChannel(data.stream), data.username);
+                    g.printPointsNotice(user, data.msg, data.attached_msg, MsgTags.create("chatty-source", "pubsub"));
                 }
             }
         }
@@ -2248,11 +2272,6 @@ public class TwitchClient {
         }
 
         @Override
-        public void receivedChatInfo(ChatInfo chatInfo) {
-            g.setChatInfo(chatInfo);
-        }
-
-        @Override
         public void autoModResult(String result, String msgId) {
             g.autoModRequestResult(result, msgId);
             autoModCommandHelper.requestResult(result, msgId);
@@ -2265,12 +2284,6 @@ public class TwitchClient {
                 refreshRequests.remove("bits");
             }
             g.setCheerEmotes(emoticons);
-        }
-
-        @Override
-        public void roomsInfo(RoomsInfo info) {
-            g.setRooms(info);
-            roomManager.addRoomsInfo(info);
         }
 
         
@@ -2665,10 +2678,26 @@ public class TwitchClient {
                     user.getName(),
                     c.getUsername(),
                     user.getStream());
-            if (user.hasChannelModeratorRights() && user.getName().equals(c.getUsername()) && user.getStream() != null) {
-                Debugging.println("pubsub", "Listen");
-                pubsub.setLocalUsername(c.getUsername());
-                pubsub.listenModLog(user.getStream(), settings.getString("token"));
+            if (user.hasChannelModeratorRights()
+                    && user.getName().equals(c.getUsername())
+                    && user.getStream() != null) {
+                if (settings.listContains("scopes", TokenInfo.Scope.CHAN_MOD.scope)) {
+                    Debugging.println("pubsub", "Listen");
+                    pubsub.setLocalUsername(c.getUsername());
+                    pubsub.listenModLog(user.getStream(), settings.getString("token"));
+                }
+                else {
+                    EventLog.addSystemEvent("access.modlog");
+                }
+            }
+        }
+        
+        private void checkPointsListen(User user) {
+            if (settings.listContains("scopes", TokenInfo.Scope.POINTS.scope)
+                    && user.getName().equals(c.getUsername())
+                    && user.getStream().equals(c.getUsername())
+                    && user.getStream() != null) {
+                pubsub.listenPoints(user.getStream(), settings.getString("token"));
             }
         }
         
@@ -2686,12 +2715,12 @@ public class TwitchClient {
             api.getGlobalBadges(false);
             String stream = user.getStream();
             if (Helper.isValidStream(stream)) {
-                roomManager.getRoomsInfo(user.getOwnerChannel(), false);
                 api.getRoomBadges(stream, false);
                 api.getCheers(stream, false);
                 requestChannelEmotes(stream);
                 frankerFaceZ.joined(stream);
                 checkModLogListen(user);
+                checkPointsListen(user);
             }
         }
 
@@ -2735,7 +2764,7 @@ public class TwitchClient {
                 String info = String.format("%s redeemed a custom reward (%s)",
                                             user.getDisplayNick(),
                                             rewardInfo != null ? rewardInfo : "unknown");
-                g.printUsernotice("Points", user, info, text, tags);
+                g.printPointsNotice(user, info, text, tags);
             }
             else {
                 g.printMessage(user, text, action, tags);
@@ -2888,6 +2917,8 @@ public class TwitchClient {
                 }
             } else if (error == TwitchConnection.JoinError.INVALID_NAME) {
                 g.printLine(Language.getString("chat.joinError.invalid", errorChannel));
+            } else if (error == TwitchConnection.JoinError.ROOM) {
+                g.printLine(Language.getString("chat.joinError.rooms", errorChannel));
             }
         }
 
@@ -2990,19 +3021,19 @@ public class TwitchClient {
         
         public void onRawReceived(String text) {
             if (settings.getBoolean("debugLogIrc")) {
-                g.printDebugIrc(">> " + text);
+                g.printDebugIrc("--> " + text);
             }
             if (settings.getBoolean("debugLogIrcFile")) {
-                IRC_LOGGER.info(">> " + text);
+                IRC_LOGGER.info("--> " + text);
             }
         }
         
         public void onRawSent(String text) {
             if (settings.getBoolean("debugLogIrc")) {
-                g.printDebugIrc("<<< " + text);
+                g.printDebugIrc("<-- " + text);
             }
             if (settings.getBoolean("debugLogIrcFile")) {
-                IRC_LOGGER.info("SENT: " + text);
+                IRC_LOGGER.info("<-- " + text);
             }
         }
         
@@ -3016,6 +3047,27 @@ public class TwitchClient {
         return c.getOpenChannels();
     }
     
+    public Collection<Room> getOpenRooms() {
+        return c.getOpenRooms();
+    }
+    
+    /**
+     * Get the currently open rooms, with a User object of the same username
+     * attached to each room, if it already exists.
+     *
+     * @param user
+     * @return A new List containing UserRoom objects of currently open rooms
+     */
+    public List<UserRoom> getOpenUserRooms(User user) {
+        List<UserRoom> result = new ArrayList<>();
+        Collection<Room> rooms = getOpenRooms();
+        for (Room room : rooms) {
+            User roomUser = c.getExistingUser(room.getChannel(), user.getName());
+            result.add(new UserRoom(room, roomUser));
+        }
+        return result;
+    }
+    
     private class ChannelStateUpdater implements ChannelStateListener {
 
         @Override
@@ -3025,8 +3077,10 @@ public class TwitchClient {
 
     }
     
-    public boolean isWhisperAvailable() {
-        return w.isAvailable();
+    public String getSecondaryConnectionsStatus() {
+        return String.format("%s%s",
+                frankerFaceZ.isWsConnected() ? "F" : "",
+                pubsub.isConnected() ? "M" : "");
     }
     
     private class MyWhisperListener implements WhisperListener {

@@ -1,11 +1,14 @@
 
 package chatty;
 
+import chatty.gui.MainGui;
+import chatty.gui.components.textpane.UserNotice;
 import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.Replacer;
 import chatty.util.StringUtil;
 import chatty.util.commands.Parameters;
+import chatty.util.irc.MsgTags;
 import java.awt.Dimension;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -378,6 +381,13 @@ public class Helper {
         return HTMLSPECIALCHARS_ENCODE.replace(s);
     }
     
+    public static String prepareForHtml(String s) {
+        if (s == null) {
+            return null;
+        }
+        return htmlspecialchars_encode(s).replaceAll(" ", "&nbsp;").replaceAll("\n", "<br />");
+    }
+    
     private static final Pattern EMOJI_VARIATION_SELECTOR = Pattern.compile("[\uFE0E\uFE0F]");
     
     /**
@@ -561,13 +571,14 @@ public class Helper {
     }
     
     public static String systemInfo() {
-        return String.format("Java: %s (%s / %s) OS: %s (%s/%s)",
+        return String.format("Java: %s (%s / %s) OS: %s (%s/%s) Locale: %s",
                 System.getProperty("java.version"),
                 System.getProperty("java.vendor"),
                 System.getProperty("java.home"),
                 System.getProperty("os.name"),
                 System.getProperty("os.version"),
-                System.getProperty("os.arch"));
+                System.getProperty("os.arch"),
+                Locale.getDefault());
     }
     
     /**
@@ -821,6 +832,53 @@ public class Helper {
         parameters.put("display-nick", user.getDisplayNick());
         parameters.put("custom-nick", user.getCustomNick());
         parameters.put("full-nick", user.getFullNick());
+    }
+    
+    private static final Map<UserNotice, javax.swing.Timer> pointsMerge = new HashMap<>();
+    
+    /**
+     * Must be run in EDT.
+     * 
+     * @param newNotice
+     * @param g 
+     */
+    public static void pointsMerge(UserNotice newNotice, MainGui g) {
+        UserNotice result = findPointsMerge(newNotice);
+        if (result == null) {
+            javax.swing.Timer timer = new javax.swing.Timer(1000, e -> {
+                pointsMerge.remove(newNotice);
+                g.printUsernotice(newNotice.type, newNotice.user, newNotice.infoText, newNotice.attachedMessage, newNotice.tags);
+            });
+            timer.setRepeats(false);
+            pointsMerge.put(newNotice, timer);
+            timer.start();
+        }
+        else {
+            g.printUsernotice(result.type, result.user, result.infoText, result.attachedMessage, result.tags);
+        }
+    }
+    
+    private static UserNotice findPointsMerge(UserNotice newNotice) {
+        UserNotice found = null;
+        for (Map.Entry<UserNotice, javax.swing.Timer> entry : pointsMerge.entrySet()) {
+            UserNotice stored = entry.getKey();
+            // Attached messages seem to be trimmed depending on source
+            boolean sameAttachedMsg = Objects.equals(
+                    StringUtil.trimAll(stored.attachedMessage),
+                    StringUtil.trimAll(newNotice.attachedMessage));
+            if (stored.user.sameUser(newNotice.user) && sameAttachedMsg) {
+                found = stored;
+                entry.getValue().stop();
+            }
+        }
+        if (found != null) {
+            pointsMerge.remove(found);
+            UserNotice ps = found.tags.isFromPubSub() ? found : newNotice;
+            UserNotice irc = found.tags.isFromPubSub() ? newNotice : found;
+            // Use irc msg, since that would also have the emote tags
+            return new UserNotice(ps.type, ps.user, ps.infoText, irc.attachedMessage, MsgTags.merge(found.tags, newNotice.tags));
+        }
+        return null;
     }
     
 }

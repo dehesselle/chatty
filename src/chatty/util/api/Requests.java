@@ -503,19 +503,6 @@ public class Requests {
     // Chat / Emoticons
     //=================
     
-    public void requestChatInfo(String stream) {
-        if (!Helper.isValidStream(stream)) {
-            return;
-        }
-        String url = "https://api.twitch.tv/api/channels/"+stream+"/chat_properties";
-        if (attemptRequest(url)) {
-            TwitchApiRequest request = new TwitchApiRequest(url, null);
-            execute(request, r -> {
-                listener.receivedChatInfo(ChatInfo.decode(stream, r.text));
-            });
-        }
-    }
-    
     protected void requestGlobalBadges() {
         String url = "https://badges.twitch.tv/v1/badges/global/display?language=en";
         if (attemptRequest(url)) {
@@ -586,18 +573,6 @@ public class Requests {
             TwitchApiRequest request = new TwitchApiRequest(url, "v5");
             execute(request, r -> {
                 api.cheersManager2.dataReceived(r.text, stream, channelId);
-            });
-        }
-    }
-    
-    public void requestRooms(String channelId, String stream) {
-        String url = "https://api.twitch.tv/kraken/chat/"+channelId+"/rooms";
-        if (attemptRequest(url)) {
-            TwitchApiRequest request = new TwitchApiRequest(url, "v5");
-            request.setToken(api.defaultToken);
-            execute(request, r -> {
-                RoomsInfo result = Parsing.parseRoomsInfo(stream, r.text);
-                listener.roomsInfo(result);
             });
         }
     }

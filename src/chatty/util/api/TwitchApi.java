@@ -80,7 +80,7 @@ public class TwitchApi {
                     req.request.run();
                 }
             }
-        }, CachedBulkManager.NONE);
+        }, "[Api] ", CachedBulkManager.NONE);
     }
     
     private static class Req {
@@ -172,20 +172,6 @@ public class TwitchApi {
         cheersManager2.request(room, forceRefresh);
     }
     
-    public void requestRoomsNow(String channel) {
-        if (!Helper.isRegularChannel(channel)) {
-            return;
-        }
-        String room = Helper.toStream(channel);
-        getUserIdAsap(r -> {
-            if (r.hasError()) {
-                resultListener.roomsInfo(new RoomsInfo(room, null));
-            } else {
-                requests.requestRooms(r.getId(room), room);
-            }
-        }, room);
-    }
-    
     //====================
     // Channel Information
     //====================
@@ -206,10 +192,6 @@ public class TwitchApi {
                 }
             }, stream);
         }
-    }
-
-    public void getChatInfo(String stream) {
-        requests.requestChatInfo(stream);
     }
     
     public void getFollowers(String stream) {

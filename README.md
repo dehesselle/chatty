@@ -3,6 +3,7 @@
 ![alt-text](/macos/app_dock.png)
 
 ## About
+
 Being a fan of Chatty myself, I wanted it to be a bit more Mac-like on macOS. The main goal was to create a self-contained app that doesn't require you to install any 3rd party software/runtimes.
 
 Since I don't speak Java I won't be coding new features besides making little changes in regards to macOS or the bundled Streamlink component.

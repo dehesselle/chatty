@@ -6,8 +6,10 @@ import chatty.gui.GuiUtil;
 import static chatty.gui.GuiUtil.SMALL_BUTTON_INSETS;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.notifications.Notification;
+import chatty.lang.Language;
 import chatty.util.Debugging;
 import chatty.util.Sound;
+import chatty.util.StringUtil;
 import chatty.util.settings.Settings;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -61,11 +63,14 @@ public class NotificationSettings extends SettingsPanel {
         // Expand
         super(true);
         
+        GridBagConstraints gbc;
+        
+        //==========================
+        // Events
+        //==========================
         editor = new NotificationEditor(d, settings);
         editor.setLinkLabelListener(d.getSettingsHelpLinkLabelListener());
         
-        GridBagConstraints gbc;
-
         //=======================
         // Notification Settings
         //=======================
@@ -141,7 +146,7 @@ public class NotificationSettings extends SettingsPanel {
 
         notificationSettings.add(new JLabel("Command:"), d.makeGbc(0, 4, 1, 1, GridBagConstraints.EAST));
 
-        nCommand = d.addEditorStringSetting("nCommand", 20, true, "Edit system command (recommended for advanced users only, read help):", false, ""
+        nCommand = d.addEditorStringSetting("nCommand", 20, true, "Edit system command (recommended for advanced users only, read help)", false, ""
                 + "<html><body style='width: 400px;'>"
                 + "<p>Enter a command/program with parameters, which will be "
                 + "executed as a new process on your system (so please be "
@@ -164,9 +169,10 @@ public class NotificationSettings extends SettingsPanel {
 
             @Override
             public String test(Window parent, Component component, int x, int y, String value) {
-                GuiUtil.showCommandNotification(value, "Example Title",
+                String result = GuiUtil.showCommandNotification(value, "Example Title",
                         "Example \"message\" for this test notification",
                         "#example_channel");
+                JOptionPane.showMessageDialog(component, result);
                 return null;
             }
         });
@@ -246,7 +252,7 @@ public class NotificationSettings extends SettingsPanel {
         //======
         // Tabs
         //======
-        JPanel notificationsPanel = addTitledPanel("Notifications", 0, true);
+        JPanel notificationsPanel = addTitledPanel(Language.getString("settings.page.notifications"), 0, true);
         
         JTabbedPane tabs = new JTabbedPane();
         gbc = GuiUtil.makeGbc(0, 0, 2, 1);
@@ -256,29 +262,38 @@ public class NotificationSettings extends SettingsPanel {
         notificationsPanel.add(tabs, gbc);
 
         editor.setPreferredSize(new Dimension(10,260));
-        tabs.add("Events", editor);
-        tabs.add("Notification Settings (Off)", GuiUtil.northWrap(notificationSettings));
-        tabs.add("Sound Settings (Muted)", GuiUtil.northWrap(soundSettings));
+        tabs.add(l("tab.events"), editor);
+        // Needs to start at "Off", since no event will be triggered at first
+        tabs.add(l("tab.notificationSettingsOff"), GuiUtil.northWrap(notificationSettings));
+        tabs.add(l("tab.soundSettingsOff"), GuiUtil.northWrap(soundSettings));
 
         nType.addActionListener(e -> {
             if (nType.getSettingValue() != NOTIFICATION_TYPE_OFF) {
-                tabs.setTitleAt(1, "Notification Settings");
+                tabs.setTitleAt(1, l("tab.notificationSettings"));
             } else {
-                tabs.setTitleAt(1, "Notification Settings (Off)");
+                tabs.setTitleAt(1, l("tab.notificationSettingsOff"));
             }
         });
         
         soundsEnabled.addItemListener(e -> {
             if (soundsEnabled.isSelected()) {
-                tabs.setTitleAt(2, "Sound Settings");
+                tabs.setTitleAt(2, l("tab.soundSettings"));
             } else {
-                tabs.setTitleAt(2, "Sound Settings (Muted)");
+                tabs.setTitleAt(2, l("tab.soundSettingsOff"));
             }
         });
         
-        gbc = GuiUtil.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST);
-        notificationsPanel.add(new JLabel("Tip: Double-click on Sound column to "
-                + "directly open on the 'Sound' tab."), gbc);
+        notificationsPanel.add(d.addSimpleBooleanSetting("nHideOnStart"),
+                d.makeGbc(0, 1, 1, 1, GridBagConstraints.WEST));
+        
+        String tip = StringUtil.randomString(new String[]{
+            "Tip: Double-click on Sound column to directly open on the 'Sound' tab.",
+            "Tip: Right-click on Chatty notifications to join associated channel.",
+            "Tip: Left-click on Chatty notifications to close them."
+        });
+        GuiUtil.makeGbc(0, 1, 2, 1, GridBagConstraints.WEST);
+        notificationsPanel.add(new JLabel(tip),
+                d.makeGbc(0, 2, 1, 1, GridBagConstraints.WEST));
         
         //=======
         // Other
@@ -297,6 +312,10 @@ public class NotificationSettings extends SettingsPanel {
         
         
         updateSettingsState();
+    }
+    
+    protected static String l(String id) {
+        return Language.getString("settings.notifications."+id);
     }
     
     protected void setUserReadPermission(boolean enabled) {

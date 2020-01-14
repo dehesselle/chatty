@@ -30,14 +30,11 @@ import javax.swing.JPanel;
 public class CommandSettings extends SettingsPanel {
     
     private static String getInfo(String type) {
-        String info = INFO_HEADER
-                +StringUtil.stringFromInputStream(CommandSettings.class.getResourceAsStream("info-menu.html"));
-        return SettingsUtil.removeHtmlConditions(info, type);
+        return INFO_HEADER+SettingsUtil.getInfo("info-menu.html", type);
     }
     
     private static final String INFO_HEADER = "<html>"
             + "<style type='text/css'>"
-            + "code { background: white; color: black; }"
             + "p { margin: 2px; }"
             + "dt { margin-top: 8px; }"
             + "dd { margin-left: 10px; margin-top: 4px; }"
@@ -46,7 +43,7 @@ public class CommandSettings extends SettingsPanel {
             + "<body style='width:300px;font-weight:normal;'>";
     
     private static final String INFO_COMMANDS = INFO_HEADER
-            +StringUtil.stringFromInputStream(CommandSettings.class.getResourceAsStream("info-commands.html"));
+            +SettingsUtil.getInfo("info-commands.html", null);
     
     public CommandSettings(SettingsDialog d) {
         super(true);
@@ -111,7 +108,7 @@ public class CommandSettings extends SettingsPanel {
                 }, null, d.settings, null);
                 dialog.setUserDefinedButtonsDef(value);
                 GuiUtil.setLocationRelativeTo(dialog, parent);
-                dialog.show(component, user, "abc", null, null);
+                dialog.show(component, user, "s0m3-msg-1d", null, null);
                 return null;
             }
             
@@ -131,38 +128,38 @@ public class CommandSettings extends SettingsPanel {
                         ), false, null);
                     }
                 }
-                user.addMessage("Note that some replacements may not work in this test dialog.", false, "abc");
+                user.addMessage("Note that some replacements may not work in this test dialog.", false, "s0m3-msg-1d");
             }
             
         };
         
-        gbc = d.makeGbc(0, 0, 1, 1);
+        gbc = d.makeGbc(0, 2, 1, 1);
         gbc.anchor = GridBagConstraints.EAST;
-        menus.add(new JLabel("User Context Menu:"), gbc);
+        menus.add(d.createLabel("userContextMenu"), gbc);
         
-        gbc = d.makeGbc(1, 0, 1, 1);
+        gbc = d.makeGbc(1, 2, 1, 1);
         EditorStringSetting userContextMenu = d.addEditorStringSetting(
                 "userContextMenu", 20, true, "Edit User Context Menu:", true,
                 getInfo("userMenu"), menuTester);
         userContextMenu.setLinkLabelListener(d.getLinkLabelListener());
         menus.add(userContextMenu, gbc);
         
-        gbc = d.makeGbc(0, 1, 1, 1);
+        gbc = d.makeGbc(0, 0, 1, 1);
         gbc.anchor = GridBagConstraints.EAST;
-        menus.add(new JLabel("Channel Context Menu:"), gbc);
+        menus.add(d.createLabel("channelContextMenu"), gbc);
         
-        gbc = d.makeGbc(1, 1, 1, 1);
+        gbc = d.makeGbc(1, 0, 1, 1);
         EditorStringSetting channelContextMenu = d.addEditorStringSetting(
                 "channelContextMenu", 20, true, "Edit Channel Context Menu", true,
                 getInfo("channelMenu"), menuTester);
         channelContextMenu.setLinkLabelListener(d.getLinkLabelListener());
         menus.add(channelContextMenu, gbc);
         
-        gbc = d.makeGbc(0, 2, 1, 1);
+        gbc = d.makeGbc(0, 1, 1, 1);
         gbc.anchor = GridBagConstraints.EAST;
-        menus.add(new JLabel("Streams Context Menu:"), gbc);
+        menus.add(d.createLabel("streamsContextMenu"), gbc);
         
-        gbc = d.makeGbc(1, 2, 1, 1);
+        gbc = d.makeGbc(1, 1, 1, 1);
         EditorStringSetting streamsContextMenu = d.addEditorStringSetting(
                 "streamsContextMenu", 20, true, "Edit Streams Context Menu", true,
                 getInfo("streamsMenu"), menuTester);
@@ -171,7 +168,7 @@ public class CommandSettings extends SettingsPanel {
         
         gbc = d.makeGbc(0, 3, 1, 1);
         gbc.anchor = GridBagConstraints.EAST;
-        menus.add(new JLabel("User Dialog Buttons:"), gbc);
+        menus.add(d.createLabel("timeoutButtons"), gbc);
         
         gbc = d.makeGbc(1, 3, 1, 1);
         EditorStringSetting userDialogButtons = d.addEditorStringSetting(

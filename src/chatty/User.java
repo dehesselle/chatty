@@ -286,6 +286,10 @@ public class User implements Comparable<User> {
         return numberOfMessages;
     }
     
+    public synchronized int getNumberOfLines() {
+        return numberOfLines;
+    }
+    
     public synchronized int getMaxNumberOfLines() {
         return MAXLINES;
     }
@@ -810,6 +814,10 @@ public class User implements Comparable<User> {
     
     public synchronized boolean isLocalUser() {
         return localUser;
+    }
+    
+    public synchronized boolean sameUser(User user) {
+        return user != null && user.getChannel().equals(getChannel()) && user.getName().equals(nick);
     }
     
     /**

@@ -31,7 +31,7 @@ import java.util.logging.Logger;
 public class TwitchConnection {
     
     public enum JoinError {
-        NOT_REGISTERED, ALREADY_JOINED, INVALID_NAME
+        NOT_REGISTERED, ALREADY_JOINED, INVALID_NAME, ROOM
     }
     
     private static final Logger LOGGER = Logger.getLogger(TwitchConnection.class.getName());
@@ -52,14 +52,14 @@ public class TwitchConnection {
     /**
      * How many times to try to reconnect
      */
-    private long maxReconnectionAttempts = 40;
+    private long maxReconnectionAttempts = -1;
     
     /**
      * The time in seconds between reconnection attempts. The first entry is the
      * time for the first attempt, second entry for the second attempt and so
      * on. The last entry is used for all further attempts.
      */
-    private final static int[] RECONNECTION_DELAY = new int[]{1, 5, 5, 10, 10, 60};
+    private final static int[] RECONNECTION_DELAY = new int[]{1, 5, 5, 10, 10, 60, 120};
 
     private volatile Timer reconnectionTimer;
 
@@ -203,6 +203,19 @@ public class TwitchConnection {
         synchronized(openChannels) {
             return new HashSet<>(openChannels);
         }
+    }
+    
+    public Set<Room> getOpenRooms() {
+        Set<String> chans = getOpenChannels();
+        Set<Room> result = new HashSet<>();
+        for (String chan : chans) {
+            result.add(rooms.getRoom(chan));
+        }
+        return result;
+    }
+    
+    public Room getRoomByChannel(String channel) {
+        return rooms.getRoom(channel);
     }
     
     /**
@@ -520,16 +533,22 @@ public class TwitchConnection {
     public void joinChannels(Set<String> channels) {
         Set<String> valid = new LinkedHashSet<>();
         Set<String> invalid = new LinkedHashSet<>();
+        Set<String> rooms = new LinkedHashSet<>();
         for (String channel : channels) {
             String checkedChannel = Helper.toValidChannel(channel);
             if (checkedChannel == null) {
                 invalid.add(channel);
+            } else if (checkedChannel.startsWith("#chatrooms:")) {
+                rooms.add(channel);
             } else {
                 valid.add(checkedChannel);
             }
         }
         for (String channel : invalid) {
             listener.onJoinError(channels, channel, JoinError.INVALID_NAME);
+        }
+        for (String channel : rooms) {
+            listener.onJoinError(channels, channel, JoinError.ROOM);
         }
         joinValidChannels(valid);
     }
@@ -897,13 +916,14 @@ public class TwitchConnection {
             if (user.setTurbo(turbo)) {
                 changed = true;
             }
-            if (user.setSubscriber(badges.containsKey("subscriber"))) {
+            boolean subscriber = badges.containsKey("subscriber") || badges.containsKey("founder");
+            if (user.setSubscriber(subscriber)) {
                 changed = true;
             }
             if (user.setVip(badges.containsKey("vip"))) {
                 changed = true;
             }
-            if (user.setModerator(badges.containsKey("moderator") || tags.isTrue("mod"))) {
+            if (user.setModerator(badges.containsKey("moderator"))) {
                 changed = true;
             }
             if (user.setAdmin(badges.containsKey("admin"))) {

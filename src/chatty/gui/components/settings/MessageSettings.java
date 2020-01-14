@@ -83,40 +83,7 @@ public class MessageSettings extends SettingsPanel {
         // Other Settings (Panel)
         //========================
         // Timestamp
-        JPanel timestampPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        
-        timestampPanel.add(new JLabel(Language.getString("settings.otherMessageSettings.timestamp")));
-
-        final Map<String,String> timestampOptions = new LinkedHashMap<>();
-        timestampOptions.put("off", "Off");
-        timestampOptions.put("", "Empty (Space)");
-        addTimestampFormat(timestampOptions, "[HH:mm:ss]");
-        addTimestampFormat(timestampOptions, "[HH:mm]");
-        addTimestampFormat(timestampOptions, "HH:mm:ss");
-        addTimestampFormat(timestampOptions, "HH:mm");
-        ComboStringSetting combo = new ComboStringSetting(timestampOptions);
-        combo.setEditable(false);
-        d.addStringSetting("timestamp", combo);
-        timestampPanel.add(combo,
-                d.makeGbc(1, 0, 2, 1, GridBagConstraints.EAST));
-        
-        JButton editTimestampButton = new JButton(Language.getString("dialog.button.customize"));
-        editTimestampButton.setMargin(GuiUtil.SMALL_BUTTON_INSETS);
-        GuiUtil.matchHeight(editTimestampButton, combo);
-        editTimestampButton.addActionListener(e -> {
-            TimestampEditor editor = new TimestampEditor(d);
-            String preset = combo.getSettingValue();
-            if (preset.equals("off") || preset.isEmpty()) {
-                preset = "[HH:mm:ss]";
-            }
-            String result = editor.showDialog(preset);
-            if (result != null) {
-                combo.setSettingValue(result);
-            }
-        });
-        timestampPanel.add(editTimestampButton);
-
-        otherSettingsPanel.add(timestampPanel, d.makeGbc(0, 0, 4, 1, GridBagConstraints.WEST));
+        otherSettingsPanel.add(createTimestampPanel(d, "timestamp"), d.makeGbc(0, 0, 4, 1, GridBagConstraints.WEST));
         
         // More
         otherSettingsPanel.add(d.addSimpleBooleanSetting(
@@ -145,8 +112,42 @@ public class MessageSettings extends SettingsPanel {
         otherSettingsPanel.add(d.addSimpleBooleanSetting(
                 "printStreamStatus"),
                 d.makeGbc(0, 3, 4, 1, GridBagConstraints.WEST));
-
+    }
+    
+    public static JPanel createTimestampPanel(SettingsDialog d, String setting) {
+        JPanel timestampPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         
+        timestampPanel.add(new JLabel(Language.getString("settings.otherMessageSettings.timestamp")));
+
+        final Map<String,String> timestampOptions = new LinkedHashMap<>();
+        timestampOptions.put("off", "Off");
+        timestampOptions.put("", "Empty (Space)");
+        addTimestampFormat(timestampOptions, "[HH:mm:ss]");
+        addTimestampFormat(timestampOptions, "[HH:mm]");
+        addTimestampFormat(timestampOptions, "HH:mm:ss");
+        addTimestampFormat(timestampOptions, "HH:mm");
+        ComboStringSetting combo = new ComboStringSetting(timestampOptions);
+        combo.setEditable(false);
+        d.addStringSetting(setting, combo);
+        timestampPanel.add(combo,
+                d.makeGbc(1, 0, 2, 1, GridBagConstraints.EAST));
+        
+        JButton editTimestampButton = new JButton(Language.getString("dialog.button.customize"));
+        editTimestampButton.setMargin(GuiUtil.SMALL_BUTTON_INSETS);
+        GuiUtil.matchHeight(editTimestampButton, combo);
+        editTimestampButton.addActionListener(e -> {
+            TimestampEditor editor = new TimestampEditor(d);
+            String preset = combo.getSettingValue();
+            if (preset.equals("off") || preset.isEmpty()) {
+                preset = "[HH:mm:ss]";
+            }
+            String result = editor.showDialog(preset);
+            if (result != null) {
+                combo.setSettingValue(result);
+            }
+        });
+        timestampPanel.add(editTimestampButton);
+        return timestampPanel;
     }
     
     public static void addTimestampFormat(Map<String, String> timestampOptions, String format) {
@@ -272,7 +273,8 @@ public class MessageSettings extends SettingsPanel {
             add(saveButton, gbc);
             add(after, gbc);
             add(new JLabel(SettingConstants.HTML_PREFIX
-                    +Language.getString("settings.otherMessageSettings.customizeTimestamp.info")),
+                    +Language.getString("settings.otherMessageSettings.customizeTimestamp.info")
+                    +"<br /><br />Append <code>'a:AM/PM'</code> (including quotes) to customize AM/PM."),
                     GuiUtil.makeGbc(0, 3, 4, 1, GridBagConstraints.CENTER));
             gbc = GuiUtil.makeGbc(0, 4, 3, 1);
             gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -316,6 +318,7 @@ public class MessageSettings extends SettingsPanel {
         private void valueChanged() {
             fillFromValue();
             updatePreview();
+            pack();
         }
         
         private void formChanged() {
@@ -326,7 +329,7 @@ public class MessageSettings extends SettingsPanel {
         
         private void updatePreview() {
             try {
-                SimpleDateFormat format = new SimpleDateFormat(value.getText());
+                SimpleDateFormat format = DateTime.createSdfAmPm(value.getText());
                 preview.setText(DateTime.format(System.currentTimeMillis(), format));
             } catch (Exception ex) {
                 preview.setText("Invalid format");

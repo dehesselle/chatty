@@ -99,8 +99,8 @@ public class MainMenu extends JMenuBar {
         addItem(main,"configureLogin", Language.getString("menubar.dialog.login"));
         main.addSeparator();
         addItem(main,"saveSettings", Language.getString("menubar.dialog.save"));
-        main.addSeparator();
-        addItem(main,"application.exit");
+        // main.addSeparator();
+        // addItem(main,"application.exit");
         
         //------
         // View
@@ -200,8 +200,8 @@ public class MainMenu extends JMenuBar {
         JMenuItem helpItem = addItem(help,"about","About/Help", KeyEvent.VK_H);
         helpItem.setAccelerator(KeyStroke.getKeyStroke("F1"));
         setIcon(helpItem, "help-browser.png");
-        help.addSeparator();
-        addItem(help, "dialog.updates");
+        // help.addSeparator();
+        // addItem(help, "dialog.updates");
         //help.addSeparator();
         //addItem(help,"news","Announcements");
         

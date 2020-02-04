@@ -589,14 +589,14 @@ public class MainGui extends JFrame implements Runnable {
             }
         });
         
-        addMenuAction("dialog.updates", "Dialog: Updates",
-                KeyEvent.VK_U, new AbstractAction() {
+        // addMenuAction("dialog.updates", "Dialog: Updates",
+        //         KeyEvent.VK_U, new AbstractAction() {
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                openUpdateDialog();
-            }
-        });
+        //     @Override
+        //     public void actionPerformed(ActionEvent e) {
+        //         openUpdateDialog();
+        //     }
+        // });
         
         addMenuAction("about", "Open Help", KeyEvent.VK_H,
                 new AbstractAction() {
@@ -805,14 +805,14 @@ public class MainGui extends JFrame implements Runnable {
             }
         });
         
-        addMenuAction("application.exit", "Exit Chatty",
-                KeyEvent.VK_UNDEFINED, new AbstractAction() {
+        // addMenuAction("application.exit", "Exit Chatty",
+        //         KeyEvent.VK_UNDEFINED, new AbstractAction() {
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                exit();
-            }
-        });
+        //     @Override
+        //     public void actionPerformed(ActionEvent e) {
+        //         exit();
+        //     }
+        // });
     }
     
     public void showGui() {

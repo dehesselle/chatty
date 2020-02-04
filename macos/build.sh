@@ -26,7 +26,7 @@ REPO_DIR=$SELF_DIR/..
 . $REPO_DIR/macos/version.sh   # include version information
 
 export MACOSX_DEPLOYMENT_TARGET=10.9
-export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX${MACOSX_DEPLOYMENT_TARGET}.sdk
+export SDKROOT=/opt/sdks/MacOSX${MACOSX_DEPLOYMENT_TARGET}.sdk
 
 set -e
 
@@ -48,7 +48,7 @@ curl -L https://github.com/dehesselle/py3framework/releases/download/py376.1/py3
 #--- download Streamlink
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
-pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==1.3.0
+pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==1.3.1
 
 sed -i '' '1s/.*/#!\/usr\/bin\/env python3.7\
 /' $STREAMLINK_DIR/bin/chardetect
@@ -84,7 +84,7 @@ INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set CFBundleVersion $CHATTY_MACOS_BUILD" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set LSApplicationCategoryType public.app-category.social-networking" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $MACOSX_DEPLOYMENT_TARGET" $INFO_PLIST
-/usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright (c) 2013-2020 by tduva'" $INFO_PLIST
+/usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright © 2013-2020 by tduva'" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Add NSRequiresAquaSystemAppearance bool false" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
 
@@ -92,4 +92,3 @@ python3 -m compileall -f $WORK_DIR/deploy/Chatty.app || true   # precompile all 
 
 echo "Build complete.=========================================================="
 echo "$WORK_DIR/deploy/Chatty.app"
-

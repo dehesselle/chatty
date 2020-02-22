@@ -6,7 +6,7 @@
 
 STREAMLINK_DIR=$RESOURCES_DIR/streamlink
 
-export PYTHONPATH=$STREAMLINK_DIR/lib/python3.7/site-packages
+export PYTHONPATH=$(echo $STREAMLINK_DIR/lib/python*/site-packages)
 
 VLC=/Applications/VLC.app/Contents/MacOS/VLC
 
@@ -25,6 +25,8 @@ fi
 
 if $OK; then
   export PATH=$PYTHON_BIN_DIR:$PATH
+  export PYTHONPYCACHEPREFIX=$HOME/Library/Caches/Chatty
+  [ ! -d $PYTHONPYCACHEPREFIX ] && mkdir $PYTHONPYCACHEPREFIX
   $STREAMLINK_DIR/bin/streamlink -p "$VLC --meta-title $STREAM" twitch.tv/$STREAM $QUALITY
   exit 0
 fi

@@ -42,20 +42,26 @@ cd chatty
 ./gradlew release
 
 #--- download Python.framework
+PY3_MAJOR=3
+PY3_MINOR=8
+PY3_PATCH=1
+PY3_FRA_BUILD=1
+
 cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py376.1/py376_framework_1.tar.xz | tar -xJp --exclude='Versions/3.7/lib/python3.7/test/*'
+curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_FRA_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_FRA_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
 
 #--- download Streamlink
+STREAMLINK_VER=1.3.1
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
-pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==1.3.1
+pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==$STREAMLINK_VER
 
-sed -i '' '1s/.*/#!\/usr\/bin\/env python3.7\
-/' $STREAMLINK_DIR/bin/chardetect
-sed -i '' '1s/.*/#!\/usr\/bin\/env python3.7\
-/' $STREAMLINK_DIR/bin/streamlink
-sed -i '' '1s/.*/#!\/usr\/bin\/env python3.7\
-/' $STREAMLINK_DIR/bin/wsdump.py
+sed -i '' "1s/.*/#!\/usr\/bin\/env python$PY3_MAJOR.$PY3_MINOR\
+/" $STREAMLINK_DIR/bin/chardetect
+sed -i '' "1s/.*/#!\/usr\/bin\/env python$PY3_MAJOR.$PY3_MINOR\
+/" $STREAMLINK_DIR/bin/streamlink
+sed -i '' "1s/.*/#!\/usr\/bin\/env python$PY3_MAJOR.$PY3_MINOR\
+/" $STREAMLINK_DIR/bin/wsdump.py
 
 #--- build macOS app
 cd $WORK_DIR
@@ -87,8 +93,6 @@ INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright © 2013-2020 by tduva'" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Add NSRequiresAquaSystemAppearance bool false" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
-
-python3 -m compileall -f $WORK_DIR/deploy/Chatty.app || true   # precompile all packages
 
 echo "Build complete.=========================================================="
 echo "$WORK_DIR/deploy/Chatty.app"

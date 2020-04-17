@@ -44,11 +44,11 @@ cd chatty
 #--- download Python.framework
 PY3_MAJOR=3
 PY3_MINOR=8
-PY3_PATCH=1
-PY3_FRA_BUILD=1
+PY3_PATCH=2
+PY3_BUILD=3   # custom framework build number
 
 cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_FRA_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_FRA_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
+curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
 
 #--- download Streamlink
 STREAMLINK_VER=1.3.1

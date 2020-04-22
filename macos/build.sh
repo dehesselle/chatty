@@ -45,7 +45,7 @@ cd chatty
 PY3_MAJOR=3
 PY3_MINOR=8
 PY3_PATCH=2
-PY3_BUILD=3   # custom framework build number
+PY3_BUILD=4   # custom framework build number
 
 cd $WORK_DIR
 curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
@@ -67,13 +67,19 @@ sed -i '' "1s/.*/#!\/usr\/bin\/env python$PY3_MAJOR.$PY3_MINOR\
 cd $WORK_DIR
 mkdir -p package/macosx
 cp $REPO_DIR/macos/Chatty.icns package/macosx
-javapackager -deploy -native image -srcdir $WORK_DIR/chatty/build/libs -srcfiles Chatty.jar -appclass chatty.Chatty -name Chatty -outdir $WORK_DIR/deploy -outfile Chatty -v -nosign
+$HOME/Library/Java/JavaVirtualMachines/jdk-14.0.1.jdk/Contents/Home/bin/jpackage \
+  --icon $REPO_DIR/macos/Chatty.icns \
+  --input $WORK_DIR/chatty/build/libs \
+  --mac-package-identifier dehesselle.Chatty \
+  --main-jar Chatty.jar \
+  --name Chatty \
+  --type app-image
 
-FRAMEWORKS_DIR=$WORK_DIR/deploy/Chatty.app/Contents/Frameworks
+FRAMEWORKS_DIR=$WORK_DIR/Chatty.app/Contents/Frameworks
 mkdir -p $FRAMEWORKS_DIR
 mv $WORK_DIR/Python.framework $FRAMEWORKS_DIR
 
-RESOURCE_DIR=$WORK_DIR/deploy/Chatty.app/Contents/Resources
+RESOURCE_DIR=$WORK_DIR/Chatty.app/Contents/Resources
 cp -r $STREAMLINK_DIR $RESOURCE_DIR
 cp -r $WORK_DIR/chatty/assets/img $RESOURCE_DIR
 cp -r $WORK_DIR/chatty/assets/sounds $RESOURCE_DIR
@@ -85,7 +91,7 @@ cp $REPO_DIR/macos/streamlink_vlc.sh $SCRIPTS_DIR
 cp $REPO_DIR/macos/iina.sh $SCRIPTS_DIR
 cp $REPO_DIR/macos/play.sh $SCRIPTS_DIR
 
-INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
+INFO_PLIST=$WORK_DIR/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set CFBundleShortVersionString $CHATTY_VERSION" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set CFBundleVersion $CHATTY_MACOS_BUILD" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set LSApplicationCategoryType public.app-category.social-networking" $INFO_PLIST
@@ -95,4 +101,4 @@ INFO_PLIST=$WORK_DIR/deploy/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
 
 echo "Build complete.=========================================================="
-echo "$WORK_DIR/deploy/Chatty.app"
+echo "$WORK_DIR/Chatty.app"

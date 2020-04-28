@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -35,6 +36,12 @@ public class Livestreamer extends Thread {
         try {
             Runtime rt = Runtime.getRuntime();
             String[] cmd = split(command);
+
+            // If command does not contain a path, add scripts directory to it.
+            if (!cmd[0].contains("/")) {
+                cmd[0] = Paths.get(Paths.get(Livestreamer.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().getParent().toString(), "Resources/scripts", cmd[0]).toString();
+            }
+
             Process process = rt.exec(cmd);
             this.process = process;
             LOGGER.info("Livestreamer: Process "+id()+" started. ["+filterToken(command)+"]");

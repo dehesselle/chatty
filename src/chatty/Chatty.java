@@ -8,6 +8,7 @@ import chatty.util.LogUtil;
 import chatty.util.MiscUtil;
 import chatty.util.SingleInstance;
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import org.json.simple.JSONObject;
@@ -254,11 +255,13 @@ public class Chatty {
     }
     
     public static String getSoundDirectory() {
-        return getWorkingDirectory().replace("Java/", "")+"Resources/sounds"+File.separator;
+        // not using File.separator breaks portablility across platforms
+        return Paths.get(Paths.get(Chatty.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().getParent().toString(), "Resources/sounds/").toString();
     }
     
     public static String getImageDirectory() {
-        return getWorkingDirectory().replace("Java/", "")+"Resources/img"+File.separator;
+        // not using File.separator breaks portablility across platforms
+        return Paths.get(Paths.get(Chatty.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent().getParent().toString(), "Resources/img/").toString();
     }
     
     public static String getBackupDirectory() {

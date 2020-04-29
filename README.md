@@ -2,28 +2,25 @@
 
 ![alt-text](/macos/app_dock.png)
 
-## About
+Being a fan of Chatty myself, I wanted it to be a bit more Mac-like on macOS. The main goal was to create a self-contained app that doesn't require external 3rd party software/runtimes.
 
-Being a fan of Chatty myself, I wanted it to be a bit more Mac-like on macOS. The main goal was to create a self-contained app that doesn't require you to install any 3rd party software/runtimes.
+Since I don't speak Java I won't be coding new features besides making little changes here and there.
 
-Since I don't speak Java I won't be coding new features besides making little changes in regards to macOS or the bundled Streamlink component.
-
-If you're completely new to Chatty, take a look at the [original project](http://chatty.github.io) first.
+If you're completely new to Chatty, take a look at the [upstream project](http://chatty.github.io) first.
 
 ## Features
 
-This is Chatty as you know and like it, just with a few additions:
+System theme |  Hifi Soft (Dark) theme
+:-------------------------:|:-------------------------:
+![alt-text](/macos/app_screenshot.png) | ![alt-text](/macos/app_screenshot2.png)
 
-- macOS specific changes (e.g. paths, menubar)
-- packaged as signed macOS application bundle
-- distributed as notarized disk image
-- includes JRE
-- includes Python
-- includes Streamlink
+This is Chatty as you know and like it, but with a few additions:
 
-You don't need to install Java and you can watch streams out-of-the-box, without having to install Streamlink, as long as you have [VLC](http://www.videolan.org) or [IINA](https://github.com/iina/iina) in your `/Applications` folder.
+- packaged as native macOS app, signed & notarized
+- includes [Java Runtime](https://adoptopenjdk.net)
+- includes [Python](https://www.python.org) to power the included [Streamlink](https://streamlink.github.io)
 
-![alt-text](/macos/app_screenshot.png)
+In essence: you don't need to have Java installed to run Chatty and you can watch Streams as long as you have [IINA](https://github.com/iina/iina) or [VLC](http://www.videolan.org) in your `/Applications` folder.
 
 ## Download
 
@@ -40,7 +37,7 @@ This wouldn't have been possible without the work of other people. Thank you:
 - [tduva](https://github.com/tduva) and all people contributing to [Chatty](http://chatty.github.io)
 - [chrippa](https://github.com/chrippa) and all people who have contributed to [Livestreamer](http://livestreamer.io)
 - all people contributing to [Streamlink](https://streamlink.github.io)
-- all the various Python libraries pulled in as dependencies
+- all the authors of the various Python libraries pulled in as dependencies 
 
 ## License
 

@@ -2,11 +2,9 @@
 
 ![alt-text](/macos/app_dock.png)
 
-Being a fan of Chatty myself, I wanted it to be a bit more Mac-like on macOS. The main goal was to create a self-contained app that doesn't require external 3rd party software/runtimes.
+Being a fan of [Chatty](http://chatty.github.io) myself, I wanted it to be a bit more Mac-like on macOS. The main goal was to create a self-contained app that doesn't require external 3rd party software/runtimes.
 
 Since I don't speak Java I won't be coding new features besides making little changes here and there.
-
-If you're completely new to Chatty, take a look at the [upstream project](http://chatty.github.io) first.
 
 ## Features
 

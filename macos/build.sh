@@ -44,8 +44,8 @@ cd chatty
 #--- download Python.framework
 PY3_MAJOR=3
 PY3_MINOR=8
-PY3_PATCH=2
-PY3_BUILD=4   # custom framework build number
+PY3_PATCH=3
+PY3_BUILD=1   # custom framework build number
 
 cd $WORK_DIR
 curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'

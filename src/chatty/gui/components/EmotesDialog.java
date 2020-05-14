@@ -53,6 +53,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
+import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -148,7 +149,13 @@ public class EmotesDialog extends JDialog {
         this.setFocusableWindowState(false);
         this.contextMenuListener = contextMenuListener;
         this.emoteManager = emotes;
-        emotesBackground = LaF.isDarkTheme() ? new Color(38, 38, 38) : new Color(250, 250, 250);
+        Color bg = new JTextArea().getBackground();
+        if (bg.equals(Color.WHITE)) {
+            emotesBackground = new Color(250, 250, 250);
+        }
+        else {
+            emotesBackground = bg;
+        }
         //emotesBackground = new JPanel().getBackground().brighter();
         //emotesBackground = brighter(new JPanel().getBackground(), 0.8);
         //emotesBackground = HtmlColors.decode(main.getSettings().getString("backgroundColor"));
@@ -1211,6 +1218,11 @@ public class EmotesDialog extends JDialog {
             reset();
             
             Emoticon emote = detailsEmote;
+            if (emote == null) {
+                // This may happen when tab was switched, but a request result
+                // triggers this again
+                return;
+            }
             
             //--------------
             // EmotesetInfo

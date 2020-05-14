@@ -300,7 +300,7 @@ public class HighlighterTester extends JDialog implements StringEditor {
         if (value.isEmpty()) {
             highlightItem = null;
         } else {
-            highlightItem = new HighlightItem(value);
+            highlightItem = new HighlightItem(value, false);
         }
         updateParseResult();
         updateInfoText();
@@ -316,7 +316,7 @@ public class HighlighterTester extends JDialog implements StringEditor {
             blacklistItem = null;
             addToBlacklistButton.setEnabled(false);
         } else {
-            blacklistItem = new HighlightItem(value);
+            blacklistItem = new HighlightItem(value, false);
             addToBlacklistButton.setEnabled(!blacklistItem.hasError());
         }
         updateParseResult();
@@ -366,7 +366,7 @@ public class HighlighterTester extends JDialog implements StringEditor {
             // Match ANY type, same as the other matching in this (ignoring
             // non-text prefixes)
             blacklist = new Highlighter.Blacklist(HighlightItem.Type.ANY, testInput.getText(), null,
-                    null, null, MsgTags.EMPTY, Arrays.asList(new HighlightItem[]{blacklistItem}));
+                    null, null, null, MsgTags.EMPTY, Arrays.asList(new HighlightItem[]{blacklistItem}));
         }
         if (highlightItem == null) {
             testResult.setText("Empty item.");

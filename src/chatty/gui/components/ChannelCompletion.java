@@ -56,7 +56,7 @@ public class ChannelCompletion implements AutoCompletionServer {
         "subscribers", "subscribersOff", "timeout", "ban", "unban", "host", "unhost", "raid", "unraid", "clear", "mods", "commercial",
         "join", "part", "close", "reconnect", "slow", "slowOff", "r9k", "r9koff", "emoteOnly", "emoteOnlyOff",
         "connection", "uptime", "appInfo", "releaseInfo",
-        "dir", "wdir", "openDir", "openWdir",
+        "dir", "wdir", "openDir", "openWdir", "showLogDir", "openLogDir",
         "showBackupDir", "openBackupDir", "showDebugDir", "openDebugDir",
         "showTempDir", "openTempDir", "showJavaDir", "openJavaDir",
         "showFallbackFontDir", "openFallbackFontDir",
@@ -67,7 +67,7 @@ public class ChannelCompletion implements AutoCompletionServer {
         "ignore", "unignore", "ignoreWhisper", "unignoreWhisper", "ignoreChat", "unignoreChat",
         "follow", "unfollow", "ffzws", "followers", "followersoff",
         "setcolor", "untimeout", "userinfo", "joinHosted", "favorite", "unfavorite",
-        "popoutchannel"
+        "popoutchannel", "setSize"
     }));
 
     /**

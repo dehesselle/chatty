@@ -39,6 +39,8 @@ public class StreamInfo {
      */
     private String display_name;
     
+    private String logo;
+    
     private String userId;
     
     /**
@@ -214,11 +216,12 @@ public class StreamInfo {
             }
             recheckOffline = -1;
 
-            if (getLastOnlineAgoSecs() > MAX_PICNIC_LENGTH) {
+            if (getLastOnlineAgoSecs() > MAX_PICNIC_LENGTH
+                    || startedAtWithPicnic == -1) {
                 /**
-                 * Only update online time with PICNICs when offline time was
-                 * long enough (of course also depends on what stream data
-                 * Chatty has).
+                 * Only update (as in no more different PICNIC time from regular
+                 * uptime) when offline for long enough or previous value was
+                 * not valid.
                  */
                 this.startedAtWithPicnic = startedAt;
             }
@@ -425,6 +428,14 @@ public class StreamInfo {
      */
     public boolean hasRegularDisplayName() {
         return !hasDisplayName() || capitalizedName != null;
+    }
+    
+    public synchronized void setLogo(String logo) {
+        this.logo = logo;
+    }
+    
+    public synchronized String getLogo() {
+        return logo;
     }
     
     public synchronized boolean setUserId(String userId) {

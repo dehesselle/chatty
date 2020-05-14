@@ -67,6 +67,7 @@ import chatty.util.chatlog.ChatLog;
 import chatty.util.commands.CustomCommand;
 import chatty.util.commands.Parameters;
 import chatty.util.irc.MsgTags;
+import chatty.util.settings.FileManager;
 import chatty.util.settings.Settings;
 import chatty.util.settings.SettingsListener;
 import chatty.util.srl.SpeedrunsLive;
@@ -79,7 +80,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Logger;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 /**
@@ -198,19 +198,24 @@ public class TwitchClient {
                 +" [Settings Directory] "+Chatty.getUserDataDirectory()
                 +" [Classpath] "+System.getProperty("java.class.path"));
         
-        settings = new Settings(Chatty.getUserDataDirectory()+"settings");
         // Settings
-        settingsManager = new SettingsManager(settings);
+        settingsManager = new SettingsManager();
+        settings = settingsManager.settings;
         settingsManager.defineSettings();
         settingsManager.loadSettingsFromFile();
-        settingsManager.backupFiles();
         settingsManager.loadCommandLineSettings(args);
         settingsManager.overrideSettings();
         settingsManager.debugSettings();
+        settingsManager.backupFiles();
+        settingsManager.startAutoSave(this);
+        
+        Helper.setDefaultTimezone(settings.getString("timezone"));
         
         addressbook = new Addressbook(Chatty.getUserDataDirectory()+"addressbook",
             Chatty.getUserDataDirectory()+"addressbookImport.txt", settings);
-        addressbook.loadFromFile();
+        if (!addressbook.loadFromSettings()) {
+            addressbook.loadFromFile();
+        }
         addressbook.setSomewhatUniqueCategories(settings.getString("abUniqueCats"));
         if (settings.getBoolean("abAutoImport")) {
             addressbook.enableAutoImport();
@@ -463,7 +468,10 @@ public class TwitchClient {
             settings.setString("currentVersion", Chatty.VERSION);
             // Changed version, so should check for update properly again
             settings.setString("updateAvailable", "");
-            g.openReleaseInfo();
+            if (settingsManager.getLoadSuccess()) {
+                // Don't bother user if settings were probably corrupted
+                g.openReleaseInfo();
+            }
         }
     }
     
@@ -578,6 +586,10 @@ public class TwitchClient {
     
     public User getExistingUser(String channel, String name) {
         return c.getExistingUser(channel, name);
+    }
+    
+    public User getLocalUser(String channel) {
+        return c.getExistingUser(channel, c.getUsername());
     }
     
     public void clearUserList() {
@@ -995,6 +1007,22 @@ public class TwitchClient {
         }
         else if (command.equals("opendebugdir")) {
             MiscUtil.openFolder(new File(Chatty.getDebugLogDirectory()), g);
+        }
+        else if (command.equals("showlogdir")) {
+            if (chatLog.getPath() != null) {
+                g.printSystem("Chat Log Directory: "+chatLog.getPath().toAbsolutePath().toString());
+            }
+            else {
+                g.printSystem("Invalid Chat Log Directory");
+            }
+        }
+        else if (command.equals("openlogdir")) {
+            if (chatLog.getPath() != null) {
+                MiscUtil.openFolder(chatLog.getPath().toAbsolutePath().toFile(), g);
+            }
+            else {
+                g.printSystem("Invalid Chat Log Directory");
+            }
         }
         else if (command.equals("showjavadir")) {
             g.printSystem("JRE directory: "+System.getProperty("java.home"));
@@ -1859,7 +1887,7 @@ public class TwitchClient {
     }
     
     public void commandAddStreamHighlight(Room room, String parameter) {
-        g.printLine(room, streamHighlights.addHighlight(room.getOwnerChannel(), parameter));
+        g.printLine(room, streamHighlights.addHighlight(room.getOwnerChannel(), parameter, null));
     }
     
     public void commandOpenStreamHighlights(Room room) {
@@ -2349,6 +2377,29 @@ public class TwitchClient {
             g.webserverTokenReceived(token);
         }
     };
+    
+    /**
+     * Update the logo for all current Stream Chat channels, based on already
+     * available StreamInfo.
+     */
+    public void updateStreamChatLogos() {
+        for (Object chanObject : settings.getList("streamChatChannels")) {
+            String channel = (String) chanObject;
+            updateStreamChatLogo(channel, api.getCachedStreamInfo(Helper.toStream(channel)));
+        }
+    }
+    
+    /**
+     * Update the Stream Chat logo for the given channel.
+     * 
+     * @param channel The channel
+     * @param info The StreamInfo to get the logo from, may be null
+     */
+    public void updateStreamChatLogo(String channel, StreamInfo info) {
+        if (info != null && info.getLogo() != null && settings.listContains("streamChatChannels", channel)) {
+            usericonManager.updateChannelLogo(channel, info.getLogo(), settings.getString("streamChatLogos"));
+        }
+    }
 
     private class MyStreamInfoListener implements StreamInfoListener {
         
@@ -2382,6 +2433,7 @@ public class TwitchClient {
                         + "You may not be able to join this channel, but trying"
                         + " anyways. **");
             }
+            updateStreamChatLogo(channel, info);
         }
 
         /**
@@ -2616,7 +2668,7 @@ public class TwitchClient {
      */
     public void exit() {
         shuttingDown = true;
-        saveSettings(true);
+        saveSettings(true, false);
         logAllViewerstats();
         c.disconnect();
         frankerFaceZ.disconnectWs();
@@ -2632,26 +2684,32 @@ public class TwitchClient {
      * @param onExit If true, this will save the settings only if they haven't
      * already been saved with this being true before
      */
-    public void saveSettings(boolean onExit) {
+    public List<FileManager.SaveResult> saveSettings(boolean onExit, boolean force) {
         if (onExit) {
             if (settingsAlreadySavedOnExit) {
-                return;
+                return null;
             }
             settingsAlreadySavedOnExit = true;
         }
-        
-        LOGGER.info("Saving settings..");
-        System.out.println("Saving settings..");
         
         // Prepare saving settings
         if (g != null && g.guiCreated) {
             g.saveWindowStates();
         }
         // Actually write settings to file
-        if (!onExit || !settings.getBoolean("dontSaveSettings")) {
-            addressbook.saveToFile();
-            settings.saveSettingsToJson();
+        if (force || !settings.getBoolean("dontSaveSettings")) {
+            LOGGER.info("Saving settings..");
+            System.out.println("Saving settings..");
+            return settings.saveSettingsToJson(force);
         }
+        else {
+            LOGGER.info("Not saving settings (disabled)");
+        }
+        return null;
+    }
+    
+    public List<FileManager.SaveResult> manualBackup() {
+        return settingsManager.fileManager.manualBackup();
     }
     
     private class SettingSaveListener implements SettingsListener {

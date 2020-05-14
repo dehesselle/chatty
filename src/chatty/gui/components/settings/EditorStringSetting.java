@@ -3,6 +3,7 @@ package chatty.gui.components.settings;
 
 import chatty.gui.GuiUtil;
 import chatty.gui.components.LinkLabelListener;
+import chatty.lang.Language;
 import java.awt.BorderLayout;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
@@ -55,10 +56,7 @@ public class EditorStringSetting extends JPanel implements StringSetting {
         
         setLayout(new BorderLayout(2, 0));
         
-        preview = new JTextField(size);
-        preview.setEditable(false);
-        
-        editButton = new JButton("Edit");
+        editButton = new JButton(Language.getString("dialog.button.edit"));
         editButton.setMargin(GuiUtil.SMALL_BUTTON_INSETS);
         editButton.addActionListener(new ActionListener() {
 
@@ -71,7 +69,14 @@ public class EditorStringSetting extends JPanel implements StringSetting {
             }
         });
         
-        add(preview, BorderLayout.CENTER);
+        if (size > -1) {
+            preview = new JTextField(size);
+            preview.setEditable(false);
+            add(preview, BorderLayout.CENTER);
+        }
+        else {
+            preview = null;
+        }
         add(editButton, BorderLayout.EAST);
     }
     
@@ -97,7 +102,9 @@ public class EditorStringSetting extends JPanel implements StringSetting {
     public void setSettingValue(String value) {
         if (!Objects.equals(this.value, value)) {
             this.value = value;
-            preview.setText(value);
+            if (preview != null) {
+                preview.setText(value);
+            }
             if (listener != null) {
                 listener.stateChanged(new ChangeEvent(this));
             }

@@ -4,19 +4,25 @@ package chatty;
 import chatty.gui.components.updating.Version;
 import chatty.util.colors.HtmlColors;
 import chatty.gui.WindowStateManager;
+import chatty.gui.components.eventlog.EventLog;
 import chatty.gui.components.settings.NotificationSettings;
 import chatty.gui.notifications.Notification;
-import chatty.util.BackupManager;
 import chatty.util.DateTime;
+import chatty.util.ElapsedTime;
 import chatty.util.StringUtil;
 import chatty.util.colors.ColorCorrection;
 import chatty.util.hotkeys.Hotkey;
+import chatty.util.settings.FileManager;
 import chatty.util.settings.Setting;
 import chatty.util.settings.Settings;
 import java.awt.Color;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Logger;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 /**
  *
@@ -26,8 +32,8 @@ public class SettingsManager {
     
     private static final Logger LOGGER = Logger.getLogger(SettingsManager.class.getName());
     
-    private final Settings settings;
-    private final BackupManager backup;
+    public final Settings settings;
+    public final FileManager fileManager;
     
     private final List<DefaultHotkey> defaultHotkeys = new ArrayList<>();
     
@@ -56,10 +62,31 @@ public class SettingsManager {
         "bufferSize"
     };
     
-    public SettingsManager(Settings settings) {
-        this.settings = settings;
-        backup = new BackupManager(Paths.get(Chatty.getBackupDirectory()),
-            Paths.get(Chatty.getUserDataDirectory()));
+    public SettingsManager() {
+        fileManager = new FileManager(
+                Paths.get(Chatty.getUserDataDirectory()),
+                Paths.get(Chatty.getBackupDirectory()));
+        FileManager.FileContentInfoProvider fileInfoProvider = new FileManager.FileContentInfoProvider() {
+
+            @Override
+            public FileManager.FileContentInfo getInfo(String content) {
+                try {
+                    JSONParser parser = new JSONParser();
+                    JSONObject root = (JSONObject)parser.parse(content);
+                    JSONArray ab = (JSONArray)root.get("abEntries");
+                    return new FileManager.FileContentInfo(true, String.format("%d settings, %d addressbook entries",
+                            root.size(), ab != null ? ab.size() : 0));
+                }
+                catch (Exception ex) {
+                    return new FileManager.FileContentInfo(false, "Error parsing: "+ex.toString());
+                }
+            }
+        };
+        fileManager.add("settings", "settings", true, fileInfoProvider);
+        fileManager.add("login", "login", false, fileInfoProvider);
+        fileManager.add("favoritesAndHistory", "favoritesAndHistory", false, fileInfoProvider);
+        fileManager.add("statusPresets", "statusPresets", false, fileInfoProvider);
+        this.settings = new Settings("settings", fileManager);
     }
     
     /**
@@ -68,14 +95,9 @@ public class SettingsManager {
     public void defineSettings() {
         
         // Additional files (in addition to the default file)
-        String loginFile = Chatty.getUserDataDirectory()+"login";
-        String historyFile = Chatty.getUserDataDirectory()+"favoritesAndHistory";
-        String statusPresetsFile = Chatty.getUserDataDirectory()+"statusPresets";
-        
-        backup.addFile("settings");
-        backup.addFile(historyFile);
-        backup.addFile(statusPresetsFile);
-        backup.addFile("addressbook");
+        String loginFile = "login";
+        String historyFile = "favoritesAndHistory";
+        String statusPresetsFile = "statusPresets";
         
         settings.addFile(loginFile);
         settings.addFile(historyFile);
@@ -85,7 +107,8 @@ public class SettingsManager {
         // General
         //========
 
-        settings.addBoolean("dontSaveSettings",false);
+        settings.addBoolean("dontSaveSettings", false);
+        settings.addLong("autoSaveSettings", 15);
         settings.addBoolean("debugCommands", false, false);
         settings.addBoolean("debugLogIrc", false);
         settings.addBoolean("debugLogIrcFile", false);
@@ -93,7 +116,7 @@ public class SettingsManager {
         
         // Backup
         settings.addLong("backupDelay", 1);
-        settings.addLong("backupCount", 5);
+        settings.addLong("backupCount", 10);
 
         // Version/News
         settings.addLong("versionLastChecked", 0);
@@ -129,7 +152,7 @@ public class SettingsManager {
         //===========
 
         settings.addString("serverDefault", "irc.chat.twitch.tv");
-        settings.addString("portDefault", "6697,6667,443,80");
+        settings.addString("portDefault", "6697,443");
 
         // Separate settings for commandline/temp so others can be saved
         settings.addString("server", "", false);
@@ -179,6 +202,7 @@ public class SettingsManager {
         settings.addString("lafStyle", "regular");
         settings.addString("lafScroll", "default");
         settings.addString("language", "");
+        settings.addString("timezone", "");
         
         settings.addLong("dialogFontSize", -1);
 
@@ -284,12 +308,14 @@ public class SettingsManager {
         settings.addString("abSubMonthsChan", "");
         settings.addList("abSubMonths", new TreeSet(), Setting.LONG);
         settings.addBoolean("abSaveOnChange", false);
+        settings.addList("abEntries", new ArrayList(), Setting.LIST);
 
         // Custom Commands
         List<String> commandsDefault = new ArrayList<>();
         commandsDefault.add("/slap /me slaps $$1- around a bit with a large trout");
         commandsDefault.add("/permit !permit $$1");
         settings.addList("commands", commandsDefault, Setting.STRING);
+        settings.addMap("var", new HashMap(), Setting.STRING);
 
         // Menu Entries
         settings.addString("timeoutButtons","/Ban[B], /Unban[U], 5s[1], 2m[2], 10m[3], 30m[4], /ModUnmod"
@@ -305,6 +331,9 @@ public class SettingsManager {
         settings.addString("userContextMenu", "");
         settings.addString("channelContextMenu", "");
         settings.addString("streamsContextMenu", "");
+        settings.addString("textContextMenu", "-\n" +
+                "Translate=/openUrlPrompt https://translate.google.com/#view=home&op=translate&sl=auto&tl=en&text=$$urlencode($(msg))");
+        settings.addString("adminContextMenu", "!title=!title $(title)\n!game=!game $(game)");
         
         settings.addBoolean("closeUserDialogOnAction", true);
         settings.addBoolean("openUserDialogByMouse", true);
@@ -366,6 +395,7 @@ public class SettingsManager {
         settings.addBoolean("mainResizable", true);
         settings.addBoolean("splash", true);
         settings.addBoolean("hideStreamsOnMinimize", true);
+        settings.addLong("inputFocus", 0);
         
         // Tray
         settings.addBoolean("closeToTray", false);
@@ -412,6 +442,9 @@ public class SettingsManager {
         settings.addBoolean("liveStreamsSortingFav", true);
         settings.addLong("historyRange", 0);
         settings.addBoolean("historyVerticalZoom", false);
+        
+        settings.addBoolean("followersCompact", false);
+        settings.addBoolean("followersReg", true);
 
         //=======
         // Sounds
@@ -542,6 +575,7 @@ public class SettingsManager {
         // Chat Logging
         settings.addString("logMode", "always");
         settings.addBoolean("logMessage", true);
+        settings.addString("logMessageTemplate", "$(timestamp) <$(full-nick2)>$if(action,*) $(msg)");
         settings.addBoolean("logMod", true);
         settings.addBoolean("logJoinPart", false);
         settings.addBoolean("logBan", true);
@@ -552,6 +586,7 @@ public class SettingsManager {
         settings.addBoolean("logViewercount", false);
         settings.addBoolean("logModAction", true);
         settings.addBoolean("logIgnored", true);
+        settings.addBoolean("logBits", true);
         settings.addList("logWhitelist",new ArrayList(), Setting.STRING);
         settings.addList("logBlacklist",new ArrayList(), Setting.STRING);
         settings.addString("logPath", "");
@@ -582,6 +617,8 @@ public class SettingsManager {
         settings.addList("streamChatChannels", new ArrayList(), Setting.STRING);
         settings.addBoolean("streamChatBottom", true);
         settings.addBoolean("streamChatResizable", true);
+        // Size (String in case <width>x<height> needs to be added later or something)
+        settings.addString("streamChatLogos", "22");
 
         // Whispering
         settings.addBoolean("whisperEnabled", false);
@@ -618,6 +655,7 @@ public class SettingsManager {
         settings.addString("streamHighlightMatch", "status:bm");
         settings.addString("streamHighlightChannel", "");
         settings.addBoolean("streamHighlightChannelRespond", false);
+        settings.addString("streamHighlightResponseMsg", "Added stream $(added) for $(chan) [$(uptime)] $(comment)");
         settings.addBoolean("streamHighlightMarker", true);
 
         // Stream Status Writer
@@ -631,11 +669,20 @@ public class SettingsManager {
         settings.addMap("rewards", new HashMap(), Setting.STRING);
     }
     
+    private boolean loadSuccess;
+    
     /**
      * Tries to load the settings from file.
+     * 
+     * @return 
      */
-    public void loadSettingsFromFile() {
-        settings.loadSettingsFromJson();
+    public boolean loadSettingsFromFile() {
+        loadSuccess = settings.loadSettingsFromJson();
+        return loadSuccess;
+    }
+    
+    public boolean getLoadSuccess() {
+        return loadSuccess;
     }
     
     /**
@@ -645,7 +692,12 @@ public class SettingsManager {
      */
     public void backupFiles() {
         long backupDelay = DateTime.DAY * settings.getLong("backupDelay");
-        backup.performBackup((int)backupDelay, (int)settings.getLong("backupCount"));
+        try {
+            fileManager.backup(backupDelay, (int)settings.getLong("backupCount"));
+        }
+        catch (IOException ex) {
+            LOGGER.warning("Backup failed: "+ex);
+        }
     }
     
     /**
@@ -907,6 +959,38 @@ public class SettingsManager {
                 settings.putList("hotkeys", setting);
             }
         }
+    }
+    
+    private final ElapsedTime lastAutoSaved = new ElapsedTime(true);
+
+    void startAutoSave(TwitchClient c) {
+        Timer timer = new Timer("AutoSaveSettings", false);
+        timer.schedule(new TimerTask() {
+
+            @Override
+            public void run() {
+                int delay = (int)settings.getLong("autoSaveSettings")*60;
+                //System.out.println(lastAutoSaved.secondsElapsedSync()+" "+(int)settings.getLong("autoSaveSettings")*60);
+                if (delay > 0 && lastAutoSaved.secondsElapsedSync(delay)) {
+                    lastAutoSaved.setSync();
+                    List<FileManager.SaveResult> results = c.saveSettings(false, false);
+                    if (results == null) {
+                        // Saving settings not currently enabled
+                        return;
+                    }
+                    for (FileManager.SaveResult r : results) {
+                        if (r.writeError != null) {
+                            String msg = "["+r.id+"] "+Helper.getErrorMessageCompact(r.writeError)
+                                    +" (You can save manually under 'Main - Save..' to check if the issue persists.)";
+                            if (r.backupWritten && r.backupError == null) {
+                                msg += "\nBackup was successfully written to: "+r.backupPath;
+                            }
+                            EventLog.addSystemEvent("session.settings.writeError", msg);
+                        }
+                    }
+                }
+            }
+        }, 30*1000, 30*1000);
     }
     
     private static class DefaultHotkey {

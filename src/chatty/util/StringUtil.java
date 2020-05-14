@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
@@ -54,11 +55,34 @@ public class StringUtil {
         return join(items, delimiter, -1, -1);
     }
     
+    public static String join(Collection<?> items, String delimiter, Function<Object, String> func) {
+        return join(items, delimiter, -1, -1, func);
+    }
+    
     public static String join(Collection<?> items, String delimiter, int start) {
         return join(items, delimiter, start, -1);
     }
     
     public static String join(Collection<?> items, String delimiter, int start, int end) {
+        return join(items, delimiter, start, end, null);
+    }
+    
+    /**
+     * Join the items in the given Collection.
+     * 
+     * @param items The Collection
+     * @param delimiter The delimiter, put in between items
+     * @param start The index of the first item to include in the result,
+     * negative values are interpreted as 0, values larger than the Collection
+     * will simply result in an empty result
+     * @param end The index after the last item to include in the result,
+     * negative values or values larger than the Collection will include all
+     * items after the start (when start is 0, then this is the amount of items
+     * included)
+     * @param func Transform an element to a String
+     * @return The resulting String (never null)
+     */
+    public static String join(Collection<?> items, String delimiter, int start, int end, Function<Object, String> func) {
         if (items == null || items.isEmpty()) {
             return "";
         }
@@ -69,7 +93,7 @@ public class StringUtil {
         Iterator<?> it = items.iterator();
         int i = 0;
         while (it.hasNext()) {
-            String next = it.next().toString();
+            String next = func != null ? func.apply(it.next()) : it.next().toString();
             if (i >= start && i < end) {
                 b.append(next);
                 if (it.hasNext() && i+1 < end) {
@@ -408,8 +432,12 @@ public class StringUtil {
         return result;
     }
     
-    public static final NullComparator NULL_COMPARATOR = new NullComparator();
+    public static String[] splitLines(String input) {
+        return input.split("\r\n|\n|\r");
+    }
     
+    public static final NullComparator NULL_COMPARATOR = new NullComparator();
+
     private static class NullComparator implements Comparator<String> {
 
         @Override
@@ -451,6 +479,13 @@ public class StringUtil {
             return null;
         }
         return input[ThreadLocalRandom.current().nextInt(input.length)];
+    }
+    
+    public static int getLength(String content) {
+        if (content == null) {
+            return 0;
+        }
+        return content.length();
     }
     
     public static final void main(String[] args) {

@@ -2,13 +2,16 @@
 package chatty;
 
 import chatty.gui.MainGui;
+import chatty.gui.components.settings.MainSettings;
 import chatty.gui.components.textpane.UserNotice;
 import chatty.lang.Language;
 import chatty.util.DateTime;
 import chatty.util.Replacer;
 import chatty.util.StringUtil;
+import chatty.util.api.usericons.Usericon;
 import chatty.util.commands.Parameters;
 import chatty.util.irc.MsgTags;
+import chatty.util.settings.FileManager.SaveResult;
 import java.awt.Dimension;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -828,10 +831,21 @@ public class Helper {
         parameters.put("user-id", user.getId());
         if (user.getTwitchBadges() != null) {
             parameters.put("twitch-badge-info", user.getTwitchBadges().toString());
+            parameters.put("twitch-badges", Usericon.makeBadgeInfo(user.getTwitchBadges()));
         }
         parameters.put("display-nick", user.getDisplayNick());
         parameters.put("custom-nick", user.getCustomNick());
         parameters.put("full-nick", user.getFullNick());
+        if (!user.hasRegularDisplayNick()) {
+            parameters.put("display-nick2", user.getDisplayNick()+" ("+user.getRegularDisplayNick()+")");
+            parameters.put("full-nick2", user.getFullNick()+" ("+user.getRegularDisplayNick()+")");
+            parameters.put("special-nick", "true");
+        }
+        else {
+            parameters.put("display-nick2", user.getDisplayNick());
+            parameters.put("full-nick2", user.getFullNick());
+        }
+        parameters.putObject("user", user);
     }
     
     private static final Map<UserNotice, javax.swing.Timer> pointsMerge = new HashMap<>();
@@ -879,6 +893,76 @@ public class Helper {
             return new UserNotice(ps.type, ps.user, ps.infoText, irc.attachedMessage, MsgTags.merge(found.tags, newNotice.tags));
         }
         return null;
+    }
+    
+    public static void setDefaultTimezone(String input) {
+        if (!StringUtil.isNullOrEmpty(input)) {
+            MainSettings.DEFAULT_TIMEZONE = TimeZone.getDefault();
+            TimeZone tz = TimeZone.getTimeZone(input);
+            TimeZone.setDefault(tz);
+            LOGGER.info(String.format("[Timezone] Set to %s [%s]", tz.getDisplayName(), input));
+        }
+    }
+    
+    public static String getErrorMessageWithCause(Throwable ex) {
+        Throwable cause = ex.getCause();
+        if (cause != null) {
+            return String.format("%s [%s]",
+                    getErrorMessageCompact(ex),
+                    getErrorMessageCompact(cause));
+        }
+        return getErrorMessageCompact(ex);
+    }
+    
+    public static String getErrorMessageCompact(Throwable ex) {
+        if (ex.getLocalizedMessage() != null) {
+            return ex.getClass().getSimpleName()+": "+ex.getLocalizedMessage();
+        }
+        return ex.getClass().getSimpleName();
+    }
+    
+    public static String makeSaveResultInfo(List<SaveResult> result) {
+        StringBuilder b = new StringBuilder();
+        int index = 0;
+        for (SaveResult r : result) {
+            if (r == null) {
+                continue;
+            }
+            // Regular
+            if (r.written) {
+                b.append(String.format("* File written to %s\n",
+                        r.filePath));
+            }
+            else if (r.writeError != null) {
+                b.append(String.format("* Writing failed: %s\n",
+                        getErrorMessageCompact(r.writeError)));
+            }
+            
+            // Backup
+            if (r.backupWritten) {
+                b.append(String.format("* Backup written to %s\n",
+                        r.backupPath));
+            }
+            else if (r.writeError != null) {
+                b.append(String.format("* Backup failed: %s\n",
+                        getErrorMessageCompact(r.backupError)));
+            }
+            else if (r.cancelReason == SaveResult.CancelReason.INVALID_CONTENT) {
+                b.append("* Backup failed: Invalid content\n");
+            }
+            
+            // Removed deprecated
+            if (r.removed) {
+                b.append("* Removed unused file\n");
+            }
+            
+            // If anything was appended for this file, add header
+            if (b.length() > index) {
+                b.insert(index, String.format("[%s]\n", r.id));
+                index = b.length();
+            }
+        }
+        return b.toString();
     }
     
 }

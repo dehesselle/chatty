@@ -19,7 +19,6 @@ import static chatty.gui.components.textpane.SettingConstants.USER_HOVER_HL_CTRL
 import static chatty.gui.components.textpane.SettingConstants.USER_HOVER_HL_MENTIONS;
 import static chatty.gui.components.textpane.SettingConstants.USER_HOVER_HL_MENTIONS_CTRL_ALL;
 import chatty.util.Debugging;
-import chatty.util.ElapsedTime;
 import chatty.util.StringUtil;
 import chatty.util.TwitchEmotesApi;
 import chatty.util.TwitchEmotesApi.EmotesetInfo;
@@ -57,6 +56,7 @@ import javax.swing.Timer;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Element;
+import javax.swing.text.JTextComponent;
 import javax.swing.text.StyledDocument;
 import javax.swing.text.html.HTML;
 
@@ -91,7 +91,7 @@ public class LinkController extends MouseAdapter {
     
     private ContextMenuListener contextMenuListener;
     
-    private ContextMenu defaultContextMenu;
+    private Supplier<ContextMenu> defaultContextMenuCreator;
     
     private Channel channel;
     
@@ -140,9 +140,6 @@ public class LinkController extends MouseAdapter {
      */
     public void setContextMenuListener(ContextMenuListener listener) {
         contextMenuListener = listener;
-        if (defaultContextMenu != null) {
-            defaultContextMenu.addContextMenuListener(listener);
-        }
     }
     
     /**
@@ -151,9 +148,8 @@ public class LinkController extends MouseAdapter {
      * 
      * @param contextMenu 
      */
-    public void setDefaultContextMenu(ContextMenu contextMenu) {
-        defaultContextMenu = contextMenu;
-        contextMenu.addContextMenuListener(contextMenuListener);
+    public void setContextMenuCreator(Supplier<ContextMenu> contextMenu) {
+        defaultContextMenuCreator = contextMenu;
     }
     
     public void setChannel(Channel channel) {
@@ -253,7 +249,7 @@ public class LinkController extends MouseAdapter {
         Usericon usericon = getUsericon(element);
         String replacedText = getReplacedText(element);
         if (emoteImage != null) {
-            popup.show(textPane, element, p -> makeEmoticonPopupText(emoteImage, popupImagesEnabled, p), emoteImage.getImageIcon().getIconWidth());
+            popup.show(textPane, element, p -> makeEmoticonPopupText(emoteImage, popupImagesEnabled, p, element), emoteImage.getImageIcon().getIconWidth());
         } else if (usericon != null) {
             popup.show(textPane, element, p -> makeUsericonPopupText(usericon, p), usericon.image.getIconWidth());
         } else if (replacedText != null) {
@@ -413,15 +409,17 @@ public class LinkController extends MouseAdapter {
             m = new UsericonContextMenu(usericon, contextMenuListener);
         }
         else if (selectedText != null) {
-            m = new TextSelectionMenu(selectedText);
+            m = new TextSelectionMenu((JTextComponent)e.getSource(), false);
         }
         else {
-            if (defaultContextMenu == null) {
+            if (defaultContextMenuCreator == null) {
                 if (channel != null) {
                     m = new ChannelContextMenu(contextMenuListener, channel);
                 }
             } else {
-                m = defaultContextMenu;
+                ContextMenu menu = defaultContextMenuCreator.get();
+                menu.addContextMenuListener(contextMenuListener);
+                m = menu;
             }
         }
         if (m != null) {
@@ -542,6 +540,10 @@ public class LinkController extends MouseAdapter {
                 // Will only update if showing
                 update();
             }
+        }
+                
+        public boolean isCurrentElement(Element element) {
+            return this.element == element;
         }
         
         /**
@@ -682,13 +684,16 @@ public class LinkController extends MouseAdapter {
     
     private static final Object unique = new Object();
     
-    private static void makeEmoticonPopupText(EmoticonImage emoticonImage, boolean showImage, MyPopup popup) {
+    private static void makeEmoticonPopupText(EmoticonImage emoticonImage, boolean showImage, MyPopup popup, Element element) {
         Debugging.println("emoteinfo", "makePopupText %s", emoticonImage.getEmoticon());
         Emoticon emote = emoticonImage.getEmoticon();
         EmotesetInfo info = TwitchEmotesApi.api.getInfoByEmote(unique, result -> {
             SwingUtilities.invokeLater(() -> {
                 Debugging.println("emoteinfo", "Request result: %s", result);
-                popup.setText(makeEmoticonPopupText2(emoticonImage, showImage, result, popup));
+                // The popup may be for a different element by now
+                if (popup.isCurrentElement(element)) {
+                    popup.setText(makeEmoticonPopupText2(emoticonImage, showImage, result, popup));
+                }
             });
         }, emote);
         popup.setText(makeEmoticonPopupText2(emoticonImage, showImage, info, popup));
@@ -748,6 +753,8 @@ public class LinkController extends MouseAdapter {
         } else if (usericon.type == Usericon.Type.HL) {
             // Customize text since not really a badge
             info = POPUP_HTML_PREFIX+usericon.type.label;
+        } else if (usericon.type == Usericon.Type.CHANNEL_LOGO) {
+            info = POPUP_HTML_PREFIX+"Channel Logo: "+usericon.channel;
         } else {
             info = POPUP_HTML_PREFIX+"Badge: "+usericon.type.label;
         }

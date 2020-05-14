@@ -162,7 +162,7 @@ public class Highlighter {
      * @see #check(HighlightItem.Type, String, String, Addressbook, User)
      */
     public boolean check(User user, String text) {
-        return check(HighlightItem.Type.REGULAR, text, null, null, user, MsgTags.EMPTY);
+        return check(HighlightItem.Type.REGULAR, text, null, null, user, null, MsgTags.EMPTY);
     }
     
     /**
@@ -186,10 +186,10 @@ public class Highlighter {
      * @return true if the message matches, false otherwise
      */
     public boolean check(HighlightItem.Type type, String text, String channel,
-            Addressbook ab, User user, MsgTags tags) {
+            Addressbook ab, User user, User localUser, MsgTags tags) {
         Blacklist blacklist = null;
         if (!blacklistItems.isEmpty()) {
-            blacklist = new Blacklist(type, text, channel, ab, user, tags, blacklistItems);
+            blacklist = new Blacklist(type, text, channel, ab, user, localUser, tags, blacklistItems);
         }
         
         /**
@@ -201,7 +201,7 @@ public class Highlighter {
         // Try to match own name first (if enabled)
         if (highlightUsername && usernameItem != null &&
                 usernameItem.matches(type, text, blacklist,
-                        channel, ab, user, tags)) {
+                        channel, ab, user, localUser, tags)) {
             fillLastMatchVariables(usernameItem, text);
             addMatch(user, usernameItem);
             return true;
@@ -209,7 +209,7 @@ public class Highlighter {
         
         // Then try to match against the items
         for (HighlightItem item : items) {
-            if (item.matches(type, text, blacklist, channel, ab, user, tags)) {
+            if (item.matches(type, text, blacklist, channel, ab, user, localUser, tags)) {
                 fillLastMatchVariables(item, text);
                 addMatch(user, item);
                 return true;
@@ -327,15 +327,29 @@ public class Highlighter {
                 return info;
             }
             
-            abstract public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags);
+            abstract public boolean matches(String text, Blacklist blacklist,
+                                            String channel, Addressbook ab,
+                                            User user, User localUser,
+                                            MsgTags tags);
         }
         
         private void addUserItem(String info, Object infoData, Function<User, Boolean> m) {
             Item item = new Item(info, infoData) {
 
                 @Override
-                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags) {
+                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
                     return user != null && m.apply(user);
+                }
+            };
+            matchItems.add(item);
+        }
+        
+        private void addLocalUserItem(String info, Object infoData, Function<User, Boolean> m) {
+            Item item = new Item(info, infoData) {
+
+                @Override
+                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
+                    return localUser != null && m.apply(localUser);
                 }
             };
             matchItems.add(item);
@@ -345,7 +359,7 @@ public class Highlighter {
             Item item = new Item(info, infoData) {
 
                 @Override
-                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags) {
+                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
                     return channel != null && m.apply(channel);
                 }
             };
@@ -356,7 +370,7 @@ public class Highlighter {
             Item item = new Item(info, infoData) {
 
                 @Override
-                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags) {
+                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
                     return tags != null && m.apply(tags);
                 }
             };
@@ -370,7 +384,7 @@ public class Highlighter {
         private static final Item NO_MATCH_ITEM = new Item("Never Match", null) {
 
             @Override
-            public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags) {
+            public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
                 return false;
             }
         };
@@ -392,6 +406,8 @@ public class Highlighter {
         private boolean patternWarning;
         private String textWithoutPrefix = "";
         private String mainPrefix;
+        
+        private boolean invalidRegexLog;
         
         private enum Status {
             MOD("m"), SUBSCRIBER("s"), BROADCASTER("b"), ADMIN("a"), STAFF("f"),
@@ -428,9 +444,23 @@ public class Highlighter {
             addPatternPrefix(text -> "(?iu)" + Pattern.quote(text), "text:");
         }
         
-        public HighlightItem(String item) {
+        /**
+         * Create a new item to match messages against.
+         * 
+         * @param item The string containing the match requirements
+         * @param invalidRegexLog Whether to add invalid regex warnings to the
+         * debug log (this can be useful to disable for editing regex, where it
+         * might otherwise spam a lot of debug messages)
+         */
+        public HighlightItem(String item, boolean invalidRegexLog) {
             raw = item;
+            this.invalidRegexLog = invalidRegexLog;
             prepare(item);
+        }
+        
+        public HighlightItem(String item) {
+            // By default, log invalid regex warnings
+            this(item, true);
         }
         
         /**
@@ -493,6 +523,18 @@ public class Highlighter {
                         return checkStatus(user, s, false);
                     });
                 }
+                else if (item.startsWith("mystatus:")) {
+                    Set<Status> s = parseStatus(parsePrefix(item, "mystatus:"));
+                    addLocalUserItem("My User Status", s, user -> {
+                        return checkStatus(user, s, true);
+                    });
+                }
+                else if (item.startsWith("!mystatus:")) {
+                    Set<Status> s = parseStatus(parsePrefix(item, "!mystatus:"));
+                    addLocalUserItem("Not My User Status", s, user -> {
+                        return checkStatus(user, s, false);
+                    });
+                }
                 //--------------------------
                 // Channel Prefixes
                 //--------------------------
@@ -515,7 +557,7 @@ public class Highlighter {
                     matchItems.add(new Item("Channel Addressbook Category", cats) {
 
                         @Override
-                        public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags) {
+                        public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
                             if (channel == null || ab == null) {
                                 return false;
                             }
@@ -533,7 +575,7 @@ public class Highlighter {
                     matchItems.add(new Item("Not Channel Addressbook Category", cats) {
 
                         @Override
-                        public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags) {
+                        public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
                             if (channel == null || ab == null) {
                                 return false;
                             }
@@ -590,7 +632,7 @@ public class Highlighter {
                             matchItems.add(new Item("Contains URL", null, true) {
                                 
                                 @Override
-                                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags) {
+                                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
                                     return matchesPattern(text, Helper.getUrlPattern(), blacklist);
                                 }
                             });
@@ -603,7 +645,7 @@ public class Highlighter {
                     List<String> list = parseStringListPrefix(item, "blacklist:", s -> s);
                     List<HighlightItem> blItems = new ArrayList<>();
                     for (String entry : list) {
-                        HighlightItem hlItem = new HighlightItem(entry);
+                        HighlightItem hlItem = new HighlightItem(entry, invalidRegexLog);
                         if (!hlItem.hasError()) {
                             blItems.add(hlItem);
                             if (hlItem.patternThrowsError()) {
@@ -851,7 +893,7 @@ public class Highlighter {
                     matchItems.add(new Item("Additional regex (" + prefix.substring(0, prefix.length() - 1) + ")", compiled, true) {
 
                         @Override
-                        public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags) {
+                        public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
                             return matchesPattern(text, compiled, blacklist);
                         }
                     });
@@ -860,7 +902,7 @@ public class Highlighter {
                     matchItems.add(new Item("Not matching regex (" + prefix.substring(0, prefix.length() - 1) + ")", compiled, true) {
 
                         @Override
-                        public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, MsgTags tags) {
+                        public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
                             return !matchesPattern(text, compiled, null);
                         }
                     });
@@ -892,7 +934,9 @@ public class Highlighter {
                 return pattern;
             } catch (PatternSyntaxException ex) {
                 error = ex.getDescription();
-                LOGGER.warning("Invalid regex: " + ex);
+                if (invalidRegexLog) {
+                    LOGGER.warning("Invalid regex: " + ex);
+                }
                 return NO_MATCH;
             }
         }
@@ -1067,24 +1111,24 @@ public class Highlighter {
         }
         
         public boolean matchesAny(String text, Blacklist blacklist) {
-            return matches(Type.ANY, text, blacklist, null);
+            return matches(Type.ANY, text, blacklist, null, null);
         }
         
         public boolean matchesTest(String text, Blacklist blacklist) {
-            return matches(Type.TEXT_MATCH_TEST, text, blacklist, null);
+            return matches(Type.TEXT_MATCH_TEST, text, blacklist, null, null);
         }
         
-        public boolean matches(Type type, String text, User user, MsgTags tags) {
-            return matches(type, text, null, null, null, user, tags);
+        public boolean matches(Type type, String text, User user, User localUser, MsgTags tags) {
+            return matches(type, text, null, null, null, user, localUser, tags);
         }
         
         public boolean matches(Type type, String text, Blacklist blacklist,
-                User user) {
-            return matches(type, text, blacklist, null, null, user, MsgTags.EMPTY);
+                User user, User localUser) {
+            return matches(type, text, blacklist, null, null, user, localUser, MsgTags.EMPTY);
         }
         
         public boolean matches(Type type, String text, String channel, Addressbook ab) {
-            return matches(type, text, null, channel, ab, null, MsgTags.EMPTY);
+            return matches(type, text, null, channel, ab, null, null, MsgTags.EMPTY);
         }
         
         /**
@@ -1104,11 +1148,13 @@ public class Highlighter {
          * @param channel The channel, can be null
          * @param ab The Addressbook, can be null
          * @param user The User object, can be null
+         * @param localUser The local User object, can be null
          * @param tags MsgTags, can be null
          * @return true if it matches, false otherwise
          */
         public boolean matches(Type type, String text, Blacklist blacklist,
-                String channel, Addressbook ab, User user, MsgTags tags) {
+                String channel, Addressbook ab, User user, User localUser,
+                MsgTags tags) {
             failedItem = null;
             
             if (localBlacklistItems != null) {
@@ -1149,7 +1195,7 @@ public class Highlighter {
                 if (type == Type.TEXT_MATCH_TEST && !item.matchesOnText) {
                     continue;
                 }
-                boolean match = item.matches(text, blacklist, channel, ab, user, tags);
+                boolean match = item.matches(text, blacklist, channel, ab, user, localUser, tags);
 //                System.out.println(item);
                 if (!match) {
                     failedItem = item;
@@ -1283,10 +1329,10 @@ public class Highlighter {
          * @param items The HighlightItem objects that the Blacklist is based on
          */
         public Blacklist(HighlightItem.Type type, String text, String channel,
-                Addressbook ab, User user, MsgTags tags, Collection<HighlightItem> items) {
+                Addressbook ab, User user, User localUser, MsgTags tags, Collection<HighlightItem> items) {
             blacklisted = new ArrayList<>();
             for (HighlightItem item : items) {
-                if (item.matches(type, text, null, channel, ab, user, tags)) {
+                if (item.matches(type, text, null, channel, ab, user, localUser, tags)) {
                     List<Match> matches = item.getTextMatches(text);
                     if (matches != null) {
                         blacklisted.addAll(matches);

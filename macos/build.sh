@@ -51,7 +51,7 @@ cd $WORK_DIR
 curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
 
 #--- download Streamlink
-STREAMLINK_VER=1.4.1
+STREAMLINK_VER=1.5.0
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
 pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==$STREAMLINK_VER

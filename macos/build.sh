@@ -54,7 +54,7 @@ curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJO
 STREAMLINK_VER=1.5.0
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
-pip3 install --install-option="--prefix=$STREAMLINK_DIR" --ignore-installed streamlink==$STREAMLINK_VER
+pip3 install --prefix=$STREAMLINK_DIR --ignore-installed streamlink==$STREAMLINK_VER
 
 sed -i '' "1s/.*/#!\/usr\/bin\/env python$PY3_MAJOR.$PY3_MINOR\
 /" $STREAMLINK_DIR/bin/chardetect

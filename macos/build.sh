@@ -67,7 +67,7 @@ sed -i '' "1s/.*/#!\/usr\/bin\/env python$PY3_MAJOR.$PY3_MINOR\
 cd $WORK_DIR
 mkdir -p package/macosx
 cp $REPO_DIR/macos/Chatty.icns package/macosx
-$HOME/Library/Java/JavaVirtualMachines/jdk-14.0.1.jdk/Contents/Home/bin/jpackage \
+$HOME/Library/Java/JavaVirtualMachines/jdk-14.0.2.jdk/Contents/Home/bin/jpackage \
   --icon $REPO_DIR/macos/Chatty.icns \
   --input $WORK_DIR/chatty/build/libs \
   --mac-package-identifier dehesselle.Chatty \

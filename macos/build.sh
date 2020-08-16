@@ -44,7 +44,7 @@ cd chatty
 #--- download Python.framework
 PY3_MAJOR=3
 PY3_MINOR=8
-PY3_PATCH=3
+PY3_PATCH=5
 PY3_BUILD=1   # custom framework build number
 
 cd $WORK_DIR

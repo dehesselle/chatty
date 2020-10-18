@@ -25,7 +25,7 @@ SELF_DIR=$(cd $(dirname "$0"); pwd -P)
 REPO_DIR=$SELF_DIR/..
 . $REPO_DIR/macos/version.sh   # include version information
 
-export MACOSX_DEPLOYMENT_TARGET=10.9
+export MACOSX_DEPLOYMENT_TARGET=10.11
 export SDKROOT=/opt/sdks/MacOSX${MACOSX_DEPLOYMENT_TARGET}.sdk
 
 set -e
@@ -44,14 +44,14 @@ cd chatty
 #--- download Python.framework
 PY3_MAJOR=3
 PY3_MINOR=8
-PY3_PATCH=5
+PY3_PATCH=6
 PY3_BUILD=1   # custom framework build number
 
 cd $WORK_DIR
 curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
 
 #--- download Streamlink
-STREAMLINK_VER=1.5.0
+STREAMLINK_VER=2.0.0
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
 pip3 install --prefix=$STREAMLINK_DIR --ignore-installed streamlink==$STREAMLINK_VER
@@ -67,7 +67,7 @@ sed -i '' "1s/.*/#!\/usr\/bin\/env python$PY3_MAJOR.$PY3_MINOR\
 cd $WORK_DIR
 mkdir -p package/macosx
 cp $REPO_DIR/macos/Chatty.icns package/macosx
-$HOME/Library/Java/JavaVirtualMachines/jdk-14.0.2.jdk/Contents/Home/bin/jpackage \
+$HOME/Library/Java/JavaVirtualMachines/adoptopenjdk-14.jdk/Contents/Home/bin/jpackage \
   --icon $REPO_DIR/macos/Chatty.icns \
   --input $WORK_DIR/chatty/build/libs \
   --mac-package-identifier dehesselle.Chatty \

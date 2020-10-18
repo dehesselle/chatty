@@ -1,6 +1,7 @@
 
 package chatty.util.api.pubsub;
 
+import chatty.util.JSONUtil;
 import chatty.util.StringUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -115,7 +116,29 @@ public class ModeratorActionData extends MessageData {
             }
         }
         
+        // For type:"moderator_added" events, which don't have args
+        if (args.isEmpty() && (moderation_action.equals("mod") || moderation_action.equals("unmod"))) {
+            String target_user = (String)data.get("target_user_login");
+            if (target_user != null) {
+                args.add(target_user);
+            }
+        }
+        // For type:"approve/deny_unban_request" events
+        if (args.isEmpty() && (moderation_action.equals("APPROVE_UNBAN_REQUEST") || moderation_action.equals("DENY_UNBAN_REQUEST"))) {
+            String target_user = JSONUtil.getString(data, "target_user_login");
+            if (target_user != null) {
+                args.add(target_user);
+            }
+            String mod_message = JSONUtil.getString(data, "moderator_message");
+            if (mod_message != null) {
+                args.add(mod_message);
+            }
+        }
+        
         String created_by = (String)data.get("created_by");
+        if (created_by == null) {
+            created_by = JSONUtil.getString(data, "created_by_login");
+        }
         if (created_by == null) {
             created_by = "";
         }

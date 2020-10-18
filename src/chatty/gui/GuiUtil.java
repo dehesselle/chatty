@@ -3,7 +3,6 @@ package chatty.gui;
 
 import chatty.Helper;
 import chatty.gui.components.textpane.ChannelTextPane;
-import chatty.lang.Language;
 import chatty.util.Debugging;
 import chatty.util.MiscUtil;
 import chatty.util.ProcessManager;
@@ -57,7 +56,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JRootPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
@@ -630,6 +628,11 @@ public class GuiUtil {
         });
     }
     
+    public static void resetFocusTraversalKeys(Component comp) {
+        comp.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERSAL_KEYS, null);
+        comp.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERSAL_KEYS, null);
+    }
+    
     public static void focusTest() {
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addVetoableChangeListener(new VetoableChangeListener() {
 
@@ -731,6 +734,25 @@ public class GuiUtil {
         return new ImageIcon(Toolkit.getDefaultToolkit().createImage(o.getClass().getResource(name)));
     }
     
+    /**
+     * Combine the two given icons horizontally into a new icon.
+     * 
+     * @param a The left icon in the resulting icon
+     * @param b The right icon in the resulting icon
+     * @param space Space between the icons in pixels
+     * @return The new icon
+     */
+    public static ImageIcon combineIcons(ImageIcon a, ImageIcon b, int space) {
+        int width = a.getIconWidth() + b.getIconWidth() + space;
+        int height = Math.max(a.getIconHeight(), b.getIconHeight());
+        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        g.drawImage(a.getImage(), 0, 0, null);
+        g.drawImage(b.getImage(), a.getIconWidth() + space, 0, null);
+        g.dispose();
+        return new ImageIcon(img);
+    }
+    
     public static ImageIcon createEmptyIcon(int width, int height) {
         BufferedImage res = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         return new ImageIcon(res);
@@ -781,6 +803,27 @@ public class GuiUtil {
         }
         g.dispose();
         return new ImageIcon(img);
+    }
+    
+    /**
+     * Run in the EDT, either by running it directly if already in the EDT or
+     * by using SwingUtilities.invokeAndWait.
+     * 
+     * @param runnable What to execute
+     * @param description Used for logging when an error occurs
+     */
+    public static void edtAndWait(Runnable runnable, String description) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            runnable.run();
+        }
+        else {
+            try {
+                SwingUtilities.invokeAndWait(runnable);
+            }
+            catch (Exception ex) {
+                LOGGER.warning("Failed to execute edtAndWait ("+description+"): "+ex);
+            }
+        }
     }
     
 }

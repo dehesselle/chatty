@@ -1,6 +1,7 @@
 
 package chatty;
 
+import chatty.gui.components.updating.Stuff;
 import chatty.util.DateTime;
 import chatty.util.Debugging;
 import chatty.util.ElapsedTime;
@@ -8,6 +9,8 @@ import chatty.util.LogUtil;
 import chatty.util.MiscUtil;
 import chatty.util.SingleInstance;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,9 +32,9 @@ public class Chatty {
     public static final boolean DEBUG = false;
     
     /**
-     * Enables the hotkey feature for running commercials (windows only).
+     * Enables global hotkeys.
      */
-    public static final boolean HOTKEY = MiscUtil.OS_WINDOWS;
+    public static final boolean HOTKEY = true;
     
     /**
      * The Chatty website as it can be opened in the menu.
@@ -54,7 +57,7 @@ public class Chatty {
      * by points. May contain a single "b" for beta versions, which are counted
      * as older (so 0.8.7b4 is older than 0.8.7).
      */
-    public static final String VERSION = "0.12"; // Remember changing the version in the help
+    public static final String VERSION = "0.13"; // Remember changing the version in the help
     
     /**
      * Enable Version Checker (if you compile and distribute this yourself, you
@@ -97,6 +100,8 @@ public class Chatty {
     
     private static String settingsDirInfo = null;
     
+    private static String originalWdir = null;
+    
     private static String[] args;
     
     /**
@@ -128,34 +133,50 @@ public class Chatty {
             }
         }
         
+        if (parsedArgs.containsKey("appwdir") && !parsedArgs.containsKey("regularwdir")) {
+            Path path = Stuff.determineJarPath();
+            if (path != null) {
+                originalWdir = System.getProperty("user.dir");
+                System.setProperty("user.dir", path.getParent().toString());
+            }
+        }
+        
         if (parsedArgs.containsKey("cd")) {
             settingsDir = System.getProperty("user.dir");
             settingsDirInfo = "-cd";
         }
+        if (parsedArgs.containsKey("portable")) {
+            Path path = Stuff.determineJarPath();
+            if (path != null) {
+                settingsDir = path.getParent().resolve("portable_settings").toString();
+                settingsDirInfo = "-portable";
+            }
+        }
         if (parsedArgs.containsKey("d")) {
             String dir = parsedArgs.get("d");
-            File file = new File(dir).getAbsoluteFile();
-            if (file.isDirectory()) {
-                settingsDir = file.toString();
+            Path path = Paths.get(dir);
+            if (!path.isAbsolute()) {
+                path = Paths.get(System.getProperty("user.dir"), dir);
+            }
+            if (Files.isDirectory(path)) {
+                settingsDir = path.toString();
                 settingsDirInfo = "-d";
-            } else {
-                invalidSettingsDir = file.toString();
+            }
+            else {
+                invalidSettingsDir = path.toString();
             }
         }
         
         final TwitchClient client = new TwitchClient(parsedArgs);
         
         // Adding listener just in case, will do nothing if not used
-        SingleInstance.setNewInstanceListener(new SingleInstance.NewInstanceListener() {
-
-            @Override
-            public void newInstance(String message) {
-                Map<String, String> args = decodeParametersFromJSON(message);
-                if (args.containsKey("channel")) {
-                    String channel = args.get("channel");
-                    client.joinChannels(Helper.parseChannelsFromString(channel, false));
-                }
+        SingleInstance.setNewInstanceListener(message -> {
+            Map<String, String> args1 = decodeParametersFromJSON(message);
+            if (args1.containsKey("channel")) {
+                String channel = args1.get("channel");
+                client.joinChannels(Helper.parseChannelsFromString(channel, false));
             }
+            client.customCommandLaunch(args1.get("cc"));
         });
         
         LogUtil.startMemoryUsageLogging();
@@ -238,6 +259,10 @@ public class Chatty {
         return settingsDirInfo;
     }
     
+    public static String getOriginalWdir() {
+        return originalWdir;
+    }
+    
     public static String getExportDirectory() {
         String dir = getUserDataDirectory()+"exported"+File.separator;
         new File(dir).mkdirs();
@@ -252,6 +277,22 @@ public class Chatty {
     
     public static String getWorkingDirectory() {
         return System.getProperty("user.dir")+File.separator;
+    }
+    
+    /**
+     * Turns the given path into an absolute path by using the current working
+     * directory. This can be necessary if the "-appwdir" option was used, since
+     * setting the "user.dir" property doesn't necessarily affect the regular
+     * functions (such as Paths.get("test").toAbsolutePath()).
+     * 
+     * @param path
+     * @return The absolute path, or the given path if it is already absolute
+     */
+    public static Path toAbsolutePathWdir(Path path) {
+        if (path.isAbsolute()) {
+            return path;
+        }
+        return Paths.get(System.getProperty("user.dir"), path.toString());
     }
     
     public static String getSoundDirectory() {

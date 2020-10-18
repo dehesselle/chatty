@@ -170,8 +170,7 @@ public class HighlighterTester extends JDialog implements StringEditor {
         testInput.setPreferredSize(new Dimension(0, 50));
         testInput.setFont(Font.decode(Font.MONOSPACED));
         // Enable focus traversal keys
-        testInput.setFocusTraversalKeys(KeyboardFocusManager.FORWARD_TRAVERS‌​AL_KEYS, null);
-        testInput.setFocusTraversalKeys(KeyboardFocusManager.BACKWARD_TRAVERS‌​AL_KEYS, null);
+        GuiUtil.resetFocusTraversalKeys(testInput);
         GuiUtil.installLengthLimitDocumentFilter(testInput, 1000, false);
         add(new JScrollPane(testInput),
                 gbc);

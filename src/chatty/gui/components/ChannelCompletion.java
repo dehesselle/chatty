@@ -77,7 +77,7 @@ public class ChannelCompletion implements AutoCompletionServer {
         "/ban ", "/to ", "/setname ", "/resetname ", "/timeout ", "/host ",
         "/unban ", "/ignore ", "/unignore ", "/ignorechat ", "/unignorechat ",
         "/ignorewhisper ", "/unignorewhisper ", "/follow ", "/unfollow ",
-        "/untimeout ", "/favorite ", "/unfavorite "
+        "/untimeout ", "/favorite ", "/unfavorite ", "@@"
     }));
     
     private Font currentFont;
@@ -548,7 +548,8 @@ public class ChannelCompletion implements AutoCompletionServer {
      * or the value of "completionEmotePrefix". Also check that there is a space
      * in front (or nothing).
      * 
-     * @param prefix
+     * @param prefix The prefix is everything left to the cursor starting with
+     * the first non-word character
      * @return 
      */
     @Override
@@ -556,9 +557,10 @@ public class ChannelCompletion implements AutoCompletionServer {
         if (settings().getBoolean("completionAuto") && !prefix.isEmpty()) {
             boolean eligible = prefix.endsWith(":")
                     || prefix.endsWith("@")
+                    || prefix.endsWith("@@")
                     || prefix.endsWith(settings().getString("completionEmotePrefix"));
-            boolean spaceInFront = prefix.length() == 1 || prefix.charAt(prefix.length() - 2) == ' ';
-            return eligible && spaceInFront;
+            boolean beforeRequirement = prefix.length() == 1 || prefix.charAt(prefix.length() - 2) == ' ' || prefix.equals("@@");
+            return eligible && beforeRequirement;
         }
         return false;
     }

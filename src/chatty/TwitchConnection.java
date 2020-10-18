@@ -275,6 +275,13 @@ public class TwitchConnection {
         users.setAllOffline();
     }
     
+    public void rejoinChannel(String channel) {
+        if (onChannel(channel)) {
+            irc.rejoinChannel.add(channel);
+            partChannel(channel);
+        }
+    }
+    
     public void partChannel(String channel) {
         if (onChannel(channel)) {
             irc.partChannel(channel);
@@ -593,8 +600,9 @@ public class TwitchConnection {
          * Channels that this connection has joined. This is per connection, so
          * the main and secondary connection have different data here.
          */
-        private final Set<String> joinedChannels = Collections.synchronizedSet(
-                new HashSet<String>());
+        private final Set<String> joinedChannels = Collections.synchronizedSet(new HashSet<>());
+        
+        private final Set<String> rejoinChannel = Collections.synchronizedSet(new HashSet<>());
         
         /**
          * The prefix used for debug messages, so it can be determined which
@@ -821,6 +829,7 @@ public class TwitchConnection {
                 return;
             }
             if (nick.equalsIgnoreCase(username)) {
+                boolean rejoin = false;
                 /**
                  * Local User Leaving Channel
                  */
@@ -830,12 +839,19 @@ public class TwitchConnection {
                 }
                 joinedChannels.remove(channel);
                 if (this == irc) {
-                    twitchCommands.clearModsAlreadyRequested(channel);
-                    // Remove users for this channel, clearing the userlist in the
-                    // GUI shouldn't be necessary if this channel is closed since
-                    // the GUI userlist is removed as well.
-                    users.clear(channel);
-                    listener.onChannelLeft(rooms.getRoom(channel));
+                    if (rejoinChannel.contains(channel)) {
+                        rejoinChannel.remove(channel);
+                        listener.onChannelLeft(rooms.getRoom(channel), false);
+                        rejoin = true;
+                    }
+                    else {
+                        twitchCommands.clearModsAlreadyRequested(channel);
+                        // Remove users for this channel, clearing the userlist in the
+                        // GUI shouldn't be necessary if this channel is closed since
+                        // the GUI userlist is removed as well.
+                        users.clear(channel);
+                        listener.onChannelLeft(rooms.getRoom(channel), true);
+                    }
                     channelStates.reset(channel);
                 }
                 // Leaving the channel on the userlist connection means
@@ -843,6 +859,9 @@ public class TwitchConnection {
                 // this channel.
                 userlistReceived.remove(channel);
                 debug("PARTED: "+channel);
+                if (rejoin) {
+                    joinChannel(channel);
+                }
             } else {
                 if (isChannelOpen(channel)) {
                     User user = userOffline(channel, nick);
@@ -1116,14 +1135,29 @@ public class TwitchConnection {
             if (months == -1) {
                 months = tags.getInteger("msg-param-months", -1);
             }
+            int giftMonths = tags.getInteger("msg-param-gift-months", -1);
+            
             if (StringUtil.isNullOrEmpty(login, text)) {
                 return;
             }
             User user = userJoined(channel, login);
             updateUserFromTags(user, tags);
             if (tags.isValueOf("msg-id", "resub", "sub", "subgift", "anonsubgift")) {
+                text = text.trim();
+                if (giftMonths > 1 && !text.matches(".* gifted "+giftMonths+" .*")) {
+                    text += " They gifted "+giftMonths+" months!";
+                }
+                // There are still some types of notifications that don't have
+                // this info, and it might be useful
                 if (months > 1 && !text.matches(".*\\b"+months+"\\b.*")) {
-                    text += " They've subscribed for "+months+" months!";
+                    String recipient = tags.get("msg-param-recipient-display-name");
+                    if (StringUtil.isNullOrEmpty(recipient)) {
+                        recipient = "They've";
+                    }
+                    else {
+                        recipient += " has";
+                    }
+                    text += " "+recipient+" subscribed for "+months+" months!";
                 }
                 listener.onSubscriberNotification(user, text, message, months, tags);
             } else if (tags.isValue("msg-id", "charity") && login.equals("twitch")) {
@@ -1389,7 +1423,7 @@ public class TwitchConnection {
                     if (tags.containsKey("followers-only")) {
                         channelStates.setFollowersOnly(channel, tags.get("followers-only"));
                     }
-                    if (!tags.isEmpty("room-id")) {
+                    if (tags.hasValue("room-id")) {
                         listener.onRoomId(channel, tags.get("room-id"));
                         if (Helper.isRegularChannel(channel)) {
                             // Set id for room (this should not run too often to
@@ -1453,6 +1487,7 @@ public class TwitchConnection {
 
     public User userJoined(User user) {
         if (user.setOnline(true)) {
+            user.setFirstSeen();
             if (user.getName().equals(user.getStream())) {
                 user.setBroadcaster(true);
             }
@@ -1479,7 +1514,7 @@ public class TwitchConnection {
 
         void onChannelJoined(User user);
 
-        void onChannelLeft(Room room);
+        void onChannelLeft(Room room, boolean closeChannel);
 
         void onJoin(User user);
 

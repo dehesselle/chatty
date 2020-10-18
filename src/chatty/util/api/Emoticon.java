@@ -20,6 +20,7 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -343,6 +344,16 @@ public class Emoticon {
         this.subType = builder.subtype;
     }
     
+    /**
+     * Some emote codes contain regex characters, while not being intended to be
+     * interpreted as regex (and others still consist of an actual regex).
+     * 
+     * This serves as a backup in case some aren't turned back into regex.
+     */
+    private static final Set<String> LITERAL = new HashSet<>(Arrays.asList(new String[]{
+        "8-)", ":|", ";)", ">(", ":\\", ":)", ":-)", "R)", ":(", ":-(", "B)", "B-)"
+    }));
+    
     private void createMatcher() {
         if (matcher == null) {
             String search = code;
@@ -360,8 +371,13 @@ public class Emoticon {
                  */
                 search = Pattern.quote(search)+"[\uFE0E\uFE0F]?";
             } else {
+                if (search.length() < 4) {
+                    // Turn some of the "smiley" emotes back into regex (they
+                    // still seem to be parsed with the regex serverside)
+                    search = Emoticons.toRegex(search);
+                }
                 // Any regular emotes should be separated by spaces
-                if (literal) {
+                if (literal || LITERAL.contains(search)) {
                     // Literal emotes come from a source that doesn't provide
                     // regex, but may contain regex special characters
                     search = Pattern.quote(search);

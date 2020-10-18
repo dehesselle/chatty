@@ -58,7 +58,8 @@ public class Notification {
                     TypeOption.NEW_STREAM,
                     TypeOption.LIVE,
                     TypeOption.NO_UPTIME,
-                    TypeOption.FAV_CHAN));
+                    TypeOption.FAV_CHAN,
+                    TypeOption.FAV_GAME));
         }
         
         private static List<TypeOption> createMessageSubtypes() {
@@ -79,6 +80,7 @@ public class Notification {
         LIVE("noOffline"),
         OWN_MSG("own"),
         FAV_CHAN("fav"),
+        FAV_GAME("favGame"),
         CONTAINS_BITS("bits");
         
         public String id;
@@ -90,7 +92,7 @@ public class Notification {
     }
     
     public enum State {
-        ALWAYS(1, "Enabled"),
+        ALWAYS(1, "Always enabled"),
         OFF(0, "Off"),
         CHANNEL_ACTIVE(2, "Chan focused"),
         CHANNEL_NOT_ACTIVE(3, "Chan not focused"),
@@ -382,6 +384,11 @@ public class Notification {
             }
         }
         return result;
+    }
+    
+    @Override
+    public String toString() {
+        return "Event "+type.label+", Desktop Notification "+getDesktopState()+", Sound "+getSoundState();
     }
     
 }

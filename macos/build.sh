@@ -2,25 +2,36 @@
 #
 # https://github.com/dehesselle/chatty
 #
-# This script builds Chatty.app for macOS.
+# This script builds Chatty.app on macOS.
 #
-# In short, this script does the following:
-#  - create a 2 GiB ramdisk as build directory
+# Prerequisites:
+#  - Specify macOS version and SDK location (see MACOSX_DEPLOYMENT_TARGET
+#    and SDKROOT below). If you don't care about backward compatibility,
+#    remove those two exports to build for your current platform.
+#  - You need to have Gradle installed (https://gradle.org/). 'gradlew'
+#    must be accessible in your PATH.
+#  - You need to have Java JDK 14 or later installed.
+#
+# Descriptions of build steps:
+#  - source external script 'version.sh' to set version from git tag
+#  - create a 1 GiB ramdisk named 'WRKSPC' as build directory
 #  - copy repository to build directory
-#  - build release using 'gradle'
-#  - download Python 3 framework
-#  - download Streamlink, copy launch scripts for VLC and IINA
-#  - create native application bundle using 'javapackager'
-#  - copy all resources to the 'Resources' folder
-#  - modify version numbers in 'Info.plist'
+#  - build release jar using 'gradlew'
+#  - download a precompiled Python 3 framework
+#  - download Streamlink (incl. dependencies)
+#  - use 'jpackage' to create application bundle around jar file
+#  - copy Python and Streamlink to application bundle
+#  - copy launch scripts (for Streamlink+VLC and IINA) to application bundle
+#  - copy all resources (images, sounds) to application bundle
+#  - modify settings in 'Info.plist'
 #
-# If you want to do this yourself, please take note:
-#  - You need a working installation of 'gradle' in your PATH.
+# Final remarks:
 #  - This script does its job without any bells and whistles. It does not
 #    catch errors or give meaningful error messages, it'll just break.
 #
 
-#--- general settings
+### general settings ###########################################################
+
 SELF_DIR=$(cd $(dirname "$0"); pwd -P)
 REPO_DIR=$SELF_DIR/..
 . $REPO_DIR/macos/version.sh   # include version information
@@ -30,18 +41,21 @@ export SDKROOT=/opt/sdks/MacOSX${MACOSX_DEPLOYMENT_TARGET}.sdk
 
 set -e
 
-#--- create temporary workspace
+### create ramdisk as workspace ################################################
+
 RAMDISK_VOL=WRKSPC
 diskutil erasevolume HFS+ "$RAMDISK_VOL" $(hdiutil attach -nomount ram://2097152)
 WORK_DIR=/Volumes/$RAMDISK_VOL
 
-#--- build chatty
+### build Chatty jar ###########################################################
+
 cd $WORK_DIR
 cp -r $REPO_DIR $WORK_DIR/chatty
 cd chatty
 ./gradlew release
 
-#--- download Python.framework
+### download Python 3 framework ################################################
+
 PY3_MAJOR=3
 PY3_MINOR=8
 PY3_PATCH=6
@@ -50,7 +64,8 @@ PY3_BUILD=1   # custom framework build number
 cd $WORK_DIR
 curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
 
-#--- download Streamlink
+### download Streamlink ########################################################
+
 STREAMLINK_VER=2.0.0
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
@@ -63,7 +78,8 @@ sed -i '' "1s/.*/#!\/usr\/bin\/env python$PY3_MAJOR.$PY3_MINOR\
 sed -i '' "1s/.*/#!\/usr\/bin\/env python$PY3_MAJOR.$PY3_MINOR\
 /" $STREAMLINK_DIR/bin/wsdump.py
 
-#--- build macOS app
+### package jar into application bundle ########################################
+
 cd $WORK_DIR
 mkdir -p package/macosx
 cp $REPO_DIR/macos/Chatty.icns package/macosx
@@ -74,6 +90,8 @@ $(/usr/libexec/java_home)/bin/jpackage \
   --main-jar Chatty.jar \
   --name Chatty \
   --type app-image
+
+### copy stuff to application bundle ###########################################
 
 FRAMEWORKS_DIR=$WORK_DIR/Chatty.app/Contents/Frameworks
 mkdir -p $FRAMEWORKS_DIR
@@ -91,6 +109,8 @@ cp $REPO_DIR/macos/streamlink_vlc.sh $SCRIPTS_DIR
 cp $REPO_DIR/macos/iina.sh $SCRIPTS_DIR
 cp $REPO_DIR/macos/play.sh $SCRIPTS_DIR
 
+### modify plist settings ######################################################
+
 INFO_PLIST=$WORK_DIR/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set CFBundleShortVersionString $CHATTY_VERSION" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Set CFBundleVersion $CHATTY_MACOS_BUILD" $INFO_PLIST
@@ -99,6 +119,8 @@ INFO_PLIST=$WORK_DIR/Chatty.app/Contents/Info.plist
 /usr/libexec/PlistBuddy -c "Set NSHumanReadableCopyright 'Copyright © 2013-2020 by tduva'" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Add NSRequiresAquaSystemAppearance bool false" $INFO_PLIST
 /usr/libexec/PlistBuddy -c "Add NSSupportsAutomaticGraphicsSwitching bool true" $INFO_PLIST
+
+### Tada! ######################################################################
 
 echo "Build complete.=========================================================="
 echo "$WORK_DIR/Chatty.app"

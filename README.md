@@ -26,7 +26,7 @@ Check the [releases](https://github.com/dehesselle/chatty/releases) page!
 
 ## Build
 
-You can build app yourself using `macos/build.sh`.  At this time, the only available documentation about the build process is the script itself.
+You can build the app yourself using `macos/build.sh`.  At this time, the only available documentation about the build process is the script itself.
 
 ## Credits
 
@@ -35,7 +35,7 @@ This wouldn't have been possible without the work of other people. Thank you:
 - [tduva](https://github.com/tduva) and all people contributing to [Chatty](http://chatty.github.io)
 - [chrippa](https://github.com/chrippa) and all people who have contributed to [Livestreamer](http://livestreamer.io)
 - all people contributing to [Streamlink](https://streamlink.github.io)
-- all the authors of the various Python libraries pulled in as dependencies 
+- all the authors of the various Python libraries pulled in as dependencies
 
 ## License
 

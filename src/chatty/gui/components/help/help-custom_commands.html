@@ -25,6 +25,7 @@
             <a href="#replacements">Replacements</a>
             <ul>
                 <li><a href="#simple-replacements">Simple Replacements</a></li>
+                <li><a href="#escaping">Escaping / Literal Text</a></li>
                 <li><a href="#parameters-context">Pre-defined Parameters</a></li>
                 <li><a href="#functions">Functions</a></li>
                 <li><a href="#custom-replacements">Custom Replacements</a></li>
@@ -90,7 +91,7 @@
         defined, for example when adding <a href="#inline-commands">Inline-Commands</a>
         to the User Dialog or Context Menus.</p>
     
-    <p>You can also execute Anynomous Custom Commands directly from the
+    <p>You can also execute Anonymous Custom Commands directly from the
         inputbox, by prepending <code>//</code>, which allows you to use
         Replacements:</p>
     
@@ -112,6 +113,7 @@
     <h2><a name="replacements">Replacements</a></h2>
     <ul>
         <li><a href="#simple-replacements">Simple Replacements</a></li>
+        <li><a href="#escaping">Escaping / Literal Text</a></li>
         <li><a href="#parameters-context">Pre-defined Parameters</a></li>
         <li><a href="#functions">Functions</a></li>
         <li><a href="#custom-replacements">Custom Replacements</a></li>
@@ -141,10 +143,34 @@
         parameter that is necessary for the command to make sense is actually
         being supplied.</p>
     
-    <p class="note"><em>Note:</em> If you want to use a dollar sign
-        <code>$</code> without it having a special meaning, you can escape it
-        with a backslash: <code>\$</code> . To use a backslash literally instead
-        of as an escaping character, it must be escaped as well: <code>\\</code> .</p>
+    <h3><a name="escaping">Escaping / Literal Text</a></h3>
+    <p>If you want to use a dollar sign <code>$</code> literally, without it
+        beginning a replacement, you can escape it with a backslash:
+        <code>\$</code>. A backslash will always interpret the following
+        character as a regular character without a special meaning, while
+        the backslash itself will not show up in the result.</p>
+    
+    <p>Example: <code>$replace($1-,(\\w+),(\$1\),regRef)</code></p>
+    <p>This <a href="#functions">function</a> (surrounds all
+            consecutive word characters with brackets) contains some escaping:</p>
+    <ul>
+        <li>The <code>(\\w+)</code> turns into the plain text <code>(\w+)</code>. The backslash needs to be escaped so
+            it actually shows up for the regex.</li>
+        <li>The <code>(\$1\)</code> turns into the plain text <code>($1)</code>. The dollar sign is used for the regex,
+            not an actual Custom Command replacement and the closing bracket
+            needs to be escaped here because the following function parameter is
+            optional, so the bracket would close the function.</li>
+    </ul>
+    
+    <p>Alternatively you can use <code>$"&lt;literal text&gt;"</code> which
+        interprets everything inside the quotes as literal text without any
+        special meaning. To use a quote inside the literal text, it can be
+        doubled: <code>$"This is a dollar sign: ""$"""</code> turns into the
+        plain text <code>This is a dollar sign: "$"</code>. Instead of <code>"</code>
+        you can also use <code>`</code> (backquote) or <code>'</code> (single quote):
+        <code>$`This is a dollar sign: "$"`</code> is equivalent to the above.</p>
+    
+    <p>The previous example could also be written like this: <code>$replace($1-,$"(\w+)",$"($1)",regRef)</code></p>
     
     <h3><a name="simple-replacements">Simple Replacements</a></h3>
     <p>A basic use of replacements is using the <strong>short notation</strong>
@@ -239,18 +265,13 @@
         </tr>
         <!-- User Context Menu -->
         <tr>
-            <th rowspan="7">User Context Menu</th>
-            <td><code>1</code>, <code>nick</code></td>
+            <th rowspan="5">User Context Menu</th>
+            <td><code>1</code></td>
             <td>Name of the user</td>
         </tr>
         <tr>
-            <td><code>display-nick</code>, <code>custom-nick</code>,
-                <code>full-nick</code></td>
-            <td>Variations of the name of the user. <code>display-nick</code>
-                may contain spaces for some users. <code>custom-nick</code> may
-                also be the <a href="help.html#customNames">Custom Name</a> you
-                set, <code>full-nick</code> is what is displayed in the userlist
-                (includes status symbols)</td>
+            <td>Various</td>
+            <td><a href="#user-identifiers">Various user-related identifiers</a></td>
         </tr>
         <tr>
             <td><code>msg</code></td>
@@ -269,14 +290,6 @@
             <td>Message id of the selected message filtered by AutoMod, for
                 approving or denying the message (when opened by clicking on
                 an appropriate message in chat)</td>
-        </tr>
-        <tr>
-            <td><code>user-id</code></td>
-            <td>The Twitch ID of the user</td>
-        </tr>
-        <tr>
-            <td><code>twitch-badge-info</code></td>
-            <td>Textual info of the user's Twitch badges (may change)</td>
         </tr>
         <!-- User Dialog -->
         <tr>
@@ -361,7 +374,24 @@
         </tr>
     </table>
     
-    <p>Example with pre-defined parameters:</p>
+    <h3><a name="user-identifiers">User-related Identifiers</a></h3>
+    <p>These are available where a user is involved, such as the User Dialog and
+        User Context Menu. In some contexts they may also be available with the
+        <code>my-</code> prefix for your own user info (e.g. <code>my-full-nick</code>).</p>
+    <ul>
+        <li><code>nick</code> - Name of the user, maybe capitalized</li>
+        <li><code>display-nick</code> - Same as <code>nick</code>, but may not match the regular username (spaces, completely different)</li>
+        <li><code>display-nick2</code> - Same as <code>display-nick</code>, but contains the regular username in parentheses if necessary</li>
+        <li><code>custom-nick</code> - Same as <code>display-nick</code>, but may also be the <a href="help.html#customNames">Custom Name</a> you set</li>
+        <li><code>full-nick</code> - The same name that is displayed in the userlist (includes status symbols)</li>
+        <li><code>full-nick2</code> - Same as <code>full-nick</code>, but contains the regular username in parentheses if necessary</li>
+        <li><code>special-nick</code> - Returns <code>true</code> if the user has a display name not matching the regular username</li>
+        <li><code>user-id</code> - The Twitch ID of the user (if available)</li>
+        <li><code>twitch-badges</code> - A textual representation of the Twitch badges (if available)</li>
+        <li><code>twitch-badge-info</code> - Another textual representation of the Twitch badges (if available)</li>
+    </ul>
+    
+    <h3>Pre-defined Parameters Example</h3>
     <dl class="defList">
         <dt><code>/streaminfo /echo [Stream Status] $(streamstatus) [Uptime] $(streamuptime)</code></dt>
         <dd>Entering <code>/streaminfo</code> outputs an info message (only for
@@ -425,19 +455,32 @@
             referring to <code>Fremily</code> turns into <code>FREMILY</code>.</dd>
         
         <dt><code>$replace(&lt;input&gt;,&lt;search&gt;,&lt;replace&gt;,[method])</code>
-        <dd>Search and replace in text. Especially when using Regex, remember
-            escaping of <code>\</code> (<code>\\</code>) and <code>$</code> (<code>\$</code>).</dd>
+        <dd>Search and replace in text.</dd>
+        <dd>Especially when using Regex, remember
+            escaping <code>\</code> (<code>\\</code>) and <code>$</code> (<code>\$</code>)
+            when they should e.g. be used in regex rather than interpreted as special Custom Command characters.
+            Instead of escaping each special character individually, you can also
+            use <a href="#escaping">Literal Text</a>.</dd>
         <dd>Methods are:
             <ul style="margin-top:0">
                 <li><em>Not specified</em> - Literal case-insensitive search</li>
                 <li><code>cs</code> - Literal case-sensitive search</li>
                 <li><code>reg</code> - Regular Expression search</li>
-                <li><code>regRef</code> - Regular Expression search, with references to groups (<code>\$1</code>) in the replacement</li>
+                <li><code>regRef</code> - Regular Expression search, with references to groups via <code>\$1</code><br />
+                    Note: The "replace" text basicially gets fed to the <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html#replaceAll-java.lang.String-java.lang.String-">String.replaceAll()</a> method as "replacement". The <code>$1</code> in this case does not refer to a Custom Command replacement, but something that the replaceAll() method uses, so it needs to be escaped in the Custom Command function, either by using <code>\$1</code> or using <a href="#escaping">Literal Text</a>. In addition, if <code>$</code> or <code>\</code> should show up literally instead of being interpreted by the replaceAll() method then they need to be escaped again (e.g. <code>$replace(..,..,Dollar: \\\$1 Ref: \$1,regRef)</code>, whereas <code>Dollar: \$1 Ref: $1</code> would be given to the replaceAll() method).</li>
                 <li><code>regFirst</code>, <code>refFirstRef</code> - Same as above, but only replace first occurence</li>
+                <li><code>regCustom</code> - Regular Expression search, the replace parameter has access to match values and is
+                    executed for each match (<code>$1-</code> full match, <code>$(g1)</code> first group in the search regex
+                    if available, <code>$(g2)</code> second group, ..).</li>
+                <li><code>regFunc</code> - Regular Expression search, the replace must be the name
+                    of a Custom Replacement which is called with the same values as <code>regCustom</code>
+                    (doesn't always work in Custom Commands, can use <code>regCustom</code>
+                    with e.g. <code>$(_&lt;name&gt;,$1-)</code> instead).</li>
             </ul>
         </dd>
         <dd><em>Example:</em> <code>$replace(A b and another B,b,bee)</code> turns into <code>A bee and another bee</code></dd>
         <dd><em>Example:</em> <code>$replace(Was timed out for 30 seconds,.*?(\\d+) seconds,Number of seconds: \$1,regRef)</code> turns into <code>Number of seconds: 30</code></dd>
+        <dd><em>Example:</em> <code>$replace($1-,$"~([a-z]+)~",<span style="text-decoration: underline">$replace($(g1),$"(\w)",$"$1+",regRef)</span>,regCustom)</code> adds <code>+</code> behind every character surrounded by <code>~</code> (the inner <code>$replace()</code> is in the <code>replace</code> parameter and executed for each match)</dd>
         
         <dt><code>$rand([output1],[output2],[output3],..)</code></dt>
         <dd>Randomly chooses one of the outputs.</dd>
@@ -567,6 +610,23 @@
             name you are logged into Chatty with.</dd>
         <dd><em>Example:</em> <code>$if($get(ontop),ONTOP)</code> will return
             <code>ONTOP</code> only if "View - Always on top" is enabled.</dd>
+        
+        <dt><code>$request(&lt;url&gt;,[options])</code></dt>
+        <dd>Performs a GET request on the given http/https URL and returns the
+            body of the reponse interpreted as UTF-8 encoded text. If an error
+            occurs the response will be empty.</dd>
+        <dd>Options:
+            <ul>
+                <li><code>error</code> - A request error will return an error
+                    message instead of an empty response.</li>
+            </ul></dd>
+        <dd><em>Note:</em> Normally Custom Commands are performed instantaneously, however the
+            replacements for any Custom Command that contains the <code>$request()</code>
+            function will be performed asynchronously so that it can complete
+            the request without freezing the GUI. This means the result of the
+            Custom Command may be run seconds or more later.</dd>
+        <dd><em>Tip:</em> Open "Extra - Debug window" to view debug output of
+            the requests being performed.</dd>
     </dl>
     
     <p class="note"><em>Tip:</em> Enter e.g. <code>//echo $datetime()</code>
@@ -611,9 +671,23 @@
         creates a mention if the first parameter isn't equal to the current
         channel.</p>
     
-    <p class="note"><em>Note:</em> Custom identifiers always start with an
-        underscore and can themselves not contain replacements with custom
-        identifiers (well they technicially can, but they won't get replaced).</p>
+    <p>The data that can be accessed via replacements is the same as in the
+        command it is used in, so in this example the text provided after the
+        <code>/faq</code> is available via the <code>$1-</code> replacement.</p>
+    
+    <p>Optionally you can also provide a second parameter in a Custom Replacement
+        that overwrites the default value of the <code>$1-</code> replacement:</p>
+    
+    <p><code>/faq $(_m,$(custom-nick))FAQ: https://pastebin.com/KySx3KDu</code></p>
+    
+    <p>This will make whatever value is contained in <code>$(custom-nick)</code>
+        available in <code>$1-</code> instead of the default.</p>
+    
+    <p class="note"><em>Note:</em> Custom Replacement identifiers always start
+        with an underscore.</p>
+    <p class="note"><em>Note:</em> Custom Replacements don't work when placed
+        inside eachother. So for example in <code>_abc Abc: $(_m)</code> the <code>$(_m)</code> will
+        always be empty (whether it's defined in the Custom Commands list or not).</p>
     
     
     <h2><a name="menus">Custom Context Menus / User Dialog Buttons</a></h2>

@@ -38,7 +38,7 @@ public class MsgTags extends IrcMsgTags {
     }
     
     public boolean isCustomReward() {
-        return containsKey("custom-reward-id");
+        return hasValue("custom-reward-id");
     }
     
     public String getCustomRewardId() {
@@ -47,6 +47,10 @@ public class MsgTags extends IrcMsgTags {
     
     public boolean isFromPubSub() {
         return isValue("chatty-source", "pubsub");
+    }
+    
+    public String getHosted() {
+        return get("chatty-hosted");
     }
     
     public boolean hasReplyUserMsg() {
@@ -110,6 +114,22 @@ public class MsgTags extends IrcMsgTags {
         Map<String, String> result = new HashMap<>();
         b.fill(result);
         a.fill(result);
+        return new MsgTags(result);
+    }
+    
+    /**
+     * Creates a new MsgTags object with the given key/value pair added. If a key with the given
+     * name already exists, it's value is overwritten.
+     * 
+     * @param a The original MsgTags object
+     * @param key The key to be added
+     * @param value The value to be added
+     * @return A new MsgTags object
+     */
+    public static MsgTags addTag(MsgTags a, String key, String value) {
+        Map<String, String> result = new HashMap<>();
+        a.fill(result);
+        result.put(key, value);
         return new MsgTags(result);
     }
     

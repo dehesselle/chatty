@@ -3,6 +3,7 @@ package chatty.util.api.usericons;
 
 import chatty.Helper;
 import chatty.User;
+import chatty.gui.GuiUtil;
 import chatty.util.api.usericons.Usericon.Type;
 import chatty.gui.MainGui;
 import chatty.util.settings.Settings;
@@ -47,7 +48,6 @@ public class UsericonManager {
     
     public UsericonManager(Settings settings) {
         this.settings = settings;
-        init();
     }
     
     public synchronized void addDefaultIcons(List<Usericon> icons) {
@@ -109,14 +109,10 @@ public class UsericonManager {
      * This may not affect the creation of Twitch icons, because that is done
      * when the GUI is already created. (Possibly, it's a strange bug.)
      */
-    private void init() {
-        SwingUtilities.invokeLater(new Runnable() {
-            
-            @Override
-            public void run() {
-                addFallbackIcons();
-                loadFromSettings();
-            }
+    public void init() {
+        GuiUtil.edt(() -> {
+            addFallbackIcons();
+            loadFromSettings();
         });
     }
     
@@ -428,6 +424,10 @@ public class UsericonManager {
             }
         } else if (icon.matchType == Usericon.MatchType.CATEGORY) {
             if (user.hasCategory(icon.category)) {
+                return true;
+            }
+        } else if (icon.matchType == Usericon.MatchType.MATCH) {
+            if (icon.match.matches(user)) {
                 return true;
             }
         } else if (icon.matchType == Usericon.MatchType.STATUS) {

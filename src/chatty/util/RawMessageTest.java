@@ -27,7 +27,7 @@ public class RawMessageTest {
             return "@badges=subscriber/1;color=;display-name=USERNAME;emotes=;id=123;login=username;mod=0;msg-id=resub;msg-param-months=4;subscriber=1;system-msg=USERNAME\\ssubscribed\\sfor\\s4\\smonths\\sin\\sa\\srow!;tmi-sent-ts=1475037717295;turbo=0;user-id=123;user-type= :tmi.twitch.tv USERNOTICE "+channel;
         }
         if (type.equals("sub2")) {
-            return "@badges=staff/1,broadcaster/1,turbo/1;color=#008000;display-name=Tduvatest;emotes=;mod=0;msg-id=sub;msg-param-months=6;room-id=1337;subscriber=1;msg-param-sub-plan=Prime;msg-param-sub-plan-name=Channel\\sSubscription\\s(display_name);system-msg=Tduvatest\\shas\\ssubscribed\\sfor\\s6\\smonths!;login=tduvatest;turbo=1;user-id=1337;user-type=staff :tmi.twitch.tv USERNOTICE "+channel+" :Great stream -- keep it up!";
+            return "@badges=staff/1,broadcaster/1,turbo/1;color=#008000;display-name=Tduvatest;emotes=;mod=0;msg-id=sub;msg-param-months=6;room-id=1337;subscriber=1;msg-param-sub-plan=Prime;msg-param-sub-plan-name=Channel\\sSubscription\\s(display_name);system-msg=Tduvatest\\shas\\ssubscribed\\sfor\\s6\\smonths!;login=tduvatest;turbo=1;user-id=1337;user-type=staff :tmi.twitch.tv USERNOTICE "+channel+" :"+(options != null ? options : "Great stream -- keep it up!");
         }
         if (type.equals("sub3")) {
             return "@badges=subscriber/0,bits/100;color=#B22222;display-name=TWITCH_UserName;emotes=;id=123;login=twitch_username;mod=0;msg-id=subgift;msg-param-months=1;msg-param-recipient-display-name=USER2;msg-param-recipient-id=123;msg-param-recipient-user-name=user2;msg-param-sub-plan-name=Abc;msg-param-sub-plan=1000;room-id=123;subscriber=1;system-msg=TWITCH_UserName\\sgifted\\sa\\sTier\\s1\\ssub\\sto\\sUSER2!;tmi-sent-ts=1520532381349;turbo=0;user-id=123;user-type= :tmi.twitch.tv USERNOTICE "+channel;
@@ -48,6 +48,9 @@ public class RawMessageTest {
         }
         if (type.equals("anonsubgift3m")) {
             return "@badge-info=;badges=;color=;display-name=AnAnonymousGifter;emotes=;flags=;id=1234;login=ananonymousgifter;mod=0;msg-id=subgift;msg-param-fun-string=FunStringTwo;msg-param-gift-months=3;msg-param-months=22;msg-param-origin-id=da\\s39\\sa3\\see\\s5e\\s6b\\s4b\\s0d\\s32\\s55\\sbf\\sef\\s95\\s60\\s18\\s90\\saf\\sd8\\s07\\s09;msg-param-recipient-display-name=USERNAME;msg-param-recipient-id=1234;msg-param-recipient-user-name=username;msg-param-sub-plan-name=StreamName\\sSub;msg-param-sub-plan=1000;room-id=1234;subscriber=0;system-msg=An\\sanonymous\\suser\\sgifted\\sa\\sTier\\s1\\ssub\\sto\\sUSERNAME!\\s;tmi-sent-ts=1234;user-id=1234;user-type= :tmi.twitch.tv USERNOTICE "+channel;
+        }
+        if (type.equals("subgift2")) {
+            return "@badge-info=subscriber/3;badges=moderator/1,subscriber/3;color=;display-name=USERNAME;emotes=;flags=;id=1234;login=username;mod=1;msg-id=resub;msg-param-anon-gift=false;msg-param-cumulative-months=3;msg-param-gift-month-being-redeemed=3;msg-param-gift-months=3;msg-param-gifter-id=12345;msg-param-gifter-login=gifterusername;msg-param-gifter-name=gifterUSERNAME;msg-param-months=0;msg-param-should-share-streak=0;msg-param-sub-plan-name=Channel\\sSubscription\\s(channel);msg-param-sub-plan=1000;msg-param-was-gifted=true;room-id=123;subscriber=1;system-msg=USERNAME\\ssubscribed\\sat\\sTier\\s1.\\sThey've\\ssubscribed\\sfor\\s3\\smonths!;tmi-sent-ts=12345;user-id=1234;user-type=mod :tmi.twitch.tv USERNOTICE "+channel+" :Thanks to @gifterUSERNAME for my sub gift!";
         }
         if (type.equals("primesub")) {
             return "@badge-info=subscriber/14;badges=subscriber/12;color=#00FF7F;display-name=USERNAME;emotes=;flags=;id=1234;login=username;mod=0;msg-id=resub;msg-param-cumulative-months=14;msg-param-months=0;msg-param-multimonth-duration=0;msg-param-multimonth-tenure=0;msg-param-should-share-streak=0;msg-param-sub-plan-name=StreamName\\sSub;msg-param-sub-plan=Prime;msg-param-was-gifted=false;room-id=1234;subscriber=1;system-msg=USERNAME\\ssubscribed\\swith\\sTwitch\\sPrime.\\sThey've\\ssubscribed\\sfor\\s14\\smonths!;tmi-sent-ts=1234;user-id=1234;user-type= :tmi.twitch.tv USERNOTICE "+channel+" :F1 subscription fee";
@@ -150,6 +153,9 @@ public class RawMessageTest {
         }
         if (type.equals("reply")) {
             return "@badge-info=subscriber/40;badges=broadcaster/1,subscriber/3024,partner/1;client-nonce=abc;color=#FF526F;display-name=TestUser;emotes=;flags=;id=abc;mod=0;reply-parent-display-name=OtherUser;reply-parent-msg-body=Test:\\sAbc;reply-parent-msg-id=abcd;reply-parent-user-id=123;reply-parent-user-login=otheruser;room-id=123;subscriber=1;tmi-sent-ts=123;turbo=0;user-type= :testuser!testuser@testuser.tmi.twitch.tv PRIVMSG "+channel+" :@OtherUser This is a reply!";
+        }
+        if (type.equals("founder")) {
+            return "@badge-info=founder/29;badges=moderator/1,founder/0;client-nonce=1234;color=#0000FF;display-name=USERNAME;emotes=;flags=;id=1234;mod=1;room-id=1234;subscriber=0;tmi-sent-ts=1234;turbo=0;user-id=1234;user-type=mod :username!username@username.tmi.twitch.tv PRIVMSG " + channel + " :Ja bitte?";
         }
         return null;
     }

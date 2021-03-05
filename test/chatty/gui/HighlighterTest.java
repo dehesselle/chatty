@@ -4,6 +4,7 @@ package chatty.gui;
 import chatty.Addressbook;
 import chatty.Room;
 import chatty.User;
+import chatty.gui.Highlighter.HighlightItem;
 import chatty.gui.Highlighter.HighlightItem.Type;
 import chatty.util.irc.MsgTags;
 import chatty.util.settings.Settings;
@@ -33,7 +34,7 @@ public class HighlighterTest {
     
     @BeforeClass
     public static void setUpClass() {
-        highlighter = new Highlighter();
+        highlighter = new Highlighter("test");
         Settings settings = new Settings("", null);
         settings.addBoolean("abSaveOnChange", false);
         ab = new Addressbook(null, null, settings);
@@ -63,6 +64,7 @@ public class HighlighterTest {
 
     @Test
     public void test() {
+        update();
         updateBlacklist();
         
         // Regular
@@ -122,6 +124,28 @@ public class HighlighterTest {
         update("start:\\abc");
         assertTrue(highlighter.check(user, "\\abc"));
         assertFalse(highlighter.check(user, "mäh"));
+        
+        // startw:
+        update("startw:!bet ");
+        assertFalse(highlighter.check(user, "test"));
+        assertFalse(highlighter.check(user, " !bet test"));
+        assertFalse(highlighter.check(user, "!bett"));
+        assertTrue(highlighter.check(user3, "!bet abc"));
+        assertTrue(highlighter.check(user3, "!bet,abc"));
+        assertTrue(highlighter.check(user3, "!bet.abc"));
+        assertTrue(highlighter.check(user3, "!bet. abc"));
+        assertFalse(highlighter.check(user3, "!bet_abc"));
+        
+        update("startw: !bet ");
+        assertFalse(highlighter.check(user, "!bet test"));
+        assertTrue(highlighter.check(user, " !bet test"));
+        assertTrue(highlighter.check(user, " !bet"));
+        
+        update("startw:\\abc");
+        assertTrue(highlighter.check(user, "\\abc"));
+        assertTrue(highlighter.check(user, "\\abc d"));
+        assertFalse(highlighter.check(user, "abc"));
+        assertFalse(highlighter.check(user, "abcd"));
         
         // w:
         update("w:Test");
@@ -724,6 +748,38 @@ public class HighlighterTest {
         assertTrue(highlighter.check(user, "hi, username!"));
         assertTrue(highlighter.check(user, "Username!"));
         assertFalse(highlighter.check(user, "usernamee"));
+        
+        // Blacklist block
+        update("user:testuser");
+        updateBlacklist("abc");
+        assertTrue(highlighter.check(user, "abc"));
+        assertTrue(highlighter.check(user, "blah abc"));
+        
+        update("user:testuser");
+        updateBlacklist("config:block abc");
+        assertFalse(highlighter.check(user, "abc"));
+        assertFalse(highlighter.check(user, "blah abc"));
+        
+        update("user:testuser test");
+        updateBlacklist("config:block abc");
+        assertFalse(highlighter.check(user, "abc test"));
+        assertFalse(highlighter.check(user, "blah abc test"));
+        
+        update("user:testuser test");
+        updateBlacklist("config:block");
+        assertFalse(highlighter.check(user, "abc test"));
+        assertFalse(highlighter.check(user, "blah abc test"));
+        
+        update("user:testuser");
+        updateBlacklist("config:block abcd");
+        assertTrue(highlighter.check(user, "abc"));
+        assertTrue(highlighter.check(user, "blah abc"));
+        
+        update("user:testuser", "abc");
+        updateBlacklist("config:block !start:!quote");
+        assertFalse(highlighter.check(user, "abc"));
+        assertFalse(highlighter.check(user, "blah abc"));
+        assertTrue(highlighter.check(user, "!quote blah abc"));
     }
     
     @Test
@@ -763,6 +819,16 @@ public class HighlighterTest {
         update("blacklist:cheesecake blacklist:applepie cake");
         assertTrue(highlighter.check(user, "cake"));
         assertFalse(highlighter.check(user, "cheesecake"));
+        
+        // Blacklist prefix only gets text matches, no text match means it spans all text
+        update("blacklist:config:info cake");
+        assertFalse(highlighter.check(user, "cake"));
+        assertFalse(highlighter.check(user, "cheesecake"));
+        
+        // When there is no text match to blacklist, it doesn't have any effect though
+        update("blacklist:config:info user:testUSER");
+        assertTrue(highlighter.check(user, "cake"));
+        assertTrue(highlighter.check(user, "cheesecake"));
     }
     
     @Test
@@ -963,6 +1029,82 @@ public class HighlighterTest {
         assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, null, MsgTags.create("test", "abc lol")));
         update("config:t|test=abc\\slol");
         assertTrue(highlighter.check(Type.REGULAR, "", null, ab, user, null, MsgTags.create("test", "abc\\slol")));
+    }
+    
+    @Test
+    public void testCC() {
+        update();
+        updateBlacklist();
+        
+        HighlightItem.setGlobalPresets(HighlightItem.makePresets(Arrays.asList(new String[]{
+            "t \\Qabc$1\\E",
+            "t2 _t",
+            "_t abc$1",
+            "_f $replace($1-,\\\\s+,_,reg)",
+            "cc cc:config:silent"
+        })));
+        
+        update("cc:regm:$(t)$(_t)");
+        assertTrue(highlighter.check(user, "abc$1abc"));
+        assertFalse(highlighter.check(user, "abc$1abc2"));
+        
+        update("cc:regm:$(t)$(_t,test)");
+        assertTrue(highlighter.check(user, "abc$1abctest"));
+        assertFalse(highlighter.check(user, "abc$1abc2"));
+        
+        update("ccf:_f|regm:abc blah");
+        assertTrue(highlighter.check(user, "abc_blah"));
+        assertFalse(highlighter.check(user, "abc$1abc2"));
+        
+        update("cc2:'|regm:$(t)\\w");
+        assertTrue(highlighter.check(user, "abc$1d"));
+        
+        update("cc2:'§|regm:§(t)\\w", "cc2:'§|regm:\\Q$(t)\\E\\s");
+        assertTrue(highlighter.check(user, "abc$1d"));
+        assertFalse(highlighter.check(user, "abc$1 "));
+        assertTrue(highlighter.check(user, "$(t) "));
+        
+        update("preset:t", "preset:_t|123");
+        assertTrue(highlighter.check(user, "\\Qabc$1\\E"));
+        assertTrue(highlighter.check(user, "abc123"));
+        assertFalse(highlighter.check(user, "abc"));
+        
+        update("preset:t,_t|123");
+        assertTrue(highlighter.check(user, "\\Qabc$1\\E abc123"));
+        assertFalse(highlighter.check(user, "abc123"));
+        assertFalse(highlighter.check(user, "abc"));
+        
+        update("cc:preset:$(t2)|123");
+        assertTrue(highlighter.check(user, "abc123"));
+        assertFalse(highlighter.check(user, "abc"));
+        
+        update("preset:cc regm:$(t)");
+        assertTrue(highlighter.check(user, "abc$1"));
+    }
+    
+    @Test
+    public void testNote() {
+        update();
+        updateBlacklist();
+        
+        update("n:abc blah");
+        assertTrue(highlighter.check(user, "blah"));
+        
+        update("n:\"abc blah\"");
+        assertTrue(highlighter.check(user, "blah"));
+        assertTrue(highlighter.check(user, "fawefeawf"));
+        
+        update("n:\"abc blah\" cs:ABC");
+        assertTrue(highlighter.check(user, "blahABCfeawfeawf"));
+        assertFalse(highlighter.check(user, "blah"));
+        assertFalse(highlighter.check(user, "fawefeawf"));
+        
+        update("cs:ABC n:\"abc blah\"");
+        assertTrue(highlighter.check(user, "blahABC n:\"abc blah\"feawfeawf"));
+        assertFalse(highlighter.check(user, "blahABC n:\"abcblah\"feawfeawf"));
+        assertFalse(highlighter.check(user, "blahABCfeawfeawf"));
+        assertFalse(highlighter.check(user, "blah"));
+        assertFalse(highlighter.check(user, "fawefeawf"));
     }
     
 }

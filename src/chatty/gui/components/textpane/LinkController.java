@@ -3,14 +3,17 @@ package chatty.gui.components.textpane;
 
 import chatty.Helper;
 import chatty.User;
+import chatty.gui.Highlighter;
 import chatty.gui.LinkListener;
 import chatty.gui.MouseClickedListener;
 import chatty.gui.UserListener;
+import chatty.gui.colors.ColorItem;
 import chatty.gui.components.Channel;
 import chatty.gui.components.menus.ChannelContextMenu;
 import chatty.gui.components.menus.ContextMenu;
 import chatty.gui.components.menus.ContextMenuListener;
 import chatty.gui.components.menus.EmoteContextMenu;
+import chatty.gui.components.menus.StreamsContextMenu;
 import chatty.gui.components.menus.TextSelectionMenu;
 import chatty.gui.components.menus.UrlContextMenu;
 import chatty.gui.components.menus.UserContextMenu;
@@ -35,8 +38,11 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import static java.awt.event.ActionEvent.ACTION_FIRST;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -49,6 +55,8 @@ import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTextPane;
 import javax.swing.JViewport;
@@ -106,6 +114,12 @@ public class LinkController extends MouseAdapter {
     private int mentionMessages;
     
     private Element prevHoverElement;
+    
+    private ChannelTextPane.Type type;
+    
+    public void setType(ChannelTextPane.Type type) {
+        this.type = type;
+    }
     
     /**
      * Set the object that should receive the User object once a User is clicked
@@ -184,6 +198,7 @@ public class LinkController extends MouseAdapter {
     
     private void handleSingleLeftClick(MouseEvent e, Element element) {
         String url;
+        String link;
         User user;
         EmoticonImage emoteImage;
         Usericon usericon;
@@ -191,6 +206,10 @@ public class LinkController extends MouseAdapter {
         if ((url = getUrl(element)) != null && !isUrlDeleted(element)) {
             if (linkListener != null) {
                 linkListener.linkClicked(url);
+            }
+        } else if ((link = getGeneralLink(element)) != null) {
+            for (UserListener listener : userListener) {
+                listener.linkClicked(channel, link);
             }
         } else if ((user = getUser(element)) != null
                 || (user = getMention(element)) != null) {
@@ -231,7 +250,7 @@ public class LinkController extends MouseAdapter {
                 && !e.isAltGraphDown()) {
             // Doing this on mousePressed would prevent selection of text,
             // because this is used to change the focus to the input
-            mouseClickedListener.mouseClicked();
+            mouseClickedListener.mouseClicked(channel);
         }
     }
     
@@ -272,6 +291,7 @@ public class LinkController extends MouseAdapter {
 
         User user = null;
         boolean isClickableElement = (getUrl(element) != null && !isUrlDeleted(element))
+                || getGeneralLink(element) != null
                 || (user = getUser(element)) != null
                 || mention != null
                 || emoteImage != null
@@ -316,6 +336,10 @@ public class LinkController extends MouseAdapter {
         }
         return deleted;
     }
+    
+    private String getGeneralLink(Element e) {
+        return (String)(e.getAttributes().getAttribute(ChannelTextPane.Attribute.GENERAL_LINK));
+    }
 
     private User getUser(Element e) {
         return (User) e.getAttributes().getAttribute(ChannelTextPane.Attribute.USER);
@@ -351,6 +375,14 @@ public class LinkController extends MouseAdapter {
     
     private String getReplyText(Element e) {
         return (String)(e.getAttributes().getAttribute(ChannelTextPane.Attribute.REPLY_PARENT_MSG_ID));
+    }
+    
+    private Object getHighlightSource(Element e) {
+        return e.getAttributes().getAttribute(ChannelTextPane.Attribute.HIGHLIGHT_SOURCE);
+    }
+    
+    private Object getCustomColorSource(Element e) {
+        return e.getAttributes().getAttribute(ChannelTextPane.Attribute.CUSTOM_COLOR_SOURCE);
     }
     
     private String getSelectedText(MouseEvent e) {
@@ -411,6 +443,7 @@ public class LinkController extends MouseAdapter {
             user = getMention(element);
         }
         String url = getUrl(element);
+        String link = getGeneralLink(element);
         EmoticonImage emoteImage = getEmoticonImage(element);
         Usericon usericon = getUsericon(element);
         JPopupMenu m = null;
@@ -420,6 +453,12 @@ public class LinkController extends MouseAdapter {
         }
         else if (url != null) {
             m = new UrlContextMenu(url, isUrlDeleted(element), contextMenuListener);
+        }
+        else if (link != null) {
+            if (link.startsWith("join.")) {
+                String c = link.substring("join.".length());
+                m = new StreamsContextMenu(Arrays.asList(new String[]{c}), contextMenuListener);
+            }
         }
         else if (emoteImage != null) {
             m = new EmoteContextMenu(emoteImage, contextMenuListener);
@@ -440,11 +479,27 @@ public class LinkController extends MouseAdapter {
                 menu.addContextMenuListener(contextMenuListener);
                 m = menu;
             }
+            addMessageInfoItems(m, element);
         }
         if (m != null) {
-            m.show(e.getComponent(), e.getX(), e.getY());
+            JPopupMenu m2 = m;
+            /**
+             * Use invokeLater so the focus is already changed to this channel
+             * (if necessary), so that closing the menu will return focus to
+             * this channel.
+             */
+            SwingUtilities.invokeLater(() -> {
+                m2.show(e.getComponent(), e.getX(), e.getY());
+            });
         }
         popup.hide();
+        if (mouseClickedListener != null) {
+            /**
+             * Moving the mouse while right-clicking in a channel may not
+             * trigger the mouseClicked event, so do it here as well.
+             */
+            mouseClickedListener.mouseClicked(channel);
+        }
     }
     
     //=============
@@ -884,6 +939,72 @@ public class LinkController extends MouseAdapter {
             attrs = attrs.getResolveParent();
         }
         p.setText(result.toString());
+    }
+    
+    /**
+     * Add menu items showing message info like the source of a Highlight. The
+     * items have their own action listener set, which calls the
+     * contextMenuListener set in the LinkController.
+     * 
+     * @param m
+     * @param element 
+     */
+    private void addMessageInfoItems(JPopupMenu m, Element element) {
+        Object highlightSource = getHighlightSource(element);
+        Object colorSource = getCustomColorSource(element);
+        String highlight = "Highlight";
+        if (type == ChannelTextPane.Type.IGNORED) {
+            // Highlight is used for ignore in Ignored Messages dialog
+            highlight = "Ignore";
+        }
+        if (highlightSource != null || colorSource != null) {
+            JMenu menu = new JMenu("Message Info");
+            if (highlightSource == colorSource) {
+                addMessageInfoItem(menu, highlight+"/Custom Color Source", highlightSource);
+            }
+            else {
+                addMessageInfoItem(menu, highlight+" Source", highlightSource);
+                addMessageInfoItem(menu, "Custom Color Source", colorSource);
+            }
+            m.addSeparator();
+            m.add(menu);
+        }
+    }
+    
+    private void addMessageInfoItem(JMenu menu, String label, Object source) {
+        if (source != null) {
+            JMenuItem item = new JMenuItem(label);
+            String sourceText;
+            String sourceType;
+            String sourceLabel;
+            if (source instanceof ColorItem) {
+                sourceType = "msgColorSource";
+                sourceText = ((ColorItem)source).getId();
+                sourceLabel = "Msg. Color: ";
+            }
+            else if (source instanceof Highlighter.HighlightItem) {
+                if (type == ChannelTextPane.Type.IGNORED) {
+                    sourceType = "ignoreSource";
+                    sourceText = ((Highlighter.HighlightItem) source).getRaw();
+                    sourceLabel = "Ignore: ";
+                }
+                else {
+                    sourceType = "highlightSource";
+                    sourceText = ((Highlighter.HighlightItem) source).getRaw();
+                    sourceLabel = "Highlight: ";
+                }
+            }
+            else {
+                sourceType = "";
+                sourceText = "";
+                sourceLabel = "";
+            }
+            item.addActionListener(e -> {
+                contextMenuListener.menuItemClicked(new ActionEvent(item, ACTION_FIRST, sourceType+"."+sourceText));
+            });
+            item.setToolTipText(sourceLabel+sourceText);
+            menu.add(item);
+        }
     }
     
 }

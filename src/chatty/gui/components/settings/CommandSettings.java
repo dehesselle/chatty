@@ -64,15 +64,7 @@ public class CommandSettings extends SettingsPanel {
                 return input.trim();
             }
         });
-        items.setTester(new Editor.Tester() {
-
-            @Override
-            public String test(Window parent, Component component, int x, int y, String value) {
-                CustomCommand command = CustomCommands.parseCommandWithName(value);
-                showCommandInfoPopup(component, command);
-                return null;
-            }
-        });
+        items.setTester(createCommandTester());
         items.setInfo(INFO_COMMANDS);
         items.setInfoLinkLabelListener(d.getLinkLabelListener());
         gbc.fill = GridBagConstraints.BOTH;
@@ -160,6 +152,18 @@ public class CommandSettings extends SettingsPanel {
         panel.add(setting, gbc);
     }
     
+    public static Editor.Tester createCommandTester() {
+        return new Editor.Tester() {
+
+            @Override
+            public String test(Window parent, Component component, int x, int y, String value) {
+                CustomCommand command = CustomCommands.parseCommandWithName(value);
+                showCommandInfoPopup(component, command);
+                return null;
+            }
+        };
+    }
+    
     public static void showCommandInfoPopup(Component parent, CustomCommand command) {
         String message = "<p style='font-family:sans-serif;'>This shows how the "
                 + "parser understands the part to be executed. It may not be "
@@ -185,6 +189,9 @@ public class CommandSettings extends SettingsPanel {
     }
     
     public static String formatCommandInfo(String input) {
+        if (input == null) {
+            return "<em>Empty</em>";
+        }
         return Helper.htmlspecialchars_encode(input)
                 .replace("\n", "<br>").replace(" ", "&nbsp;");
     }

@@ -126,17 +126,7 @@ public class GuiUtil {
         JOptionPane p = new JOptionPane(message, messageType, optionType);
         p.setOptions(options);
         final JDialog d = p.createDialog(parent, title);
-        d.setAutoRequestFocus(false);
-        d.setFocusableWindowState(false);
-        // Make focusable after showing the dialog, so that it can be focused
-        // by the user, but doesn't steal focus from the user when it opens.
-        SwingUtilities.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                d.setFocusableWindowState(true);
-            }
-        });
+        setNonAutoFocus(d);
         d.setVisible(true);
         // Find index of result
         Object value = p.getValue();
@@ -146,6 +136,22 @@ public class GuiUtil {
             }
         }
         return -1;
+    }
+    
+    /**
+     * Configure the given window to not take focus immediately. It will be
+     * able to take focus afterwards.
+     * 
+     * @param w 
+     */
+    public static void setNonAutoFocus(Window w) {
+        w.setAutoRequestFocus(false);
+        w.setFocusableWindowState(false);
+        // Make focusable after showing the dialog, so that it can be focused
+        // by the user, but doesn't steal focus from the user when it opens.
+        SwingUtilities.invokeLater(() -> {
+            w.setFocusableWindowState(true);
+        });
     }
     
     public static void showNonModalMessage(Component parent, String title, String message, int type) {
@@ -730,8 +736,27 @@ public class GuiUtil {
         return new ImageIcon(img.getScaledInstance(w, h, Image.SCALE_SMOOTH));
     }
     
+    /**
+     * If the given icon is null, load icon with the given name instead.
+     * 
+     * @param icon The icon
+     * @param c Load the fallback icon relative to this class
+     * @param name The file name in the JAR
+     * @return The given icon, or the fallback icon loaded from the JAR
+     */
+    public static Icon getFallbackIcon(Icon icon, Class c, String name) {
+        if (icon == null) {
+            return getIcon(c, name);
+        }
+        return icon;
+    }
+    
     public static ImageIcon getIcon(Object o, String name) {
-        return new ImageIcon(Toolkit.getDefaultToolkit().createImage(o.getClass().getResource(name)));
+        return getIcon(o.getClass(), name);
+    }
+    
+    public static ImageIcon getIcon(Class c, String name) {
+        return new ImageIcon(Toolkit.getDefaultToolkit().createImage(c.getResource(name)));
     }
     
     /**
@@ -807,7 +832,7 @@ public class GuiUtil {
     
     /**
      * Run in the EDT, either by running it directly if already in the EDT or
-     * by using SwingUtilities.invokeAndWait.
+     * by using {@link SwingUtilities#invokeAndWait(Runnable)}.
      * 
      * @param runnable What to execute
      * @param description Used for logging when an error occurs
@@ -823,6 +848,21 @@ public class GuiUtil {
             catch (Exception ex) {
                 LOGGER.warning("Failed to execute edtAndWait ("+description+"): "+ex);
             }
+        }
+    }
+    
+    /**
+     * Run in the EDT, either by running it directly if already in the EDT or
+     * by using {@link SwingUtilities#invokeLater(Runnable)}.
+     * 
+     * @param runnable 
+     */
+    public static void edt(Runnable runnable) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            runnable.run();
+        }
+        else {
+            SwingUtilities.invokeLater(runnable);
         }
     }
     

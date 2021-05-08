@@ -36,8 +36,13 @@ SELF_DIR=$(cd $(dirname "$0"); pwd -P)
 REPO_DIR=$SELF_DIR/..
 . $REPO_DIR/macos/version.sh   # include version information
 
-export MACOSX_DEPLOYMENT_TARGET=10.11
-export SDKROOT=/opt/sdks/MacOSX${MACOSX_DEPLOYMENT_TARGET}.sdk
+if [ "$(uname -m)" = "arm64" ]; then
+  export SDKROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk
+else
+  export SDKROOT=/opt/sdks/MacOSX10.11.sdk
+fi
+
+export MACOSX_DEPLOYMENT_TARGET=$(/usr/libexec/PlistBuddy -c "Print :DefaultProperties:MACOSX_DEPLOYMENT_TARGET" "$SDKROOT"/SDKSettings.plist)
 
 set -e
 
@@ -56,17 +61,27 @@ cd chatty
 
 ### download Python 3 framework ################################################
 
-PY3_MAJOR=3
-PY3_MINOR=8
-PY3_PATCH=6
-PY3_BUILD=1   # custom framework build number
+if [ "$(uname -m)" = "arm64" ]; then
+  PY3_MAJOR=3
+  PY3_MINOR=9
+  PY3_PATCH=4
 
-cd $WORK_DIR
-curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
+  cd $WORK_DIR
+  tar -xpf /Volumes/Public/py394arm64.tar --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
+  xattr -r -d com.apple.quarantine Python.framework
+else
+  PY3_MAJOR=3
+  PY3_MINOR=8
+  PY3_PATCH=6
+  PY3_BUILD=1   # custom framework build number
+
+  cd $WORK_DIR
+  curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
+fi
 
 ### download Streamlink ########################################################
 
-STREAMLINK_VER=2.0.0
+STREAMLINK_VER=2.1.1
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
 pip3 install --prefix=$STREAMLINK_DIR --ignore-installed streamlink==$STREAMLINK_VER

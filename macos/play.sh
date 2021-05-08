@@ -19,12 +19,12 @@ QUALITY=${ARGS#*$STREAM}    # retain quality argument after 'channelname'
 
 #--- main ----------------------------------------------------------------------
 
-if [ ! -f "$CONFIG_DIR/no_iina" ]; then
-   source $SCRIPTS_DIR/iina.sh
-fi
-
 if [ ! -f "$CONFIG_DIR/no_vlc" ]; then
    source $SCRIPTS_DIR/streamlink_vlc.sh
+fi
+
+if [ ! -f "$CONFIG_DIR/no_iina" ]; then
+   source $SCRIPTS_DIR/iina.sh
 fi
 
 # On newer macOS versions, this will trigger a security dialag, asking for

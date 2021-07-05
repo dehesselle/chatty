@@ -9,9 +9,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -219,6 +223,86 @@ public class StringUtil {
             return null;
         }
         return LINEBREAK_CHARACTERS.matcher(s).replaceAll(" ");
+    }
+    
+    /**
+     * Removes all whitespace from a String.
+     * 
+     * @param input
+     * @return 
+     */
+    public static String removeWhitespace(String input) {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (!Character.isWhitespace(c)) {
+                b.append(c);
+            }
+        }
+        return b.toString();
+    }
+    
+    /**
+     * Removes all whitespace and the characters in the given sorted char array
+     * from the String.
+     * 
+     * <p>
+     * The function {@link getCharsFromString(String)} is recommended to make
+     * the char array, since characters outside the BMP would not be seen as a
+     * single character, but instead as their surrogates, so it could remove
+     * parts of other characters as well.
+     * </p>
+     * <p>
+     * This method was chosen for the performance and to keep it simple for it's
+     * use-case, where most likely only ASCII characters are being removed. If
+     * required, another function that removes codepoints could be added.
+     * </p>
+     * <p>
+     * If the array is not sorted, the result is undefined, as per
+     * {@link Arrays#binarySearch(char[], char)}.
+     * </p>
+     *
+     * @param input The input String
+     * @param chars Characters that are removed, must be sorted, can be null
+     * @return 
+     */
+    public static String removeWhitespaceAndMore(String input, char[] chars) {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (!Character.isWhitespace(c)
+                    && (chars == null || Arrays.binarySearch(chars, c) < 0)) {
+                b.append(c);
+            }
+        }
+        return b.toString();
+    }
+    
+    /**
+     * Adds all unique chars that are not a surrogate from the given String to a
+     * sorted array.
+     * 
+     * @param chars
+     * @return 
+     */
+    public static char[] getCharsFromString(String chars) {
+        // Collect all unique non-surrogate characters
+        Set<Character> unique = new HashSet<>();
+        for (int i = 0; i < chars.length(); i++) {
+            char c = chars.charAt(i);
+            if (!Character.isSurrogate(c)) {
+                unique.add(c);
+            }
+        }
+        // Move to sorted array
+        char[] result = new char[unique.size()];
+        int index = 0;
+        for (Character c : unique) {
+            result[index] = c;
+            index++;
+        }
+        Arrays.sort(result);
+        return result;
     }
     
     public static String append(String a, String sep, String b) {
@@ -535,6 +619,165 @@ public class StringUtil {
         }
         m.appendTail(b);
         return b.toString();
+    }
+    
+    /**
+     * Test the similarity between two Strings.
+     * 
+     * {@link prepareForSimilarityComparison(String)} should normally be applied
+     * to the Strings first.
+     * 
+     * @param a One String (must not be null)
+     * @param b Another String (must not be null)
+     * @param min The minimum similarity score the Strings need to reach
+     * @param method The comparison algorithm (1 or 2)
+     * @return The score if the Strings reach at least min similiarty score, 0
+     * otherwise
+     */
+    public static float checkSimilarity(String a, String b, float min, int method) {
+        if (a.isEmpty() && b.isEmpty()) {
+            return 1;
+        }
+        
+        float sim;
+        if (method == 2) {
+            sim = getSimilarity2(a, b);
+        }
+        else {
+            if (getLengthSimilarity(a, b) >= min) {
+                sim = getSimilarity(a, b);
+            }
+            else {
+                sim = 0;
+            }
+        }
+        return sim >= min ? sim : 0;
+    }
+    
+    public static float getLengthSimilarity(String a, String b) {
+        return Math.min(a.length(), b.length()) / (float) Math.max(a.length(), b.length()) + 0.2f;
+    }
+    
+    /**
+     * Prepare for comparison by removing whitespace. This is in a separate
+     * function so that it's not applied more often than necessary.
+     * 
+     * @param input
+     * @return 
+     */
+    public static String prepareForSimilarityComparison(String input, char[] chars) {
+        return removeWhitespaceAndMore(input, chars);
+    }
+    
+    /**
+     * Calculate the similarity between the given Strings. Basicially splits
+     * each String into overlapping 2-long parts (bigrams) and counts how many
+     * of them appear in both Strings, normalized by the number of possible
+     * parts.
+     * 
+     * This function does not remove whitespace or change case of the String. If
+     * required, this should be done before feeding the Strings into this, which
+     * allows the Strings to be changed just once (e.g. if comparing one String
+     * to many different Strings).
+     * 
+     * This is somewhat based on the compareTwoStrings method found here (MIT
+     * License):
+     * https://github.com/aceakash/string-similarity/blob/master/src/index.js
+     * 
+     * This appears to be based on the Sørensen–Dice coefficient, however other
+     * implementations of it sometimes don't look at the count of each bigram,
+     * but instead use a Set of bigrams and compare that (so something like
+     * "aa" would be equal to "aaaaaaaaaaaaaa". I'm not sure what the "correct"
+     * way to implement it is, however this version appears to work better.
+     * 
+     * @param a One String (must not be null)
+     * @param b Another String (must not be null)
+     * @return A float between 0 (not at all similiar) and 1.
+     */
+    public static float getSimilarity(String a, String b) {
+        if (a.isEmpty() && b.isEmpty()) {
+            return 1;
+        }
+        if (a.isEmpty() || b.isEmpty()) {
+            return 0;
+        }
+        if (a.equals(b)) {
+            return 1;
+        }
+        if (a.length() < 2 || b.length() < 2) {
+            return 0;
+        }
+        //--------------------------
+        // First String
+        //--------------------------
+        // Create a map of bigram counts for the first String
+        Map<Integer, Integer> m = new HashMap<>(a.length());
+        for (int i = 0; i < a.length() - 1; i++) {
+            /**
+             * Encoding two chars in one int seemed to have slightly better
+             * performance than creating a lot of Strings.
+             */
+            Integer part = (a.charAt(i) + (a.charAt(i + 1) << 16));
+            m.put(part, m.getOrDefault(part, 0) + 1);
+        }
+        //--------------------------
+        // Second String
+        //--------------------------
+        // Count how many of the bigrams appear in both Strings
+        int count = 0;
+        for (int i = 0; i < b.length() - 1; i++) {
+            Integer part = (b.charAt(i) + (b.charAt(i + 1) << 16));
+            int c = m.getOrDefault(part, 0);
+            if (c > 0) {
+                count++;
+                m.put(part, c - 1);
+            }
+        }
+        /**
+         * Each String contains "a.length() - 1" bigrams, so this is dividing
+         * by the number of total possible bigrams.
+         */
+        return 2f * count / (a.length() + b.length() - 2);
+    }
+    
+    /**
+     * Based on {@link getSimilarity(String, String)}, but doesn't allow
+     * duplicate bigrams, so it doesn't matter how often a bigram occurs in a
+     * Strings, but rather only whether it occurs at all, which makes it more
+     * lenient to differences in repetitions within a String.
+     *
+     * @param a One String (must not be null)
+     * @param b Another String (must not be null)
+     * @return A float between 0 (not at all similiar) and 1.
+     */
+    public static float getSimilarity2(String a, String b) {
+        if (a.isEmpty() && b.isEmpty()) {
+            return 1;
+        }
+        if (a.isEmpty() || b.isEmpty()) {
+            return 0;
+        }
+        if (a.equals(b)) {
+            return 1;
+        }
+        if (a.length() < 2 || b.length() < 2) {
+            return 0;
+        }
+        Set<Integer> setA = new HashSet<>();
+        Set<Integer> setB = new HashSet<>();
+        for (int i=0;i<a.length() - 1; i++) {
+            Integer part = (a.charAt(i) + (a.charAt(i+1) << 16));
+            setA.add(part);
+        }
+        int count = 0;
+        for (int i=0;i<b.length() - 1; i++) {
+            Integer part = (b.charAt(i) + (b.charAt(i+1) << 16));
+            // Count if first occurence in b and also occured in a
+            if (setB.add(part) && setA.contains(part)) {
+                count++;
+            }
+        }
+        return 2f*count / (setA.size() + setB.size());
     }
     
     public static final void main(String[] args) {

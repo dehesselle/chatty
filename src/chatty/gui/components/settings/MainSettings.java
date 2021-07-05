@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -67,6 +68,16 @@ public class MainSettings extends SettingsPanel {
             boolean channelsEnabled = onStart.getSettingValue().equals(Long.valueOf(2));
             channels.setEnabled(channelsEnabled);
         });
+        
+        JCheckBox restoreLayout = d.addSimpleBooleanSetting("restoreLayout");
+        gbc = d.makeGbc(0, 3, 2, 1, GridBagConstraints.WEST);
+        startSettingsPanel.add(restoreLayout, gbc);
+        
+        JCheckBox restoreLayoutWhisper = d.addSimpleBooleanSetting("restoreLayoutWhisper");
+        gbc = d.makeGbcSub(0, 4, 2, 1, GridBagConstraints.WEST);
+        startSettingsPanel.add(restoreLayoutWhisper, gbc);
+        
+        SettingsUtil.addSubsettings(restoreLayout, restoreLayoutWhisper);
         
         //==========
         // Language
@@ -164,6 +175,7 @@ public class MainSettings extends SettingsPanel {
         languageOptions.put("nl", "Dutch / Nederlands");
         languageOptions.put("en_US", "English (US)");
         languageOptions.put("en_GB", "English (UK)");
+        languageOptions.put("fi", "Finnish / Suomi");
         languageOptions.put("fr", "French / Français");
         languageOptions.put("de", "German / Deutsch");
         languageOptions.put("in", "Indonesian");

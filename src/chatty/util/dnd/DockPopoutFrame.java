@@ -18,7 +18,7 @@ public class DockPopoutFrame extends JFrame implements DockPopout {
     private String id;
 
     public DockPopoutFrame(DockManager m) {
-        id = "frame"+(counter++);
+        id = "f"+(counter++);
         base = new DockBase(m);
         add(base, BorderLayout.CENTER);
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
@@ -40,7 +40,7 @@ public class DockPopoutFrame extends JFrame implements DockPopout {
     }
 
     @Override
-    public void setId() {
+    public void setId(String id) {
         this.id = id;
     }
 

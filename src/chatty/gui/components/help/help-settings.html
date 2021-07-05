@@ -44,18 +44,36 @@
     </h2>
     <h3>Startup</h3>
     <p>You can select what will happen when you start Chatty:</p>
-    <ul>
-        <li><strong>Do nothing</strong> - Just do nothing special</li>
-        <li><strong>Open connect dialog</strong> - Open dialog to connect</li>
-        <li><strong>Connect and join specified channels</strong> - Connect
-        immediately and join the channels specified in the field below. You can
-        define several channels by seperating them with a comma.</li>
-        <li><strong>Connect and join previously open channels</strong> - Connect
-        immediately and join the channels you had open when you closed Chatty.</li>
-        <li><strong>Connect and join favorited channels</strong> - Connect
-        immediately and join the channels that are favorited in the Channel
-        Favorites/History dialog.</li>
-    </ul>
+    <dl class="dl-settings">
+        <dt>Do nothing</dt>
+        <dd>Just do nothing special, can join channel manually afterwards.</dd>
+        
+        <dt>Open connect dialog</dt>
+        <dd>Open dialog to connect.</dd>
+        
+        <dt>Connect and join specified channels</dt>
+        <dd>Connect immediately and join the channels specified in the field
+            below. You can define several channels by seperating them with a
+            comma.</dd>
+        <dd>Can include Addressbook categories, e.g. <code>[vip]</code> to join
+            all entries associated with the "vip" category. Can restrict to just
+            channel entries <code>[vip #]</code> (would only get Addressbook
+            entries such as "#joshimuz") or non-channel entries <code>[vip !#]</code>
+            (entries such as "joshimuz"). This can also be used in some other
+            places for joining channels.</dd>
+        
+        <dt>Connect and join previously open channels</dt>
+        <dd>Connect immediately and join the channels you had open when you
+            closed Chatty.</dd>
+        <dd>This works especially way together with the restore layout option
+            enabled.</dd>
+        
+        <dt>Connect and join favorited channels</dt>
+        <dd>Connect immediately and join the channels that are favorited in the
+            Channel Favorites/History dialog.</dd>
+    </dl>
+    
+    <div class="moreInfo">More information: <a href="help.html#layouts">Layouts and Tabs</a></div>
     
     <h3>Directory</h3>
     <div class="moreInfo">More information: <a href="help-guide_folders.html">Settings and other files</a></div>
@@ -238,7 +256,10 @@
             <ul>
                 <li>Just the username (e.g. <code>serenity</code>)</li>
                 <li>An addressbook category (e.g. <code>$cat:vip</code>, which would refer to
-        the category <code>vip</code>)</li>
+                    the category <code>vip</code>)</li>
+                <li>User-related <a href="#Highlight_Meta_Matching">Highlight Matching</a>
+                    prefixes (e.g. <code>$m:status:r</code>, where <code>status:r</code>
+                    is the Highlight Matching prefix)</li>
                 <li>Most other <a href="#Usercolors">Usercolors</a> restrictions</li>
             </ul>
         </dd>
@@ -682,6 +703,25 @@
             new message hasn't been added for a while. This is mostly for saving
             memory when Chatty is running continuously for a long time.</dd>
     </dl>
+    
+    <h3><a name="RepeatMsg">Repeated Chat Message Detection</a></h3>
+    <p>This feature uses the user's message history (based on what is visible
+        in the User Dialog when clicking on a user) to determine if the user has
+        sent the same (or similar) message before. If a repeated message has
+        been detected (depending on the settings) the number of repeated
+        messages is added behind the message in chat, e.g. "(x4)".</p>
+    
+    <p>In addition, the <code>config:repeatedmsg</code> <a href="#Highlight_Meta_Matching">Matching prefix</a>
+        can be used in e.g. the Highlight list, Message Colors list or to restrict a Notification to trigger only on repeated messages.</p>
+    
+    <p>Restricting detection uses <a href="#Highlight">Highlight Matching</a>,
+        for example <code>!status:M</code> to exclude mods or <code>mystatus:M</code>
+        to restrict to channels you are a mod in or even matching on the message
+        text.</p>
+    
+    <p>Note that this feature may affect performance in very busy chats, since each
+        received message has to be compared against multiple messages (depending
+        on the user's available history and these settings).</p>
 
     <h2>
         <a name="Names">Names</a>
@@ -753,8 +793,13 @@
         <code>Highlight Blacklist</code> settings can be used to prevent some of
         those Highlights.</p>
     
-    <p>The following sections list different kinds of prefixes that can modify
-        the behaviour of the system:</p>
+    <p><em>Note:</em> Highlight-style matching can be used in various other
+        settings as well, although not all prefixes are always available.</p>
+    
+    <p>There is a <a href="https://www.youtube.com/watch?v=55n7ZWaaRIg">video tutorial</a>
+        that explains how this works.</p>
+    
+    <p>There are various prefixes that affect matching and Highlighting behaviour:</p>
     <ul>
         <li><a href="#Highlight_Matching">Text Matching Prefixes</a></li>
         <li><a href="#Highlight_Meta_Matching">Meta Prefixes (Matching)</a> (e.g. matching by channel, user or message type)</li>
@@ -862,6 +907,8 @@
         <li><code>user:</code> to specify one exact username (case-insensitive)
             which should highlight only if this user send the message, doesn't
             search in the message itself.</li>
+        <li><code>!user:</code> to specify one exact username (case-insensitive)
+            which the message must not be from.</li>
         <li><code>reuser:</code> to specify a regex to match usernames against.
             Behaves like the <code>regm:</code>/<code>re:</code> prefix, in that
             it always tries to match the entire username. Example:
@@ -926,6 +973,13 @@
                 <li><code>config:firstmsg</code> - Restrict matching to the
                     first message of this user in this channel during the
                     current session (first message in User Dialog)</li>
+                <li><code>config:repeatedmsg</code> - Matches if a user repeats
+                    the same message (this requires the <a href="#RepeatMsg">Repetition Detection</a> in
+                    the Moderation settings to be enabled). Can optionally
+                    restrict how many repetitions are required for this to
+                    match, for example <code>config:repeatedmsg|4</code> requires
+                    4 repeated messages (can't be lower than the Repetition
+                    Detection setting).</li>
                 <li><code>config:info</code> - This item applies to info
                     messages instead of regular user messages</li>
                 <li><code>config:any</code> - This item applies to both info
@@ -1503,6 +1557,8 @@
         <a name="Tabs">Tabs</a>
         <a href="#top" class="top">[back to menu]</a>
     </h2>
+    <div class="moreInfo">See also: <a href="help.html#layouts">Layouts and Tabs</a></div>
+    
     <dl class="dl-settings">
         <dt>Tab Order</dt>
         <dd>Whether to show tabs in the order they were opened or alphabetically.</dd>

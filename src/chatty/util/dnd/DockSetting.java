@@ -32,6 +32,12 @@ public class DockSetting {
         TAB_ORDER,
         
         /**
+         * Set a custom DockContent comparator. If non-null the TAB_ORDER
+         * setting is ignored.
+         */
+        TAB_COMPARATOR,
+        
+        /**
          * Enables changing tabs by using the mousewheel while the mouse is
          * over it. Accepts booleans.
          */
@@ -56,6 +62,8 @@ public class DockSetting {
         LINE_COLOR,
         
         DIVIDER_SIZE,
+        
+        KEEP_EMPTY,
         
         POPOUT_TYPE,
         

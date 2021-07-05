@@ -1,8 +1,11 @@
 
 package chatty.util.dnd;
 
+import chatty.util.dnd.DockContent.DockContentPropertyListener;
 import chatty.util.dnd.DockDropInfo.DropType;
+import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Point;
@@ -14,11 +17,15 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.BorderFactory;
 import javax.swing.Icon;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
@@ -39,6 +46,8 @@ public class DockTabs extends JTabbedPane implements DockChild {
     private DockChild parent;
     private DockBase base;
     
+    private boolean sorting;
+    
     private boolean canStartDrag;
     private long dragStarted;
     private int dragIndex;
@@ -46,6 +55,7 @@ public class DockTabs extends JTabbedPane implements DockChild {
     private boolean mouseWheelScrolling = true;
     private boolean mouseWheelScrollingAnywhere = true;
     private DockSetting.TabOrder order = DockSetting.TabOrder.INSERTION;
+    private Comparator<DockContent> customComparator;
     
     public DockTabs() {
         transferHandler = new DockExportHandler(this);
@@ -126,30 +136,30 @@ public class DockTabs extends JTabbedPane implements DockChild {
 
             @Override
             public void stateChanged(ChangeEvent e) {
-                dragStarted = 0;
-                repaint();
-                if (base != null) {
-                    base.tabChanged(DockTabs.this, getCurrentContent());
+                if (!sorting) {
+                    updatedState();
                 }
-                updateTabComponents();
             }
         });
         
         dockContentListener = new DockContent.DockContentPropertyListener() {
-            @Override
-            public void titleChanged(DockContent content) {
-                int index = getIndexByContent(content);
-                if (index != -1) {
-                    setTitleAt(index, content.getTitle());
-                }
-            }
 
             @Override
-            public void foregroundColorChanged(DockContent content) {
-                System.out.println("foregroundColorChanged"+content);
-                int index = getIndexByContent(content);
-                if (index != -1) {
-                    setForegroundAt(index, content.getForegroundColor());
+            public void propertyChanged(DockContentPropertyListener.Property property, DockContent content) {
+                if (property == Property.TITLE) {
+                    int index = getIndexByContent(content);
+                    if (index != -1) {
+                        setTitleAt(index, content.getTitle());
+                    }
+                }
+                else if (property == Property.FOREGROUND) {
+                    int index = getIndexByContent(content);
+                    if (index != -1) {
+                        setForegroundAt(index, content.getForegroundColor());
+                    }
+                }
+                else if (property == Property.LONG_TITLE) {
+                    updateTitledComponent(content);
                 }
             }
         };
@@ -205,6 +215,15 @@ public class DockTabs extends JTabbedPane implements DockChild {
                 }
             }
         }
+    }
+    
+    private void updatedState() {
+        dragStarted = 0;
+        repaint();
+        if (base != null) {
+            base.tabChanged(DockTabs.this, getCurrentContent());
+        }
+        updateTabComponents();
     }
     
     //==========================
@@ -265,11 +284,19 @@ public class DockTabs extends JTabbedPane implements DockChild {
         if (assoc.containsValue(content)) {
             return;
         }
-        assoc.put(content.getComponent(), content);
-        insertTab(content.getTitle(), null, content.getComponent(), null,
-                findInsertPosition(content.getTitle()));
+        addContent(content, findInsertPosition(content));
+    }
+    
+    private void addContent(DockContent content, int index) {
+        JComponent comp = content.getComponent();
+        if (content.getLongTitle() != null) {
+            comp = new TitledContent(content);
+        }
+        assoc.put(comp, content);
+        insertTab(content.getTitle(), null, comp, null, index);
         updateTabComponent(content);
         content.addListener(dockContentListener);
+        updateTitledComponent(content);
     }
     
     /**
@@ -279,14 +306,54 @@ public class DockTabs extends JTabbedPane implements DockChild {
      */
     @Override
     public void removeContent(DockContent content) {
-        assoc.remove(content.getComponent());
-        remove(content.getComponent());
+        /**
+         * Remove listener first, since removing the comp could trigger events
+         * (e.g. tab change setting a new long title).
+         */
         content.removeListener(dockContentListener);
+        JComponent comp = getComponentByContent(content);
+        assoc.remove(comp);
+        remove(comp);
         if (getTabCount() == 0) {
             parent.replace(this, null);
         }
         else if (getTabCount() == 1) {
             ((DockTabsContainer)parent).updateSingleAllowed();
+        }
+    }
+    
+    public void updateSingleAllowed() {
+        // Copy since updating may cause modifications to assoc during iteration
+        new ArrayList<>(assoc.values()).forEach(content -> updateTitledComponent(content));
+    }
+    
+    private void updateTitledComponent(DockContent content) {
+        JComponent comp = getComponentByContent(content);
+        if (content.getLongTitle() == null || ((DockTabsContainer)parent).isSingleAllowed()) {
+            if (comp instanceof TitledContent) {
+                // Remove title
+                int index = getIndexByContent(content);
+                setComponentAt(index, content.getComponent());
+                assoc.remove(comp);
+                assoc.put(content.getComponent(), content);
+            }
+        }
+        else {
+            if (comp instanceof TitledContent) {
+                // Update title
+                ((TitledContent) comp).setTitle(content.getLongTitle());
+            }
+            else {
+                // Add title
+                int index = getIndexByContent(content);
+                TitledContent titledContent = new TitledContent(null);
+                setComponentAt(index, titledContent);
+                // Add to new comp afterwards, otherwise the tab gets removed
+                titledContent.setComponent(content);
+                titledContent.setTitle(content.getLongTitle());
+                assoc.remove(comp);
+                assoc.put(titledContent, content);
+            }
         }
     }
     
@@ -345,13 +412,13 @@ public class DockTabs extends JTabbedPane implements DockChild {
 
     @Override
     public boolean isContentVisible(DockContent content) {
-        return getSelectedComponent() == content.getComponent();
+        return getSelectedComponent() != null && getSelectedComponent() == getComponentByContent(content);
     }
 
     @Override
     public List<DockContent> getContentsRelativeTo(DockContent content, int direction) {
         List<DockContent> result = new ArrayList<>();
-        int index = indexOfComponent(content.getComponent());
+        int index = indexOfComponent(getComponentByContent(content));
         if (index != -1) {
             if (direction == 1 || direction == 0) {
                 for (int i = index+1; i < getTabCount(); i++) {
@@ -372,7 +439,7 @@ public class DockTabs extends JTabbedPane implements DockChild {
         return assoc.get(getComponentAt(index));
     }
     
-    public JComponent getComponentByContent(DockContent content) {
+    private JComponent getComponentByContent(DockContent content) {
         for (Map.Entry<JComponent, DockContent> entry : assoc.entrySet()) {
             if (entry.getValue() == content) {
                 return entry.getKey();
@@ -381,7 +448,7 @@ public class DockTabs extends JTabbedPane implements DockChild {
         return null;
     }
     
-    private int getIndexByContent(DockContent content) {
+    public int getIndexByContent(DockContent content) {
         for (int i=0;i<getTabCount();i++) {
             if (getContent(i) == content) {
                 return i;
@@ -534,7 +601,7 @@ public class DockTabs extends JTabbedPane implements DockChild {
         //--------------------------
         int targetIndex = info.dropInfo.index;
         if (targetIndex == -1) {
-            targetIndex = findInsertPosition(info.importInfo.content.getTitle());
+            targetIndex = findInsertPosition(info.importInfo.content);
         }
         if (info.importInfo.source == this) {
             // Move within tab pane
@@ -546,10 +613,8 @@ public class DockTabs extends JTabbedPane implements DockChild {
             container.setSingleAllowedLocked();
             container.switchToTabs();
             info.importInfo.source.removeContent(content);
-            assoc.put(content.getComponent(), content);
-            insertTab(content.getTitle(), null, content.getComponent(), null, targetIndex);
-            updateTabComponent(content);
-            content.addListener(dockContentListener);
+            addContent(content, targetIndex);
+            content.setDockParent(parent);
             setSelectedIndex(targetIndex);
             container.resetSingleAllowed();
         }
@@ -573,6 +638,7 @@ public class DockTabs extends JTabbedPane implements DockChild {
         String toolTip = getToolTipTextAt(from);
         Icon icon = getIconAt(from);
         Component tabComp = getTabComponentAt(from);
+        DockContent content = getContent(from);
         removeTabAt(from);
         
         /**
@@ -582,6 +648,9 @@ public class DockTabs extends JTabbedPane implements DockChild {
          */
         if (from < to) {
             to--;
+        }
+        if (to == -1) {
+            to = findInsertPosition(content);
         }
         insertTab(title, icon, comp, toolTip, to);
         setTabComponentAt(to, tabComp);
@@ -627,6 +696,9 @@ public class DockTabs extends JTabbedPane implements DockChild {
             case TAB_ORDER:
                 order = (DockSetting.TabOrder)value;
                 break;
+            case TAB_COMPARATOR:
+                customComparator = (Comparator<DockContent>)value;
+                break;
         }
     }
     
@@ -639,6 +711,14 @@ public class DockTabs extends JTabbedPane implements DockChild {
         return getTabPlacement() == JTabbedPane.TOP || getTabPlacement() == JTabbedPane.BOTTOM;
     }
     
+    private static final Comparator<DockContent> ALPHABETIC_COMPARATOR = new Comparator<DockContent>() {
+        
+        @Override
+        public int compare(DockContent o1, DockContent o2) {
+            return o1.getTitle().compareToIgnoreCase(o2.getTitle());
+        }
+    };
+    
     /**
      * Returns the index this tab should be added at, depending on the current
      * order setting.
@@ -646,15 +726,40 @@ public class DockTabs extends JTabbedPane implements DockChild {
      * @param newTabName
      * @return 
      */
-    private int findInsertPosition(String newTabName) {
-        if (order == DockSetting.TabOrder.ALPHABETIC) {
+    private int findInsertPosition(DockContent content) {
+        Comparator<DockContent> comparator = customComparator;
+        if (comparator == null && order == DockSetting.TabOrder.ALPHABETIC) {
+            comparator = ALPHABETIC_COMPARATOR;
+        }
+        if (comparator != null) {
             for (int i = 0; i < getTabCount(); i++) {
-                if (newTabName.compareToIgnoreCase(getTitleAt(i)) < 0) {
+                DockContent tabContent = getContent(i);
+                if (comparator.compare(content, tabContent) < 0) {
                     return i;
                 }
             }
         }
         return getTabCount();
+    }
+    
+    @Override
+    public void sortContent(DockContent content) {
+        if (getTabCount() < 2) {
+            return;
+        }
+        if (content == null) {
+            // Prevent state update when remove/adding all tabs for sorting
+            sorting = true;
+            Component selected = getSelectedComponent();
+            List<DockContent> contents = getContents();
+            contents.forEach(c -> moveTab(getIndexByContent(c), -1));
+            setSelectedComponent(selected);
+            sorting = false;
+            updatedState();
+        }
+        else if (containsContent(content)) {
+            moveTab(getIndexByContent(content), -1);
+       }
     }
     
     /**
@@ -709,6 +814,55 @@ public class DockTabs extends JTabbedPane implements DockChild {
     @Override
     public DockPath buildPath(DockPath path, DockChild child) {
         return parent.buildPath(path, child);
+    }
+
+    @Override
+    public DockLayoutElement getLayoutElement() {
+        return new DockLayoutTabs(DockUtil.getContentIds(getContents()));
+    }
+
+    @Override
+    public void cleanUp() {
+        for (DockContent c : getContents()) {
+            c.removeListener(dockContentListener);
+        }
+    }
+    
+    private static class TitledContent extends JPanel {
+        
+        private final JLabel title;
+        
+        TitledContent(DockContent content) {
+            title = new JLabel() {
+
+                @Override
+                public Dimension getMinimumSize() {
+                    return new Dimension(0, 0);
+                }
+
+            };
+            
+            title.setBorder(BorderFactory.createEmptyBorder(2, 4, 4, 5));
+            title.setHorizontalAlignment(CENTER);
+            setLayout(new BorderLayout());
+            if (content != null) {
+                setComponent(content);
+            }
+        }
+        
+        public void setTitle(String newTitle) {
+            title.setText(newTitle);
+            title.setToolTipText(newTitle);
+        }
+        
+        public final void setComponent(DockContent content) {
+            // Component may be invisible from being in an inactive tab
+            content.getComponent().setVisible(true);
+            
+            add(title, BorderLayout.NORTH);
+            add(content.getComponent(), BorderLayout.CENTER);
+        }
+        
     }
     
 }

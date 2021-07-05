@@ -84,6 +84,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
 
@@ -232,6 +233,7 @@ public class TwitchClient {
         if (settings.getBoolean("abAutoImport")) {
             addressbook.enableAutoImport();
         }
+        Helper.addressbook = addressbook;
         
         initDxSettings();
         
@@ -417,7 +419,8 @@ public class TwitchClient {
         updateCustomCommands();
         
         // Request some stuff
-        api.getEmotesBySets("0");
+        // Don't request for now, since new API is a bit weird with :) emotes
+//        api.getEmotesBySets("0");
         
         // Before checkNewVersion(), so "updateAvailable" is already updated
         checkForVersionChange();
@@ -939,6 +942,10 @@ public class TwitchClient {
      */
     public boolean isChannelOpen(String channel) {
         return c.isChannelOpen(channel);
+    }
+    
+    public boolean isChannelJoined(String channel) {
+        return c.onChannel(channel, false);
     }
     
     public boolean isUserlistLoaded(String channel) {
@@ -1653,6 +1660,8 @@ public class TwitchClient {
             args.add("tduva");
             ModeratorActionData data = new ModeratorActionData("", "", "", room.getStream(), "denied_automod_message", args, "asdas", "TEST");
             g.printModerationAction(data, false);
+        } else if (command.equals("simulatepubsub")) {
+            pubsub.simulate(parameter);
         } else if (command.equals("repeat")) {
             String[] split = parameter.split(" ", 2);
             int count = Integer.parseInt(split[0]);
@@ -1715,6 +1724,18 @@ public class TwitchClient {
             ImageCache.deleteExpiredFiles();
         } else if (command.equals("sha1")) {
             g.printSystem(ImageCache.sha1(parameter));
+        } else if (command.equals("letstakeabreak")) {
+            try {
+                Thread.sleep(Integer.parseInt(parameter));
+            }
+            catch (InterruptedException ex) {
+                Logger.getLogger(TwitchClient.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (command.equals("infiniteloop")) {
+            while (true) {
+            }
+        } else if (command.equals("threadinfo")) {
+            LogUtil.logThreadInfo();
         }
     }
     
@@ -2130,36 +2151,6 @@ public class TwitchClient {
         return emotesetManager.getEmotesets();
     }
     
-    /**
-     * Outputs the emotesets for the local user. This might not work correctly
-     * if the user is changed or the emotesets change during the session.
-     */
-    private void commandMyEmotes() {
-        Set<String> emotesets = getEmotesets();
-        if (emotesets.isEmpty()) {
-            g.printLine("No subscriber emotes found. (Only works if you joined"
-                    + " any channel before.)");
-        } else {
-            StringBuilder b = new StringBuilder("Your subemotes: ");
-            String sep = "";
-            for (String emoteset : emotesets) {
-                b.append(sep);
-                if (Emoticons.isTurboEmoteset(emoteset)) {
-                    b.append("Turbo/Prime emotes");
-                } else {
-                    String sep2 = "";
-                    for (Emoticon emote : g.emoticons.getEmoticonsBySet(emoteset)) {
-                        b.append(sep2);
-                        b.append(emote.code);
-                        sep2 = ", ";
-                    }
-                }
-                sep = " / ";
-            }
-            g.printLine(b.toString());
-        }
-    }
-    
     private void commandFFZ(String channel) {
         Set<Emoticon> output;
         StringBuilder b = new StringBuilder();
@@ -2274,7 +2265,9 @@ public class TwitchClient {
             if (message.data != null) {
                 if (message.data instanceof ModeratorActionData) {
                     ModeratorActionData data = (ModeratorActionData) message.data;
-                    if (data.stream != null) {
+                    // A regular mod action that doesn't contain a mod action should be ignored
+                    boolean empty = data.type == ModeratorActionData.Type.OTHER && data.moderation_action.isEmpty() && data.args.isEmpty();
+                    if (data.stream != null && !empty) {
                         String channel = Helper.toChannel(data.stream);
                         g.printModerationAction(data, data.created_by.equals(c.getUsername()));
                         chatLog.modAction(data);
@@ -2326,10 +2319,10 @@ public class TwitchClient {
             
             // After adding emotes, update sets
             if (update.source == EmoticonUpdate.Source.USER_EMOTES
-                    && update.setsToRemove != null) {
-                // setsToRemove contains all sets (only for USER_EMOTES)
+                    && update.setsAdded != null) {
+                // setsAdded contains all sets (for USER_EMOTES)
                 // This may also update EmoteDialog etc.
-                emotesetManager.setEmotesets(update.setsToRemove);
+                emotesetManager.setUserEmotesets(update.setsAdded);
             }
             
             // Other stuff
@@ -2457,9 +2450,9 @@ public class TwitchClient {
         }
 
         @Override
-        public void autoModResult(String result, String msgId) {
-            g.autoModRequestResult(result, msgId);
-            autoModCommandHelper.requestResult(result, msgId);
+        public void autoModResult(TwitchApi.AutoModAction action, String msgId, TwitchApi.AutoModActionResult result) {
+            g.autoModRequestResult(action, msgId, result);
+            autoModCommandHelper.requestResult(action, msgId, result);
         }
 
         @Override
@@ -2930,6 +2923,7 @@ public class TwitchClient {
             if (Helper.isValidStream(stream)) {
                 api.getRoomBadges(stream, false);
                 api.getCheers(stream, false);
+                api.getEmotesByChannelId(stream, null, false);
                 requestChannelEmotes(stream);
                 frankerFaceZ.joined(stream);
                 checkModLogListen(user);
@@ -3009,6 +3003,11 @@ public class TwitchClient {
         @Override
         public void onInfo(String message) {
             g.printLine(message);
+        }
+        
+        @Override
+        public void onJoinScheduled(String channel) {
+            g.joinScheduled(channel);
         }
 
         @Override
@@ -3113,8 +3112,8 @@ public class TwitchClient {
         }
         
         @Override
-        public void onEmotesets(Set<String> emotesets) {
-            emotesetManager.setIrcEmotesets(emotesets);
+        public void onEmotesets(String channel, Set<String> emotesets) {
+            emotesetManager.setIrcEmotesets(channel, emotesets);
         }
 
         @Override
@@ -3127,9 +3126,11 @@ public class TwitchClient {
             if (error == TwitchConnection.JoinError.NOT_REGISTERED) {
                 String validChannels = Helper.buildStreamsString(toJoin);
                 if (c.isOffline()) {
-                    g.openConnectDialog(validChannels);
+                    prepareConnectionWithChannel(validChannels);
                 }
-                g.printLine(Language.getString("chat.joinError.notConnected", validChannels));
+                else {
+                    g.printLine(Language.getString("chat.joinError.notConnected", validChannels));
+                }
             } else if (error == TwitchConnection.JoinError.ALREADY_JOINED) {
                 if (toJoin.size() == 1) {
                     g.switchToChannel(errorChannel);

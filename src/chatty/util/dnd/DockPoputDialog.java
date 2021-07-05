@@ -20,7 +20,7 @@ public class DockPoputDialog extends JDialog implements DockPopout {
     
     public DockPoputDialog(DockManager m, Frame parent) {
         super(parent);
-        id = "frame"+(counter++);
+        id = "d"+(counter++);
         setLayout(new BorderLayout());
         base = new DockBase(m);
         add(base, BorderLayout.CENTER);
@@ -43,7 +43,7 @@ public class DockPoputDialog extends JDialog implements DockPopout {
     }
 
     @Override
-    public void setId() {
+    public void setId(String id) {
         this.id = id;
     }
     

@@ -514,7 +514,8 @@ public class TwitchConnection {
     
     
 
-    public void join(String channel) {
+    private void join(String channel) {
+        listener.onJoinScheduled(channel);
         irc.joinChannel(channel);
     }
     
@@ -715,7 +716,7 @@ public class TwitchConnection {
             
             if (autojoin != null) {
                 for (String channel : autojoin) {
-                    joinChannel(channel);
+                    join(channel);
                 }
                 /**
                  * Only use autojoin once, to prevent it from being used on
@@ -1362,7 +1363,7 @@ public class TwitchConnection {
             //--------------------------
             // Emotesets
             //--------------------------
-            listener.onEmotesets(Emoticons.parseEmotesets(tags.get("emote-sets")));
+            listener.onEmotesets(channel, Emoticons.parseEmotesets(tags.get("emote-sets")));
         }
         
         @Override
@@ -1528,6 +1529,8 @@ public class TwitchConnection {
 
     public interface ConnectionListener {
 
+        void onJoinScheduled(String channel);
+        
         void onJoinAttempt(Room room);
 
         void onChannelJoined(User user);
@@ -1590,7 +1593,7 @@ public class TwitchConnection {
 
         void onConnectionStateChanged(int state);
         
-        void onEmotesets(Set<String> emotesets);
+        void onEmotesets(String channel, Set<String> emotesets);
 
         void onConnectError(String message);
         

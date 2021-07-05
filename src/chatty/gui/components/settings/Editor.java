@@ -5,6 +5,7 @@ import chatty.gui.GuiUtil;
 import chatty.gui.components.LinkLabel;
 import chatty.gui.components.LinkLabelListener;
 import chatty.lang.Language;
+import chatty.util.LineNumbers;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -46,6 +47,7 @@ public class Editor implements StringEditor {
     private final JDialog dialog;
     private final JLabel label;
     private final JTextArea input;
+    private final JScrollPane scrollpane;
     private final JButton okButton = new JButton(Language.getString("dialog.button.save"));
     private final JButton cancelButton = new JButton(Language.getString("dialog.button.cancel"));
     private final JButton testButton = new JButton(Language.getString("dialog.button.test"));
@@ -56,6 +58,7 @@ public class Editor implements StringEditor {
     private DataFormatter<String> formatter;
     private Tester tester;
     private boolean allowEmpty;
+    private boolean showInfoByDefault;
 
     private String result;
 
@@ -96,7 +99,8 @@ public class Editor implements StringEditor {
         input.setFont(Font.decode(Font.MONOSPACED));
         GuiUtil.installLengthLimitDocumentFilter(input, INPUT_LENGTH_LIMIT, false);
         GuiUtil.resetFocusTraversalKeys(input);
-        dialog.add(new JScrollPane(input), gbc);
+        scrollpane = new JScrollPane(input);
+        dialog.add(scrollpane, gbc);
         
         gbc = GuiUtil.makeGbc(0, 4, 3, 1);
         gbc.insets = new Insets(5, 8, 8, 8);
@@ -160,6 +164,9 @@ public class Editor implements StringEditor {
         if (info == null) {
             this.info.setVisible(false);
         }
+        else {
+            this.info.setVisible(showInfoByDefault);
+        }
         toggleInfoButton.setVisible(info != null);
         toggleInfoButton.setSelected(this.info.isVisible());
         result = null;
@@ -218,6 +225,11 @@ public class Editor implements StringEditor {
      */
     public final void setAllowLinebreaks(boolean allow) {
         GuiUtil.installLengthLimitDocumentFilter(input, INPUT_LENGTH_LIMIT, allow);
+        scrollpane.setRowHeaderView(allow ? new LineNumbers(input) : null);
+    }
+    
+    public final void setShowInfoByDefault(boolean show) {
+        this.showInfoByDefault = show;
     }
     
     private String format(String input) {

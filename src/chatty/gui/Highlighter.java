@@ -9,6 +9,7 @@ import chatty.User;
 import chatty.util.Debugging;
 import chatty.util.MiscUtil;
 import chatty.util.Pair;
+import chatty.util.RepeatMsgHelper;
 import chatty.util.StringUtil;
 import chatty.util.api.usericons.BadgeType;
 import chatty.util.commands.CustomCommand;
@@ -17,6 +18,7 @@ import chatty.util.irc.MsgTags;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -478,7 +480,7 @@ public class Highlighter {
         private String mainPrefix;
         private String error;
         private boolean patternWarning;
-        private List<Pair<String, String>> modifications = new ArrayList<>();
+        private List<Modification> modifications = new ArrayList<>();
         
         //==========================
         // State (per match)
@@ -566,7 +568,7 @@ public class Highlighter {
                     item = item.trim();
                     Parameters parameters = Parameters.create(item);
                     String newItem = ccf.replace(parameters);
-                    modifications.add(new Pair<>(item, newItem));
+                    modifications.add(new Modification(item, newItem, ccf.getName()));
                     item = newItem;
                 }
             }
@@ -628,6 +630,13 @@ public class Highlighter {
                     Pattern p = compilePattern(Pattern.quote(parsePrefix(item, "user:").toLowerCase(Locale.ENGLISH)));
                     addUserItem("Username", p, user -> {
                         return p.matcher(user.getName()).matches();
+                    });
+                }
+                else if (item.startsWith("!user:")) {
+                    // Not sure why user: uses a Pattern, but this should do as well
+                    String username = parsePrefix(item, "!user:").toLowerCase(Locale.ENGLISH);
+                    addUserItem("Not Username", username, user -> {
+                        return !user.getName().equals(username);
                     });
                 }
                 else if (item.startsWith("reuser:")) {
@@ -761,6 +770,45 @@ public class Highlighter {
                                 return user.getNumberOfMessages() == 0;
                             });
                         }
+                        else if (part.startsWith("repeatedmsg")) {
+//                            String options = parsePrefix(item, "repeatmsg:");
+//                            String[] split = options.split("/");
+//                            int minRepeat = 2;
+//                            float minSimilarity = 0.8f;
+//                            int timeframe = 3600;
+//                            for (String option : split) {
+//                                Pattern timeframePattern = Pattern.compile("([0-9]+)([smhd])");
+//                                Matcher timeframeMatcher = timeframePattern.matcher(item);
+//                                if (timeframeMatcher.matches()) {
+//                                    timeframe = Integer.parseInt(timeframeMatcher.group(1)) * CommandMenuItems.getFactor(timeframeMatcher.group(2));
+//                                }
+//                                else if (option.matches("[0-9]+")) {
+//                                    minRepeat = Integer.parseInt(option);
+//                                }
+//                                else if (option.matches("[0-9]+\\.[0-9]+")) {
+//                                    minSimilarity = Float.parseFloat(option);
+//                                }
+//                            }
+//                            int minRepeat2 = minRepeat;
+//                            int timeframe2 = timeframe;
+//                            float minSimilarity2 = minSimilarity;
+                            String[] split = part.split("\\|");
+                            int requiredMsgNumber;
+                            if (split.length == 2 && split[1].matches("[0-9]+")) {
+                                requiredMsgNumber = Integer.parseInt(split[1]);
+                            }
+                            else {
+                                // Tag won't be set if general setting isn't satisified, so this is just no further requirement
+                                requiredMsgNumber = 1;
+                            }
+                            matchItems.add(new Item("Repeated User Message", null, false) {
+
+                                @Override
+                                public boolean matches(String text, Blacklist blacklist, String channel, Addressbook ab, User user, User localUser, MsgTags tags) {
+                                    return tags != null && RepeatMsgHelper.getRepeatMsg(tags) >= requiredMsgNumber;
+                                }
+                            });
+                        }
                         else if (part.equals("hl")) {
                             addTagsItem("Highlighted by channel points", null, t -> {
                                 return t.isHighlightedMessage();
@@ -828,7 +876,7 @@ public class Highlighter {
                     else {
                         if (applyPresets) {
                             String newItem = applyCustomCommandFunction(split[0], split[1]);
-                            modifications.add(new Pair<>(item, newItem));
+                            modifications.add(new Modification(item, newItem, "ccf:"));
                             prepare(newItem);
                         }
                         else {
@@ -870,7 +918,7 @@ public class Highlighter {
                         }
                     }
                     String newItem = StringUtil.append(result, " ", remaining);
-                    modifications.add(new Pair(item, newItem));
+                    modifications.add(new Modification(item, newItem, "preset:"));
                     prepare(newItem);
                 }
                 else if (item.startsWith("n:")) {
@@ -1086,7 +1134,7 @@ public class Highlighter {
                     pattern = NO_MATCH;
                 }
                 else {
-                    modifications.add(new Pair<>(commandText, result));
+                    modifications.add(new Modification(commandText, result, "cc:"));
                     prepare(result);
                 }
             }
@@ -1401,9 +1449,9 @@ public class Highlighter {
                     result.append("Shortened.. too many modifications.\n\n");
                     break;
                 }
-                Pair<String, String> p = modifications.get(i);
-                result.append("   ").append(p.key).append("\n");
-                result.append("-> ").append(p.value).append("\n\n");
+                Modification p = modifications.get(i);
+                result.append(String.join("", Collections.nCopies(p.source.length()+3, " "))).append(p.from).append("\n");
+                result.append("[").append(p.source).append("] ").append(p.to).append("\n\n");
             }
             result.append("Applies to: ").append(appliesToType.description).append("\n");
             if (pattern != null) {
@@ -1823,6 +1871,19 @@ public class Highlighter {
             return result;
         }
 
+    }
+
+    private static class Modification {
+
+        public final String from;
+        public final String to;
+        public final String source;
+        
+        public Modification(String from, String to, String source) {
+            this.from = from;
+            this.to = to;
+            this.source = source;
+        }
     }
     
 }

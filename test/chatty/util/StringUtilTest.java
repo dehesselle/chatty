@@ -164,4 +164,56 @@ public class StringUtilTest {
         }));
     }
     
+    @Test
+    public void testSimilarity() {
+        assertEquals(1, StringUtil.getSimilarity("", ""), 0);
+        assertEquals(0, StringUtil.getSimilarity("a", ""), 0);
+        assertEquals(0, StringUtil.getSimilarity("a", "b"), 0);
+        assertEquals(0.6, StringUtil.getSimilarity("abc", "ab"), 0.1);
+        assertEquals(0.8, StringUtil.getSimilarity("abcd", "abc"), 0.1);
+        assertEquals(0.83, StringUtil.getSimilarity("This is a longer message", "This is a message that's longer"), 0.1);
+        assertEquals(0.25, StringUtil.getSimilarity("night", "nacht"), 0.01);
+        assertEquals(0.25, StringUtil.getSimilarity2("night", "nacht"), 0.01);
+        assertEquals(0.5, StringUtil.getSimilarity("aa", "aaaa"), 0.01);
+        assertEquals(1, StringUtil.getSimilarity2("aa", "aaaa"), 0.01);
+        
+        assertEquals(1, StringUtil.checkSimilarity("", "", 0, 1), 0);
+        assertEquals(1, StringUtil.checkSimilarity("", "", 1, 1), 0);
+        assertEquals(0, StringUtil.checkSimilarity("a", "", 0, 1), 0);
+        assertEquals(0, StringUtil.checkSimilarity("a", "", 0.1f, 1), 0);
+        
+        assertEquals(0, StringUtil.checkSimilarity("aa", "aaaa", 0.6f, 1), 0.1);
+        assertEquals(0.5, StringUtil.checkSimilarity("aa", "aaaa", 0.5f, 1), 0.01);
+        assertEquals(1, StringUtil.checkSimilarity("aa", "aaaa", 0.6f, 2), 0.1);
+        
+        assertTrue(StringUtil.checkSimilarity("This is a longer message", "This is a message that's longer", 0.8f, 1) > 0);
+    }
+    
+    @Test
+    public void testRemoveWhitespaceAndMore() {
+        assertEquals("", StringUtil.removeWhitespaceAndMore("!!", new char[]{'!'}));
+        assertEquals("abc", StringUtil.removeWhitespaceAndMore("abc!", new char[]{'!'}));
+        assertEquals("abc↗", StringUtil.removeWhitespaceAndMore("!abc!↗", new char[]{'!'}));
+        assertEquals("abc", StringUtil.removeWhitespaceAndMore("!abc!↗", new char[]{'!', '↗'}));
+        assertEquals("🐱", StringUtil.removeWhitespaceAndMore("!🐱!↗", new char[]{'!', '↗'}));
+        // Array not sorted correctly, result is undefined, so not sure if this test works
+//        assertEquals("!🐱!", StringUtil.removeWhitespaceAndMore("!🐱!↗", new char[]{'↗', '!'}));
+        
+        /**
+         * Specifying a surrogate character directly would remove it, but most
+         * of the time that would probably not be what is wanted.
+         * 
+         * StringUtil.getCharsFromString() can be used to ignore surrogates,
+         * which excludes all chracters outside the BMP. This can be ok if the
+         * use-case doesn't require it.
+         */
+        assertEquals("🐱", StringUtil.removeWhitespaceAndMore("!🐱!↗", StringUtil.getCharsFromString("!↗")));
+        assertEquals("🐱", StringUtil.removeWhitespaceAndMore("!🐱!↗", StringUtil.getCharsFromString("↗!")));
+        assertEquals("🐱", StringUtil.removeWhitespaceAndMore("!🐱!↗", StringUtil.getCharsFromString("↗!🐱abc")));
+        assertEquals("!🐱!↗", StringUtil.removeWhitespaceAndMore("!🐱!↗", StringUtil.getCharsFromString("🐱")));
+        assertEquals("!🐱!↗", StringUtil.removeWhitespaceAndMore("!🐱!↗", StringUtil.getCharsFromString("\uD83D")));
+        // Surrogate directly specified, leaves the other surrogate
+        assertEquals("!\uDC31!↗", StringUtil.removeWhitespaceAndMore("!🐱!↗", new char[]{'\uD83D'}));
+    }
+    
 }

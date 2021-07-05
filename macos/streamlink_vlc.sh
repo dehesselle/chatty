@@ -1,6 +1,6 @@
 # https://github.com/dehesselle/chatty
 #
-# A wrapper script to use VLC as videoplayer (in conjunction with Streamlink).
+# A wrapper script to use VLC as videoplayer in conjunction with Streamlink.
 
 #--- environment ---------------------------------------------------------------
 
@@ -25,8 +25,12 @@ fi
 
 if $OK; then
   export PATH=$PYTHON_BIN_DIR:$PATH
+
   export PYTHONPYCACHEPREFIX=$HOME/Library/Caches/Chatty
-  [ ! -d $PYTHONPYCACHEPREFIX ] && mkdir $PYTHONPYCACHEPREFIX
-  $STREAMLINK_DIR/bin/streamlink -p "$VLC --meta-title $STREAM" twitch.tv/$STREAM $QUALITY
+  if [ ! -d $PYTHONPYCACHEPREFIX ]; then
+    mkdir $PYTHONPYCACHEPREFIX
+  fi
+
+  $STREAMLINK_DIR/bin/streamlink --player $VLC --title {title} twitch.tv/$STREAM $QUALITY
   exit 0
 fi

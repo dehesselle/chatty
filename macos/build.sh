@@ -36,13 +36,14 @@ SELF_DIR=$(cd $(dirname "$0"); pwd -P)
 REPO_DIR=$SELF_DIR/..
 . $REPO_DIR/macos/version.sh   # include version information
 
-if [ "$(uname -m)" = "arm64" ]; then
+if [ "$(uname -p)" = "arm" ]; then
   export SDKROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk
 else
   export SDKROOT=/opt/sdks/MacOSX10.11.sdk
 fi
 
-export MACOSX_DEPLOYMENT_TARGET=$(/usr/libexec/PlistBuddy -c "Print :DefaultProperties:MACOSX_DEPLOYMENT_TARGET" "$SDKROOT"/SDKSettings.plist)
+MACOSX_DEPLOYMENT_TARGET=$(/usr/libexec/PlistBuddy -c "Print :DefaultProperties:MACOSX_DEPLOYMENT_TARGET" "$SDKROOT"/SDKSettings.plist)
+export MACOSX_DEPLOYMENT_TARGET
 
 set -e
 
@@ -55,29 +56,18 @@ WORK_DIR=/Volumes/$RAMDISK_VOL
 ### build Chatty jar ###########################################################
 
 cd $WORK_DIR
-cp -r $REPO_DIR $WORK_DIR/chatty
+cp -r "$REPO_DIR" $WORK_DIR/chatty
 cd chatty
 ./gradlew release
 
 ### download Python 3 framework ################################################
 
-if [ "$(uname -m)" = "arm64" ]; then
-  PY3_MAJOR=3
-  PY3_MINOR=9
-  PY3_PATCH=4
+PY3_MAJOR=3
+PY3_MINOR=9
 
-  cd $WORK_DIR
-  tar -xpf /Volumes/Public/py394arm64.tar --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
-  xattr -r -d com.apple.quarantine Python.framework
-else
-  PY3_MAJOR=3
-  PY3_MINOR=8
-  PY3_PATCH=6
-  PY3_BUILD=1   # custom framework build number
-
-  cd $WORK_DIR
-  curl -L https://github.com/dehesselle/py3framework/releases/download/py$PY3_MAJOR$PY3_MINOR$PY3_PATCH.$PY3_BUILD/py$PY3_MAJOR$PY3_MINOR${PY3_PATCH}_framework_$PY3_BUILD.tar.xz | tar -xJp --exclude="Versions/$PY3_MAJOR.$PY3_MINOR/lib/python$PY3_MAJOR.$PY3_MINOR/test/"'*'
-fi
+cd $WORK_DIR
+curl -L https://gitlab.com/dehesselle/python_macos/-/jobs/artifacts/master/raw/python_$PY3_MAJOR${PY3_MINOR}_$(uname -p).tar.xz?job=python$PY3_MAJOR$PY3_MINOR:$(uname -p) | tar -xp
+xattr -r -d com.apple.quarantine Python.framework
 
 ### download Streamlink ########################################################
 

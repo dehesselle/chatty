@@ -71,7 +71,7 @@ xattr -r -d com.apple.quarantine Python.framework
 
 ### download Streamlink ########################################################
 
-STREAMLINK_VER=2.1.1
+STREAMLINK_VER=2.2.0
 STREAMLINK_DIR=$WORK_DIR/streamlink
 export PATH=$WORK_DIR/Python.framework/Versions/Current/bin:$PATH
 pip3 install --prefix=$STREAMLINK_DIR --ignore-installed streamlink==$STREAMLINK_VER

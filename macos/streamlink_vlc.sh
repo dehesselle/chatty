@@ -31,6 +31,6 @@ if $OK; then
     mkdir $PYTHONPYCACHEPREFIX
   fi
 
-  $STREAMLINK_DIR/bin/streamlink --player $VLC --title {title} twitch.tv/$STREAM $QUALITY
+  $STREAMLINK_DIR/bin/streamlink --player $VLC --title {title} https://twitch.tv/$STREAM $QUALITY
   exit 0
 fi

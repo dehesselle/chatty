@@ -25,12 +25,12 @@ grep 'mp4' | grep -v 'audio only' | awk '{ print $1 }' | head -1
          ;;
       "")
          quality="Available streams: "
-         
+
          for item in  $($(dirname $IINA)/youtube-dl --list-formats https://www.twitch.tv/$STREAM |
             grep 'mp4' | awk '{ print $1 }'); do
             quality="$quality $item,"
          done
-         
+
          quality="${quality%?}"
          echo $quality
          ;;
@@ -55,7 +55,7 @@ if $OK; then
    if [ -z "$QUALITY" ]; then
       get_format ""
    else
-      $IINA --mpv-ytdl-format=$(get_format $QUALITY) https://www.twitch.tv/$STREAM
+      $IINA --mpv-ytdl-format=$(get_format $QUALITY) http://www.twitch.tv/$STREAM
    fi
    exit 0
 fi

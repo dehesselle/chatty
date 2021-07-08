@@ -69,6 +69,8 @@ cd $WORK_DIR
 curl -L https://gitlab.com/dehesselle/python_macos/-/jobs/artifacts/master/raw/python_$PY3_MAJOR${PY3_MINOR}_$(uname -p).tar.xz?job=python$PY3_MAJOR$PY3_MINOR:$(uname -p) | tar -xp
 xattr -r -d com.apple.quarantine Python.framework
 
+export PYTHONPYCACHEPREFIX=$WORK_DIR   # redirect cache files
+
 ### download Streamlink ########################################################
 
 STREAMLINK_VER=2.2.0

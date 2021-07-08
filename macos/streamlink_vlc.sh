@@ -4,33 +4,27 @@
 
 #--- environment ---------------------------------------------------------------
 
-STREAMLINK_DIR=$RESOURCES_DIR/streamlink
+PYTHON_BIN_DIR=$RESOURCES_DIR/../Frameworks/Python.framework/Versions/Current/bin
+export PATH=$PYTHON_BIN_DIR:$PATH
 
+STREAMLINK_DIR=$RESOURCES_DIR/streamlink
 export PYTHONPATH=$(echo $STREAMLINK_DIR/lib/python*/site-packages)
+
+export PYTHONPYCACHEPREFIX=$HOME/Library/Caches/Chatty
 
 VLC=/Applications/VLC.app/Contents/MacOS/VLC
 
-OK=true
-
 #--- main ----------------------------------------------------------------------
 
-if [ -f $VLC ]; then
-  OK=true
-elif [ -f $HOME/$VLC ]; then
+if   [ -x $VLC ]; then
+  :
+elif [ -x $HOME/$VLC ]; then
   VLC=$HOME/$VLC
-  OK=true
 else
-  OK=false
+  VLC=/doesnotexist
 fi
 
-if $OK; then
-  export PATH=$PYTHON_BIN_DIR:$PATH
-
-  export PYTHONPYCACHEPREFIX=$HOME/Library/Caches/Chatty
-  if [ ! -d $PYTHONPYCACHEPREFIX ]; then
-    mkdir $PYTHONPYCACHEPREFIX
-  fi
-
+if [ -x $VLC ]; then
   $STREAMLINK_DIR/bin/streamlink --player $VLC --title {title} https://twitch.tv/$STREAM $QUALITY
   exit 0
 fi

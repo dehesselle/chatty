@@ -9,7 +9,6 @@
 #--- environment ---------------------------------------------------------------
 
 RESOURCES_DIR=$(dirname $0)/..
-PYTHON_BIN_DIR=$RESOURCES_DIR/../Frameworks/Python.framework/Versions/Current/bin
 SCRIPTS_DIR=$RESOURCES_DIR/scripts
 CONFIG_DIR=$HOME/Library/Application\ Support/Chatty
 ARGS="$*"                    # e.g. 'twitch.tv/channelname best'

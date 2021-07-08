@@ -6,8 +6,6 @@
 
 IINA=/Applications/IINA.app/Contents/MacOS/iina-cli
 
-OK=true
-
 #--- functions -----------------------------------------------------------------
 
 function get_format
@@ -42,16 +40,15 @@ grep 'mp4' | grep -v 'audio only' | awk '{ print $1 }' | head -1
 
 #--- main ----------------------------------------------------------------------
 
-if [ -f $IINA ]; then
-   OK=true
-elif [ -f $HOME/$IINA ]; then
+if   [ -x $IINA ]; then
+   :
+elif [ -x $HOME/$IINA ]; then
    IINA=$HOME/$IINA
-   OK=true
 else
-   OK=false
+   IINA=/doesnotexist
 fi
 
-if $OK; then
+if [ -x $IINA ]; then
    if [ -z "$QUALITY" ]; then
       get_format ""
    else
